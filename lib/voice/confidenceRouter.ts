@@ -49,7 +49,7 @@ export function routeConfidence(confidence: number): ConfidenceResult {
  * 명령 배열에서 가장 낮은 확신도 기준으로 분기
  */
 export function routeCommands(
-  commands: Array<{ confidence: number; [key: string]: unknown }>
+  commands: Array<{ confidence: number }>
 ): ConfidenceResult {
   if (commands.length === 0) {
     return { level: 'low', shouldExecute: false, shouldConfirm: false, shouldAsk: true }
