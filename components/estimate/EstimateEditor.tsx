@@ -217,6 +217,7 @@ export default function EstimateEditor({
       {/* 헤더 */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-white px-4 py-2.5 shadow-sm">
         <div className="flex items-center gap-2">
+          <a href="/estimates" className="text-gray-400 hover:text-gray-600">&larr;</a>
           <h1 className="text-sm font-bold text-brand">방수명가 견적서</h1>
           {estimate.mgmt_no && (
             <span className="text-xs text-gray-400">{estimate.mgmt_no}</span>

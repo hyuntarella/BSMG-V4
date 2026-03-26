@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 모바일 키보드 열릴 때 VoiceBar 위치 조정 */
+@supports (height: 100dvh) {
+  .fixed.bottom-0 {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* 인라인 편집 시 스크롤 여백 확보 */
+body {
+  scroll-padding-bottom: 80px;
+}
+
+/* PWA standalone 모드에서 상태바 영역 확보 */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}

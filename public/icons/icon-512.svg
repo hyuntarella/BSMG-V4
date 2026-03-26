@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#A11D1F"/>
+  <text x="256" y="200" text-anchor="middle" font-family="sans-serif" font-size="72" font-weight="700" fill="white">방수</text>
+  <text x="256" y="310" text-anchor="middle" font-family="sans-serif" font-size="72" font-weight="700" fill="white">명가</text>
+  <text x="256" y="400" text-anchor="middle" font-family="sans-serif" font-size="40" fill="rgba(255,255,255,0.7)">견적서</text>
+</svg>
