@@ -12,6 +12,7 @@ import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
+import EmailModal from './EmailModal'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -23,6 +24,9 @@ export default function EstimateEditor({
   priceMatrix,
 }: EstimateEditorProps) {
   const [activeTab, setActiveTab] = useState<TabId>('cover')
+  const [saving, setSaving] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [emailSending, setEmailSending] = useState(false)
 
   const {
     estimate,
@@ -53,6 +57,54 @@ export default function EstimateEditor({
       : activeTab === 'urethane'
         ? estimate.sheets.findIndex((s) => s.type === '우레탄')
         : -1
+
+  // ── 저장 (generate API) ──
+  const handleSave = useCallback(async () => {
+    if (!estimate.id || saving) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        voice.playTts(`저장 완료. 관리번호 ${estimate.mgmt_no ?? ''}.`)
+      } else {
+        voice.playTts('저장에 실패했습니다.')
+      }
+    } catch {
+      voice.playTts('저장 중 오류가 발생했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimate.id, estimate.mgmt_no, saving])
+
+  // ── 이메일 발송 ──
+  const handleEmail = useCallback(async (to: string) => {
+    if (!estimate.id) return
+    setEmailSending(true)
+    try {
+      // 먼저 저장
+      await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
+
+      const res = await fetch(`/api/estimates/${estimate.id}/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to }),
+      })
+      const data = await res.json()
+      setEmailOpen(false)
+      if (data.success) {
+        voice.playTts(`${to}으로 발송 완료.`)
+      } else {
+        voice.playTts('이메일 발송에 실패했습니다.')
+      }
+    } catch {
+      voice.playTts('이메일 발송 중 오류가 발생했습니다.')
+    } finally {
+      setEmailSending(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimate.id])
 
   // 음성 모드 결정
   const voiceMode =
@@ -85,6 +137,12 @@ export default function EstimateEditor({
 
       if (sysCmd) {
         switch (sysCmd.action) {
+          case 'save':
+            handleSave()
+            return
+          case 'email':
+            setEmailOpen(true)
+            return
           case 'undo':
             undo()
             return
@@ -104,7 +162,7 @@ export default function EstimateEditor({
         applyVoiceCommands(commands, targetSheet)
       }
     },
-    [activeSheetIndex, estimate.sheets, applyVoiceCommands, pushUndo, undo],
+    [activeSheetIndex, estimate.sheets, applyVoiceCommands, pushUndo, undo, handleSave],
   )
 
   // 음성 훅
@@ -145,8 +203,22 @@ export default function EstimateEditor({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving || !estimate.id}
+            className="rounded bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          >
+            {saving ? '저장 중...' : '저장'}
+          </button>
+          <button
+            onClick={() => setEmailOpen(true)}
+            disabled={!estimate.id}
+            className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
+          >
+            이메일
+          </button>
           {isDirty && (
-            <span className="text-xs text-amber-500">저장 중...</span>
+            <span className="text-xs text-amber-500">변경됨</span>
           )}
           {!hasComplex && (
             <button
@@ -213,6 +285,14 @@ export default function EstimateEditor({
           <CompareSheet sheets={estimate.sheets} m2={estimate.m2} />
         )}
       </main>
+
+      {/* 이메일 모달 */}
+      <EmailModal
+        open={emailOpen}
+        onSend={handleEmail}
+        onClose={() => setEmailOpen(false)}
+        sending={emailSending}
+      />
 
       {/* 음성 바 */}
       <VoiceBar
