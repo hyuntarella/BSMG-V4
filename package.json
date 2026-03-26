@@ -1,0 +1,41 @@
+{
+  "name": "bsmg-v4",
+  "version": "1.0.0",
+  "description": "방수명가 견적서 v4",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyuntarella/BSMG-V4.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hyuntarella/BSMG-V4/issues"
+  },
+  "homepage": "https://github.com/hyuntarella/BSMG-V4#readme",
+  "dependencies": {
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.100.0",
+    "@types/node": "^25.5.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.4.27",
+    "next": "^14.2.35",
+    "postcss": "^8.5.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
