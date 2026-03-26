@@ -18,6 +18,9 @@ export interface VoiceCommand {
   category?: string
   percent?: number
   position?: number
+  query?: string
+  date?: string
+  tab?: string
   confidence: number
 }
 

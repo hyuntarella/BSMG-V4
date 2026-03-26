@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
 import { useEstimate } from '@/hooks/useEstimate'
@@ -23,6 +24,7 @@ export default function EstimateEditor({
   initialEstimate,
   priceMatrix,
 }: EstimateEditorProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('cover')
   const [saving, setSaving] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
@@ -132,7 +134,7 @@ export default function EstimateEditor({
     (commands: VoiceCommand[]) => {
       // 시스템 명령 처리
       const sysCmd = commands.find((c) =>
-        ['save', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare'].includes(c.action)
+        ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare'].includes(c.action)
       )
 
       if (sysCmd) {
@@ -143,6 +145,24 @@ export default function EstimateEditor({
           case 'email':
             setEmailOpen(true)
             return
+          case 'load': {
+            const cmd = sysCmd
+            const query = cmd.query ?? cmd.target ?? ''
+            const date = cmd.date ?? ''
+            const params = new URLSearchParams()
+            if (query) params.set('q', query)
+            if (date) params.set('date', date)
+            fetch(`/api/estimates/search?${params}`)
+              .then(r => r.json())
+              .then(data => {
+                if (data.estimates?.length > 0) {
+                  router.push(`/estimate/${data.estimates[0].id}`)
+                } else {
+                  voice.playTts('해당 견적서를 찾을 수 없습니다.')
+                }
+              })
+            return
+          }
           case 'undo':
             undo()
             return
