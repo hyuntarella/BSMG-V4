@@ -10,7 +10,7 @@ import { useVoice } from '@/hooks/useVoice'
 import { useVoiceFlow } from '@/hooks/useVoiceFlow'
 import { useWakeWord } from '@/hooks/useWakeWord'
 import { findPriceForMargin } from '@/lib/estimate/costBreakdown'
-import { downloadJson } from '@/lib/estimate/jsonIO'
+// jsonIO는 저장 시 내부적으로만 사용 (헤더 버튼 제거됨)
 import TabBar, { type TabId } from './TabBar'
 import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
@@ -229,7 +229,7 @@ export default function EstimateEditor({
             {saving ? '저장중' : '저장'}
           </button>
           <button onClick={() => setEmailOpen(true)} className="rounded border border-brand px-2.5 py-1 text-xs text-brand">이메일</button>
-          <button onClick={() => downloadJson(estimate, `${estimate.mgmt_no ?? 'estimate'}.json`)} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600">JSON</button>
+          <button onClick={() => window.open('/proposal.html', '_blank')} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600">제안서</button>
           {snapshots.length > 0 && (
             <button onClick={() => setShowChangeLog(!showChangeLog)} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600">
               이력 {snapshots.length}

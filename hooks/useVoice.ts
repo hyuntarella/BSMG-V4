@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import type { VoiceCommand } from '@/lib/voice/commands'
+import { EXTRACT_SYSTEM, SUPPLEMENT_SYSTEM, getModifySystem, COMMAND_SYSTEM } from '@/lib/voice/prompts'
 
 export type VoiceStatus = 'idle' | 'recording' | 'processing' | 'speaking'
 export type VoiceMode = 'extract' | 'supplement' | 'modify' | 'command'
@@ -299,10 +300,6 @@ function buildLlmPayload(
   estimateContext?: string,
   recentCommands?: VoiceCommand[],
 ): { system: string; user: string } {
-  // 동적 import 안 되므로 인라인
-  const { EXTRACT_SYSTEM, SUPPLEMENT_SYSTEM, getModifySystem, COMMAND_SYSTEM } =
-    require('@/lib/voice/prompts')
-
   switch (mode) {
     case 'extract':
       return { system: EXTRACT_SYSTEM, user: text }

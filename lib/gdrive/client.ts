@@ -33,11 +33,10 @@ export async function uploadToDrive(
   // 같은 이름 파일 확인
   const existingName = await getVersionedName(drive, folderId, fileName)
 
+  const { Readable } = await import('stream')
   const media = {
     mimeType,
-    body: typeof content === 'string'
-      ? require('stream').Readable.from([content])
-      : require('stream').Readable.from([content]),
+    body: Readable.from([typeof content === 'string' ? Buffer.from(content) : content]),
   }
 
   const res = await drive.files.create({

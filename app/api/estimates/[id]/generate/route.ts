@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWorkbook, workbookToBuffer } from '@/lib/excel/generateWorkbook'
 import { generateEstimateHtml } from '@/lib/pdf/generatePdf'
+import { uploadToDrive, getEstimateFolderId } from '@/lib/gdrive/client'
+import { exportToJson } from '@/lib/estimate/jsonIO'
 import type { Estimate, EstimateSheet, EstimateItem } from '@/lib/estimate/types'
 
 const supabase = createClient(
@@ -130,6 +132,34 @@ export async function POST(
       .from('estimates')
       .getPublicUrl(htmlPath)
 
+    // JSON 생성 & 업로드
+    const jsonStr = exportToJson(estimate)
+    const jsonBuffer = Buffer.from(jsonStr, 'utf-8')
+    const jsonPath = `${folderPath}/견적서_${mgmtNo}.json`
+    await supabase.storage
+      .from('estimates')
+      .upload(jsonPath, jsonBuffer, {
+        contentType: 'application/json',
+        upsert: true,
+      })
+
+    // Google Drive 업로드 (환경변수 있을 때만)
+    let driveUrl = ''
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      try {
+        const driveFolderId = getEstimateFolderId()
+        const driveResult = await uploadToDrive(
+          driveFolderId,
+          `견적서_${mgmtNo}.xlsx`,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          excelBuffer,
+        )
+        driveUrl = driveResult.url
+      } catch (driveErr) {
+        console.error('Google Drive 업로드 실패 (무시):', driveErr)
+      }
+    }
+
     // DB 업데이트
     await supabase
       .from('estimates')
@@ -147,6 +177,7 @@ export async function POST(
       mgmt_no: mgmtNo,
       excel_url: excelUrl.publicUrl,
       pdf_url: htmlUrl.publicUrl,
+      drive_url: driveUrl || undefined,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : '생성 실패'

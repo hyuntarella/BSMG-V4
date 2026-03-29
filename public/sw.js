@@ -4,7 +4,6 @@ const OFFLINE_URL = '/offline'
 
 const PRECACHE_URLS = [
   '/',
-  '/dashboard',
   '/login',
   '/manifest.json',
   '/icons/icon-192.svg',
