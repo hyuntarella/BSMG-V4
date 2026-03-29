@@ -15,6 +15,8 @@ import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
 import EmailModal from './EmailModal'
 import ChangeLogPanel from './ChangeLogPanel'
+import ContractRefPanel from './ContractRefPanel'
+import SettingsPanel from './SettingsPanel'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -31,6 +33,8 @@ export default function EstimateEditor({
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
   const [showChangeLog, setShowChangeLog] = useState(false)
+  const [showContractRef, setShowContractRef] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const {
     estimate,
@@ -218,6 +222,8 @@ export default function EstimateEditor({
               이력 {snapshots.length}
             </button>
           )}
+          <button onClick={() => setShowContractRef(true)} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">계약참조</button>
+          <button onClick={() => setShowSettings(true)} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">설정</button>
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
         </div>
       </header>
@@ -303,6 +309,19 @@ export default function EstimateEditor({
         onSend={handleEmail}
         onClose={() => setEmailOpen(false)}
         sending={emailSending}
+      />
+
+      {/* 계약참조 패널 */}
+      <ContractRefPanel
+        isOpen={showContractRef}
+        onClose={() => setShowContractRef(false)}
+        currentPyeong={estimate.m2 / 3.306}
+      />
+
+      {/* 설정 패널 */}
+      <SettingsPanel
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
 
       {/* 음성 바 */}
