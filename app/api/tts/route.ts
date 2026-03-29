@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         '금액은 만원 단위로 읽습니다. 예: 3,900,000 → "삼백구십만원". ' +
         '항목명은 그대로 읽습니다. 줄임 없이.',
       response_format: 'mp3',
-      speed: 1.5,
+      speed: 1.3,
     }),
   })
 

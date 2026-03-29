@@ -161,12 +161,27 @@ export default function EstimateEditor({
     [activeSheetIndex, estimate, applyVoiceCommands, undo, handleSave, router, snapshots, restoreTo, updateSheet, addLog],
   )
 
+  // ── useVoiceFlow를 먼저 선언 (voiceFlow.isActive를 useVoice에서 참조) ──
+  const voiceFlowRef = useRef<{ processText: (text: string) => void; isActive: boolean }>({
+    processText: () => {},
+    isActive: false,
+  })
+
   // ── useVoice ──
   const voice = useVoice({
     mode: voiceMode,
     estimateContext,
+    skipLlm: voiceFlowRef.current.isActive,
     onCommands: handleVoiceCommands,
     onTtsText: (text) => addLog('assistant', text),
+    onSttText: (text) => {
+      // voiceFlow 활성 중이면 STT 결과를 voiceFlow에 전달
+      if (voiceFlowRef.current.isActive) {
+        voiceFlowRef.current.processText(text)
+      } else {
+        addLog('user', text)
+      }
+    },
     onParsed: (parsed) => {
       if (parsed.area) updateMeta('m2', parsed.area as number)
       const method = parsed.method as string | null
@@ -197,6 +212,9 @@ export default function EstimateEditor({
       setActiveTab('complex-detail')
     },
   })
+
+  // voiceFlowRef 동기화
+  voiceFlowRef.current = { processText: voiceFlow.processText, isActive: voiceFlow.isActive }
 
   // ── 웨이크워드 "견적" ──
   useWakeWord({

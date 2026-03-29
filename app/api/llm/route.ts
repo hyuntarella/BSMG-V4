@@ -41,12 +41,18 @@ export async function POST(request: Request) {
   const data = await res.json()
   const text = data.content?.[0]?.text ?? ''
 
-  // JSON 파싱 시도
+  // JSON 파싱 시도 (마크다운 백틱 제거 후)
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
   try {
-    const parsed = JSON.parse(text)
+    const parsed = JSON.parse(cleaned)
     return NextResponse.json(parsed)
   } catch {
-    // JSON 아닌 응답도 그대로 반환
-    return NextResponse.json({ raw: text })
+    // JSON 아닌 응답 → 되묻기로 전환
+    return NextResponse.json({
+      commands: [],
+      clarification_needed: '다시 말씀해주시겠어요?',
+      tts_response: '다시 말씀해주시겠어요?',
+      raw: text,
+    })
   }
 }
