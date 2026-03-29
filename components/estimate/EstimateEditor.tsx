@@ -42,7 +42,7 @@ export default function EstimateEditor({
 
   const {
     estimate, isDirty, markClean, updateMeta, updateSheet, updateItem,
-    applyVoiceCommands, addSheet, getSheetMargin, undo,
+    applyVoiceCommands, addSheet, initFromVoiceFlow, getSheetMargin, undo,
     snapshots, restoreTo, modifiedCells,
   } = useEstimate(initialEstimate, priceMatrix)
 
@@ -200,15 +200,12 @@ export default function EstimateEditor({
     playTts: voice.playTts,
     addLog,
     onComplete: (state) => {
-      if (state.area) updateMeta('m2', state.area)
-      if (state.wallM2) updateMeta('wall_m2', state.wallM2)
-      if (!estimate.sheets.some(s => s.type === '복합')) addSheet('복합')
-      if (!estimate.sheets.some(s => s.type === '우레탄')) addSheet('우레탄')
-      // 평단가 적용
-      const cIdx = estimate.sheets.findIndex(s => s.type === '복합')
-      const uIdx = estimate.sheets.findIndex(s => s.type === '우레탄')
-      if (state.complexPpp && cIdx >= 0) updateSheet(cIdx, 'price_per_pyeong', state.complexPpp)
-      if (state.urethanePpp && uIdx >= 0) updateSheet(uIdx, 'price_per_pyeong', state.urethanePpp)
+      initFromVoiceFlow({
+        area: state.area ?? 0,
+        wallM2: state.wallM2 ?? 0,
+        complexPpp: state.complexPpp,
+        urethanePpp: state.urethanePpp,
+      })
       setActiveTab('complex-detail')
     },
   })

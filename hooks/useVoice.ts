@@ -30,7 +30,7 @@ interface UseVoiceOptions {
 }
 
 const MAX_CLARIFICATION_COUNT = 2
-const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평'
+const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 벽체 격자 바탕정리 바탕미장 바탕조정제 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평 평단가 마진 됐어 넘겨 다음 그만'
 
 export function useVoice(options: UseVoiceOptions) {
   const {

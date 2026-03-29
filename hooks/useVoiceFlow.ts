@@ -8,40 +8,50 @@ import {
   createInitialFlowState,
   isAdvanceCommand,
   isCancelCommand,
+  parseAllFields,
   parseFlowInput,
+  getNextEmptyStep,
   getApplyFeedback,
 } from '@/lib/voice/voiceFlow'
 import { findPriceForMargin } from '@/lib/estimate/costBreakdown'
 
 export interface VoiceFlowCallbacks {
-  /** STT 호출 */
   startRecording: () => void
   stopRecording: () => void
-  /** TTS 재생 (완료 후 resolve) */
   playTts: (text: string) => Promise<void>
-  /** 수집 완료 시 호출 */
   onComplete: (state: FlowState) => void
-  /** 로그 추가 */
   addLog: (type: 'user' | 'assistant', text: string) => void
 }
 
-const AUTO_RESUME_DELAY = 2000
+const AUTO_RESUME_DELAY = 1500
 
 export function useVoiceFlow(callbacks: VoiceFlowCallbacks) {
   const [flowState, setFlowState] = useState<FlowState>(createInitialFlowState())
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const stateRef = useRef<FlowState>(createInitialFlowState())
 
-  /** 플로우 시작 (웨이크워드 "견적" 후 호출) */
+  const clearTimer = () => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current)
+      resumeTimerRef.current = null
+    }
+  }
+
+  const updateState = (s: FlowState) => {
+    stateRef.current = s
+    setFlowState(s)
+  }
+
+  /** 플로우 시작 */
   const startFlow = useCallback(async () => {
+    clearTimer()
     const initial = createInitialFlowState()
     initial.step = 'collecting_area'
-    setFlowState(initial)
+    updateState(initial)
 
-    const config = FLOW_STEPS['collecting_area']
-    callbacks.addLog('assistant', config.ttsPrompt)
-    await callbacks.playTts(config.ttsPrompt)
+    callbacks.addLog('assistant', '면적, 벽체, 평단가를 한번에 말씀해도 됩니다.')
+    await callbacks.playTts('면적, 벽체, 평단가를 한번에 말씀하세요.')
 
-    // 2초 후 녹음 시작
     resumeTimerRef.current = setTimeout(() => {
       callbacks.startRecording()
     }, AUTO_RESUME_DELAY)
@@ -49,72 +59,106 @@ export function useVoiceFlow(callbacks: VoiceFlowCallbacks) {
 
   /** STT 텍스트를 플로우에 전달 */
   const processText = useCallback(async (text: string) => {
+    clearTimer()
     callbacks.addLog('user', text)
+
+    const current = stateRef.current
 
     // 취소 감지
     if (isCancelCommand(text)) {
-      setFlowState(createInitialFlowState())
-      callbacks.addLog('assistant', '취소했습니다.')
+      const reset = createInitialFlowState()
+      updateState(reset)
+      callbacks.addLog('assistant', '취소.')
       await callbacks.playTts('취소했습니다.')
       return
     }
 
-    const currentStep = flowState.step
-    const config = FLOW_STEPS[currentStep]
-    if (!config) return
-
-    // "됐어/넘겨" — 마디 종료 (입력 없이 넘기기)
+    // "됐어" 단독 → 현재 필드 건너뛰기
     if (isAdvanceCommand(text)) {
-      await advanceToNext(config.nextStep)
+      const config = FLOW_STEPS[current.step]
+      if (config) {
+        // 빈 필드는 0으로 채움
+        const updated: FlowState = { ...current, [config.parseField]: current[config.parseField] ?? 0 }
+        updateState(updated)
+        await goToNextEmpty(updated)
+      }
       return
     }
 
-    // 값 파싱
-    const parsed = parseFlowInput(text, config.parseField)
-    if (!parsed) {
-      // 인식 실패 — 다시 녹음
-      const msg = '잘 못 알아들었습니다. 다시 말씀해주세요.'
-      callbacks.addLog('assistant', msg)
-      await callbacks.playTts(msg)
-      resumeTimerRef.current = setTimeout(() => {
-        callbacks.startRecording()
-      }, AUTO_RESUME_DELAY)
+    // 핵심: 모든 필드를 한 번에 파싱 시도
+    const parsed = parseAllFields(text, current)
+    const parsedKeys = Object.keys(parsed) as (keyof typeof parsed)[]
+
+    if (parsedKeys.length > 0) {
+      // 파싱된 필드 적용
+      let updated = { ...current }
+      const feedbacks: string[] = []
+
+      for (const key of parsedKeys) {
+        let val = parsed[key] as number
+        // 마진 기반 (음수로 표시됨)
+        if (val < 0 && (key === 'complexPpp' || key === 'urethanePpp')) {
+          const pyeong = (updated.area ?? 100) / 3.306
+          val = findPriceForMargin(-val, pyeong)
+          feedbacks.push(`${key === 'complexPpp' ? '복합' : '우레탄'} 마진 ${-parsed[key]!}% → ${val.toLocaleString()}원`)
+        } else {
+          feedbacks.push(getApplyFeedback(key, val))
+        }
+        updated = { ...updated, [key]: val }
+      }
+
+      updateState(updated)
+
+      // 피드백 한 번에
+      const feedbackText = feedbacks.join(' ')
+      callbacks.addLog('assistant', feedbackText)
+      await callbacks.playTts(feedbackText)
+
+      // 다음 빈 필드로
+      await goToNextEmpty(updated)
       return
     }
 
-    // 마진 기반 → 평단가 변환
-    let finalValue = parsed.value
-    if (parsed.type === 'margin') {
-      const pyeong = (flowState.area ?? 100) / 3.306
-      finalValue = findPriceForMargin(parsed.value, pyeong)
-      callbacks.addLog('assistant', `마진 ${parsed.value}% → 평단가 ${finalValue.toLocaleString()}원`)
+    // 현재 단계 단일 필드 파싱 시도
+    const config = FLOW_STEPS[current.step]
+    if (config) {
+      const single = parseFlowInput(text, config.parseField)
+      if (single) {
+        let finalValue = single.value
+        if (single.type === 'margin') {
+          const pyeong = (current.area ?? 100) / 3.306
+          finalValue = findPriceForMargin(single.value, pyeong)
+        }
+
+        const updated: FlowState = { ...current, [config.parseField]: finalValue }
+        updateState(updated)
+
+        const feedback = getApplyFeedback(config.parseField, finalValue)
+        callbacks.addLog('assistant', feedback)
+        await callbacks.playTts(feedback)
+
+        await goToNextEmpty(updated)
+        return
+      }
     }
 
-    // 상태 업데이트
-    const updated: FlowState = { ...flowState, [config.parseField]: finalValue }
-    setFlowState(updated)
+    // 아무것도 파싱 못 함 → 다시 녹음
+    callbacks.addLog('assistant', '다시 말씀해주세요.')
+    await callbacks.playTts('다시 말씀해주세요.')
+    resumeTimerRef.current = setTimeout(() => {
+      callbacks.startRecording()
+    }, AUTO_RESUME_DELAY)
+  }, [callbacks])
 
-    // 피드백
-    const feedback = getApplyFeedback(config.parseField, finalValue)
-    callbacks.addLog('assistant', feedback)
-    await callbacks.playTts(feedback)
-
-    // 다음 단계로
-    await advanceToNext(config.nextStep, updated)
-  }, [flowState, callbacks])
-
-  /** 다음 단계로 진행 */
-  const advanceToNext = useCallback(async (nextStep: FlowStep, state?: FlowState) => {
-    const current = state ?? flowState
+  /** 다음 빈 필드로 이동. 다 채워져 있으면 완료 */
+  const goToNextEmpty = useCallback(async (state: FlowState) => {
+    const nextStep = getNextEmptyStep(state)
 
     if (nextStep === 'generating') {
-      // 수집 완료
-      const finalState = { ...current, step: 'done' as FlowStep }
-      setFlowState(finalState)
-
-      const msg = '견적서를 생성합니다.'
-      callbacks.addLog('assistant', msg)
-      await callbacks.playTts(msg)
+      const finalState = { ...state, step: 'done' as FlowStep }
+      updateState(finalState)
+      callbacks.addLog('assistant', '견적서 생성.')
+      await callbacks.playTts('견적서를 생성합니다.')
       callbacks.onComplete(finalState)
       return
     }
@@ -123,23 +167,20 @@ export function useVoiceFlow(callbacks: VoiceFlowCallbacks) {
     const nextConfig = FLOW_STEPS[nextStep]
     if (!nextConfig) return
 
-    setFlowState(prev => ({ ...prev, step: nextStep }))
-
+    updateState({ ...state, step: nextStep })
     callbacks.addLog('assistant', nextConfig.ttsPrompt)
     await callbacks.playTts(nextConfig.ttsPrompt)
 
-    // 2초 후 녹음
     resumeTimerRef.current = setTimeout(() => {
       callbacks.startRecording()
     }, AUTO_RESUME_DELAY)
-  }, [flowState, callbacks])
+  }, [callbacks])
 
   /** 플로우 리셋 */
   const resetFlow = useCallback(() => {
-    if (resumeTimerRef.current) {
-      clearTimeout(resumeTimerRef.current)
-    }
-    setFlowState(createInitialFlowState())
+    clearTimer()
+    const reset = createInitialFlowState()
+    updateState(reset)
   }, [])
 
   return {

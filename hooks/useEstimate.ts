@@ -197,6 +197,57 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     setIsDirty(true)
   }, [snapshots])
 
+  // ── 음성 플로우 완료 → 한 번에 견적서 생성 ──
+  const initFromVoiceFlow = useCallback(
+    (data: { area: number; wallM2: number; complexPpp: number | null; urethanePpp: number | null }) => {
+      setEstimate(prev => {
+        const m2 = data.area || prev.m2 || 100
+        const wallM2 = data.wallM2 ?? prev.wall_m2
+        const updated = { ...prev, m2, wall_m2: wallM2 }
+        const sheets: EstimateSheet[] = []
+
+        // 복합 시트
+        if (!prev.sheets.some(s => s.type === '복합')) {
+          const ar = getAR(m2)
+          const methodData = priceMatrix[ar]?.['복합']
+          const prices = methodData ? Object.keys(methodData).map(Number).sort((a, b) => a - b) : []
+          const ppp = data.complexPpp ?? prices[Math.floor(prices.length / 2)] ?? 35000
+
+          const { items, calcResult } = buildItems({
+            method: '복합', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+          })
+          sheets.push({
+            type: '복합', title: '복합방수', price_per_pyeong: ppp,
+            warranty_years: 5, warranty_bond: 3, grand_total: calcResult.grandTotal,
+            sort_order: 0, items,
+          })
+        }
+
+        // 우레탄 시트
+        if (!prev.sheets.some(s => s.type === '우레탄')) {
+          const ar = getAR(m2)
+          const methodData = priceMatrix[ar]?.['우레탄']
+          const prices = methodData ? Object.keys(methodData).map(Number).sort((a, b) => a - b) : []
+          const ppp = data.urethanePpp ?? prices[Math.floor(prices.length / 2)] ?? 30000
+
+          const { items, calcResult } = buildItems({
+            method: '우레탄', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+          })
+          sheets.push({
+            type: '우레탄', title: '우레탄방수', price_per_pyeong: ppp,
+            warranty_years: 5, warranty_bond: 3, grand_total: calcResult.grandTotal,
+            sort_order: 1, items,
+          })
+        }
+
+        const allSheets = [...prev.sheets, ...sheets].sort((a, b) => a.sort_order - b.sort_order)
+        return { ...updated, sheets: allSheets }
+      })
+      setIsDirty(true)
+    },
+    [priceMatrix],
+  )
+
   const markClean = useCallback(() => setIsDirty(false), [])
 
   return {
@@ -209,6 +260,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateItem,
     applyVoiceCommands,
     addSheet,
+    initFromVoiceFlow,
     getSheetMargin,
     undo,
     // 스냅샷
