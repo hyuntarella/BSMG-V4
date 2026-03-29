@@ -6,10 +6,8 @@ export const metadata: Metadata = {
   title: '방수명가 견적서 v4',
   description: '음성 기반 방수 시공 견적서 시스템',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: '방수명가 견적서',
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 }
 
