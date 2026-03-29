@@ -1,117 +1,212 @@
 'use client'
 
-import type { Estimate } from '@/lib/estimate/types'
+import type { Estimate, EstimateSheet } from '@/lib/estimate/types'
+import { fm } from '@/lib/utils/format'
+import { n2k } from '@/lib/utils/numberToKorean'
+import { calc } from '@/lib/estimate/calc'
 
 interface CoverSheetProps {
   estimate: Estimate
+  sheet: EstimateSheet
   onUpdate: (field: keyof Estimate, value: string | number) => void
 }
 
-export default function CoverSheet({ estimate, onUpdate }: CoverSheetProps) {
+/** 공급자 정보 (설정으로 뺄 수 있음) */
+const SUPPLIER = {
+  regNo: '642-87-03286',
+  company: '(주)부성에이티',
+  ceo: '손지우',
+  bizType: '건설업',
+  bizItem: '방수, 도장, 조적 외',
+  phone: '010.4169.3567',
+  fax: '02.3012.3587',
+  address: '서울특별시 강남구 영동대로 602, 6층 7293호 (삼성동 미켈란 107)',
+}
+
+export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProps) {
+  const calcResult = calc(sheet.items)
+  const grandTotal = calcResult.grandTotal
+  const koreanAmount = `일금 ${n2k(grandTotal)}원`
+
   return (
-    <div className="space-y-6">
-      {/* 제목 */}
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-brand">견 적 서</h2>
+    <div className="mx-auto max-w-[900px] bg-white p-6 text-[13px] leading-relaxed">
+      {/* 로고 + 제목 */}
+      <div className="mb-4 flex items-start justify-between">
+        <div className="text-lg font-extrabold text-gray-900">
+          방수명가<span className="ml-0.5 text-xs text-brand">防水</span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-widest">견 적 서</h1>
       </div>
 
-      {/* 정보 그리드 */}
-      <div className="grid grid-cols-2 gap-4">
-        <Field
-          label="관리번호"
-          value={estimate.mgmt_no ?? ''}
-          onChange={(v) => onUpdate('mgmt_no', v)}
-        />
-        <Field
-          label="일자"
-          value={estimate.date}
-          onChange={(v) => onUpdate('date', v)}
-        />
-        <Field
-          label="고객명"
-          value={estimate.customer_name ?? ''}
-          onChange={(v) => onUpdate('customer_name', v)}
-        />
-        <Field
-          label="현장명"
-          value={estimate.site_name ?? ''}
-          onChange={(v) => onUpdate('site_name', v)}
-        />
-        <Field
-          label="담당자"
-          value={estimate.manager_name ?? ''}
-          onChange={(v) => onUpdate('manager_name', v)}
-        />
-        <Field
-          label="연락처"
-          value={estimate.manager_phone ?? ''}
-          onChange={(v) => onUpdate('manager_phone', v)}
-        />
-      </div>
+      {/* 좌측: 견적 기본정보 / 우측: 공급자 정보 */}
+      <div className="mb-4 flex gap-4">
+        {/* 좌측 */}
+        <div className="w-[45%] border border-gray-800">
+          <CoverRow label="관리번호" value={estimate.mgmt_no ?? ''} />
+          <CoverRow label="견 적 일" value={estimate.date} />
+          <CoverRow label="주 소">
+            <EditableField
+              value={estimate.site_name ?? ''}
+              onChange={v => onUpdate('site_name', v)}
+              placeholder="현장 주소"
+            />
+          </CoverRow>
+          <CoverRow label="공 사 명" value="방수공사" last />
+        </div>
 
-      {/* 면적 */}
-      <div className="grid grid-cols-2 gap-4">
-        <Field
-          label="면적 (m²)"
-          value={String(estimate.m2)}
-          onChange={(v) => onUpdate('m2', parseFloat(v) || 0)}
-        />
-        <Field
-          label="벽체 면적 (m)"
-          value={String(estimate.wall_m2)}
-          onChange={(v) => onUpdate('wall_m2', parseFloat(v) || 0)}
-        />
-      </div>
-
-      {/* 메모 */}
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-500">메모/특이사항</label>
-        <textarea
-          value={estimate.memo ?? ''}
-          onChange={(e) => onUpdate('memo', e.target.value)}
-          rows={3}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        />
-      </div>
-
-      {/* 시트 요약 */}
-      {estimate.sheets.length > 0 && (
-        <div className="rounded-md bg-gray-50 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">견적 요약</h3>
-          <div className="space-y-1">
-            {estimate.sheets.map((sheet, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span>{sheet.title ?? sheet.type}</span>
-                <span className="font-semibold tabular-nums">
-                  {sheet.grand_total.toLocaleString()}원
-                </span>
-              </div>
-            ))}
+        {/* 우측: 공급자 */}
+        <div className="flex-1">
+          <div className="mb-1 text-xs font-semibold text-gray-500">공급자</div>
+          <div className="border border-gray-800">
+            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+              <Cell head>등록 번호</Cell>
+              <Cell>{SUPPLIER.regNo}</Cell>
+              <Cell head>상호(법인명)</Cell>
+              <Cell>{SUPPLIER.company}</Cell>
+            </div>
+            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+              <Cell head>업 태</Cell>
+              <Cell>{SUPPLIER.bizType}</Cell>
+              <Cell head>종 목</Cell>
+              <Cell>{SUPPLIER.bizItem}</Cell>
+            </div>
+            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+              <Cell head>전화번호</Cell>
+              <Cell>{SUPPLIER.phone}</Cell>
+              <Cell head>FAX</Cell>
+              <Cell>{SUPPLIER.fax}</Cell>
+            </div>
+            <div className="grid grid-cols-[auto_1fr]">
+              <Cell head>사업장 주소</Cell>
+              <Cell>{SUPPLIER.address}</Cell>
+            </div>
+          </div>
+          <div className="mt-1 text-right text-xs text-gray-500">
+            성명: {SUPPLIER.ceo}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* 공사금액 */}
+      <div className="mb-4 flex items-center gap-4">
+        <div className="rounded bg-gray-900 px-3 py-1.5 text-center text-xs font-semibold text-white leading-tight">
+          공사금액<br />(부가세 별도)
+        </div>
+        <div className="text-xl font-bold tracking-tight">
+          {koreanAmount} ({fm(grandTotal)})
+        </div>
+      </div>
+
+      {/* 1행 요약 테이블 */}
+      <div className="mb-4 overflow-hidden rounded border border-gray-800">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-900 text-white">
+              <th className="border-r border-gray-600 px-3 py-2">품 명</th>
+              <th className="border-r border-gray-600 px-3 py-2">규 격</th>
+              <th className="border-r border-gray-600 px-3 py-2">수 량</th>
+              <th className="border-r border-gray-600 px-3 py-2">단 가</th>
+              <th className="border-r border-gray-600 px-3 py-2">금 액</th>
+              <th className="px-3 py-2">비 고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b">
+              <td className="px-3 py-2">
+                {sheet.type === '복합' ? '복합방수' : '우레탄방수'}
+              </td>
+              <td className="px-3 py-2 text-center">식</td>
+              <td className="px-3 py-2 text-center">1</td>
+              <td className="px-3 py-2 text-right" />
+              <td className="px-3 py-2 text-right tabular-nums">{fm(calcResult.totalBeforeRound)}</td>
+              <td className="px-3 py-2" />
+            </tr>
+            {/* 빈 행 */}
+            <tr className="border-b"><td colSpan={6} className="h-6" /></tr>
+            <tr className="border-b"><td colSpan={6} className="h-6" /></tr>
+            {/* 합계 */}
+            <tr className="font-semibold">
+              <td className="px-3 py-2">합 계</td>
+              <td colSpan={3} />
+              <td className="px-3 py-2 text-right tabular-nums">{fm(grandTotal)}</td>
+              <td className="px-3 py-2 text-xs text-gray-500">(단수정리)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* 특기사항 */}
+      <div className="mb-6">
+        <span className="font-semibold text-brand">특기사항</span>
+        <div className="mt-1 space-y-0.5 text-xs text-gray-700">
+          <p>1. 하자보수기간 {sheet.warranty_years}년 (하자이행증권 {sheet.warranty_bond}년)</p>
+          <p>2. 견적서 제출 30일 유효</p>
+          <p className="text-[11px] text-gray-500">* 부가가치세별도</p>
+        </div>
+      </div>
+
+      {/* Brand Collaborations */}
+      <div className="flex items-center justify-center gap-3 border-t pt-3">
+        <span className="text-[10px] text-gray-300">Brand Collaborations</span>
+        {['SAMSUNG', 'RAEMIAN', '우정사업본부', '서울종로', '서울중구', 'GIMPO'].map(b => (
+          <span key={b} className="rounded border border-gray-200 px-2 py-1 text-[9px] text-gray-400">
+            {b}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
 
-function Field({
+// ── 헬퍼 컴포넌트 ──
+
+function CoverRow({
   label,
   value,
-  onChange,
+  children,
+  last = false,
 }: {
   label: string
-  value: string
-  onChange: (value: string) => void
+  value?: string
+  children?: React.ReactNode
+  last?: boolean
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-gray-500">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-      />
+    <div className={`grid grid-cols-[80px_1fr] ${!last ? 'border-b border-gray-400' : ''}`}>
+      <div className="bg-gray-900 px-2 py-1.5 text-center text-xs font-semibold text-white">
+        {label}
+      </div>
+      <div className="px-3 py-1.5">
+        {children ?? <span>{value}</span>}
+      </div>
     </div>
+  )
+}
+
+function Cell({ head, children }: { head?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`px-2 py-1 text-xs ${head ? 'font-semibold text-gray-700 bg-gray-50 min-w-[70px]' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+function EditableField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full bg-transparent text-xs outline-none placeholder:text-gray-300"
+    />
   )
 }

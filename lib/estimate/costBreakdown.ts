@@ -143,7 +143,7 @@ export function pricePerM2ToPyeong(pricePerM2: number, m2: number): number {
 function interpolateBreakpoint(
   pyeong: number,
   breakpoints: CostBreakpoint[],
-): Omit<CostBreakdown, 'materialTotal' | 'total' | 'labor'> {
+): Omit<CostBreakdown, 'materialTotal' | 'total' | 'labor'> & { pyeong: number } {
   const bp = breakpoints
 
   // 최소 미만: 첫 브레이크포인트 사용

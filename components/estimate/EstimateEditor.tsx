@@ -25,7 +25,7 @@ export default function EstimateEditor({
   priceMatrix,
 }: EstimateEditorProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<TabId>('cover')
+  const [activeTab, setActiveTab] = useState<TabId>('complex-cover')
   const [saving, setSaving] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
@@ -44,7 +44,6 @@ export default function EstimateEditor({
     undo,
   } = useEstimate(initialEstimate, priceMatrix)
 
-  // 자동 저장
   useAutoSave({
     estimate,
     isDirty,
@@ -52,15 +51,15 @@ export default function EstimateEditor({
     enabled: !!estimate.id,
   })
 
-  // 활성 시트 인덱스
+  // 활성 시트 인덱스 (탭 기반)
   const activeSheetIndex =
-    activeTab === 'complex'
-      ? estimate.sheets.findIndex((s) => s.type === '복합')
-      : activeTab === 'urethane'
-        ? estimate.sheets.findIndex((s) => s.type === '우레탄')
+    activeTab === 'complex-cover' || activeTab === 'complex-detail'
+      ? estimate.sheets.findIndex(s => s.type === '복합')
+      : activeTab === 'urethane-cover' || activeTab === 'urethane-detail'
+        ? estimate.sheets.findIndex(s => s.type === '우레탄')
         : -1
 
-  // ── 저장 (generate API) ──
+  // ── 저장 ──
   const handleSave = useCallback(async () => {
     if (!estimate.id || saving) return
     setSaving(true)
@@ -80,14 +79,12 @@ export default function EstimateEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estimate.id, estimate.mgmt_no, saving])
 
-  // ── 이메일 발송 ──
+  // ── 이메일 ──
   const handleEmail = useCallback(async (to: string) => {
     if (!estimate.id) return
     setEmailSending(true)
     try {
-      // 먼저 저장
       await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
-
       const res = await fetch(`/api/estimates/${estimate.id}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,11 +92,7 @@ export default function EstimateEditor({
       })
       const data = await res.json()
       setEmailOpen(false)
-      if (data.success) {
-        voice.playTts(`${to}으로 발송 완료.`)
-      } else {
-        voice.playTts('이메일 발송에 실패했습니다.')
-      }
+      voice.playTts(data.success ? `${to}으로 발송 완료.` : '이메일 발송에 실패했습니다.')
     } catch {
       voice.playTts('이메일 발송 중 오류가 발생했습니다.')
     } finally {
@@ -108,23 +101,16 @@ export default function EstimateEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estimate.id])
 
-  // 음성 모드 결정
-  const voiceMode =
-    estimate.sheets.length === 0 ? 'extract' as const : 'modify' as const
+  // 음성 모드
+  const voiceMode = estimate.sheets.length === 0 ? 'extract' as const : 'modify' as const
 
-  // 견적서 상태 JSON (LLM 컨텍스트)
   const estimateContext = JSON.stringify({
     m2: estimate.m2,
-    sheets: estimate.sheets.map((s) => ({
+    sheets: estimate.sheets.map(s => ({
       type: s.type,
       grand_total: s.grand_total,
-      items: s.items.map((it) => ({
-        name: it.name,
-        qty: it.qty,
-        mat: it.mat,
-        labor: it.labor,
-        exp: it.exp,
-        total: it.total,
+      items: s.items.map(it => ({
+        name: it.name, qty: it.qty, mat: it.mat, labor: it.labor, exp: it.exp, total: it.total,
       })),
     })),
   })
@@ -132,90 +118,74 @@ export default function EstimateEditor({
   // 음성 명령 처리
   const handleVoiceCommands = useCallback(
     (commands: VoiceCommand[]) => {
-      // 시스템 명령 처리
-      const sysCmd = commands.find((c) =>
+      const sysCmd = commands.find(c =>
         ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare'].includes(c.action)
       )
 
       if (sysCmd) {
         switch (sysCmd.action) {
-          case 'save':
-            handleSave()
+          case 'save': handleSave(); return
+          case 'email': setEmailOpen(true); return
+          case 'undo': undo(); return
+          case 'compare': setActiveTab('compare'); return
+          case 'switch_tab': {
+            const tab = sysCmd.tab ?? sysCmd.target
+            if (tab === 'complex' || tab === '복합') setActiveTab('complex-detail')
+            else if (tab === 'urethane' || tab === '우레탄') setActiveTab('urethane-detail')
+            else if (tab === 'compare' || tab === '비교') setActiveTab('compare')
             return
-          case 'email':
-            setEmailOpen(true)
-            return
+          }
           case 'load': {
-            const cmd = sysCmd
-            const query = cmd.query ?? cmd.target ?? ''
-            const date = cmd.date ?? ''
-            const params = new URLSearchParams()
-            if (query) params.set('q', query)
-            if (date) params.set('date', date)
-            fetch(`/api/estimates/search?${params}`)
+            const query = sysCmd.query ?? sysCmd.target ?? ''
+            fetch(`/api/estimates/search?q=${query}`)
               .then(r => r.json())
               .then(data => {
-                if (data.estimates?.length > 0) {
-                  router.push(`/estimate/${data.estimates[0].id}`)
-                } else {
-                  voice.playTts('해당 견적서를 찾을 수 없습니다.')
-                }
+                if (data.estimates?.length > 0) router.push(`/estimate/${data.estimates[0].id}`)
+                else voice.playTts('해당 견적서를 찾을 수 없습니다.')
               })
             return
           }
-          case 'undo':
-            undo()
-            return
-          case 'switch_tab':
-            if (sysCmd.target) setActiveTab(sysCmd.target as TabId)
-            return
-          case 'compare':
-            setActiveTab('compare')
-            return
         }
       }
 
-      // 수정 명령: 현재 활성 시트에 적용
+      // 수정 명령
       const targetSheet = activeSheetIndex >= 0 ? activeSheetIndex : 0
       if (estimate.sheets[targetSheet]) {
         pushUndo()
         applyVoiceCommands(commands, targetSheet)
       }
     },
-    [activeSheetIndex, estimate.sheets, applyVoiceCommands, pushUndo, undo, handleSave],
+    [activeSheetIndex, estimate.sheets, applyVoiceCommands, pushUndo, undo, handleSave, router],
   )
 
-  // 음성 훅
   const voice = useVoice({
     mode: voiceMode,
     estimateContext,
     onCommands: handleVoiceCommands,
     onParsed: (parsed) => {
-      // extract 결과 → 면적 등 반영
       if (parsed.area) updateMeta('m2', parsed.area as number)
-      if (parsed.method) {
-        const method = parsed.method as string
-        if (method.includes('복합')) addSheet('복합')
-        if (method.includes('우레탄')) addSheet('우레탄')
-        if (method === '복합' || method === '복합+우레탄') setActiveTab('complex')
-        else if (method === '우레탄') setActiveTab('urethane')
+      // 항상 복합+우레탄 둘 다 생성
+      const method = parsed.method as string | null
+      if (method || parsed.area) {
+        if (!estimate.sheets.some(s => s.type === '복합')) addSheet('복합')
+        if (!estimate.sheets.some(s => s.type === '우레탄')) addSheet('우레탄')
+        setActiveTab('complex-detail')
       }
     },
   })
 
-  // 웨이크워드
-  useWakeWord({
-    onToggle: voice.toggleRecording,
-    enabled: true,
-  })
+  useWakeWord({ onToggle: voice.toggleRecording, enabled: true })
 
-  const hasComplex = estimate.sheets.some((s) => s.type === '복합')
-  const hasUrethane = estimate.sheets.some((s) => s.type === '우레탄')
+  const hasComplex = estimate.sheets.some(s => s.type === '복합')
+  const hasUrethane = estimate.sheets.some(s => s.type === '우레탄')
+
+  // 활성 시트 가져오기
+  const activeSheet = activeSheetIndex >= 0 ? estimate.sheets[activeSheetIndex] : null
 
   return (
-    <div className="flex min-h-screen flex-col pb-20">
+    <div className="flex min-h-screen flex-col bg-bg pb-20">
       {/* 헤더 */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-white px-4 py-2.5 shadow-sm">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-white px-3 py-2 shadow-sm">
         <div className="flex items-center gap-2">
           <a href="/estimates" className="text-gray-400 hover:text-gray-600">&larr;</a>
           <h1 className="text-sm font-bold text-brand">방수명가 견적서</h1>
@@ -223,13 +193,13 @@ export default function EstimateEditor({
             <span className="text-xs text-gray-400">{estimate.mgmt_no}</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={handleSave}
             disabled={saving || !estimate.id}
             className="rounded bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-dark disabled:opacity-50"
           >
-            {saving ? '저장 중...' : '저장'}
+            {saving ? '저장중' : '저장'}
           </button>
           <button
             onClick={() => setEmailOpen(true)}
@@ -238,25 +208,7 @@ export default function EstimateEditor({
           >
             이메일
           </button>
-          {isDirty && (
-            <span className="text-xs text-amber-500">변경됨</span>
-          )}
-          {!hasComplex && (
-            <button
-              onClick={() => { addSheet('복합'); setActiveTab('complex') }}
-              className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
-            >
-              + 복합
-            </button>
-          )}
-          {!hasUrethane && (
-            <button
-              onClick={() => { addSheet('우레탄'); setActiveTab('urethane') }}
-              className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-700 hover:bg-purple-200"
-            >
-              + 우레탄
-            </button>
-          )}
+          {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
         </div>
       </header>
 
@@ -269,39 +221,56 @@ export default function EstimateEditor({
       />
 
       {/* 콘텐츠 */}
-      <main className="flex-1 px-3 py-3">
-        {activeTab === 'cover' && (
-          <CoverSheet estimate={estimate} onUpdate={updateMeta} />
+      <main className="flex-1 px-2 py-3">
+        {/* 시트 없을 때 */}
+        {!hasComplex && !hasUrethane && (
+          <div className="flex h-60 flex-col items-center justify-center gap-4 text-gray-400">
+            <p className="text-sm">음성으로 면적과 평단가를 말하면 견적서가 자동 생성됩니다</p>
+            <p className="text-xs">또는 아래 버튼을 누르세요</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { addSheet('복합'); addSheet('우레탄'); setActiveTab('complex-detail') }}
+                className="rounded bg-brand px-4 py-2 text-sm font-medium text-white"
+              >
+                복합+우레탄 생성
+              </button>
+            </div>
+          </div>
         )}
 
-        {activeTab === 'complex' && activeSheetIndex >= 0 && (
+        {/* 복합 표지 */}
+        {activeTab === 'complex-cover' && activeSheet && (
+          <CoverSheet estimate={estimate} sheet={activeSheet} onUpdate={updateMeta} />
+        )}
+
+        {/* 복합 세부내역 */}
+        {activeTab === 'complex-detail' && activeSheet && (
           <WorkSheet
-            sheet={estimate.sheets[activeSheetIndex]}
+            sheet={activeSheet}
             m2={estimate.m2}
             margin={getSheetMargin(activeSheetIndex)}
-            onItemChange={(itemIdx, field, value) =>
-              updateItem(activeSheetIndex, itemIdx, field, value)
-            }
-            onSheetChange={(field, value) =>
-              updateSheet(activeSheetIndex, field, value)
-            }
+            onItemChange={(itemIdx, field, value) => updateItem(activeSheetIndex, itemIdx, field, value)}
+            onSheetChange={(field, value) => updateSheet(activeSheetIndex, field, value)}
           />
         )}
 
-        {activeTab === 'urethane' && activeSheetIndex >= 0 && (
+        {/* 우레탄 표지 */}
+        {activeTab === 'urethane-cover' && activeSheet && (
+          <CoverSheet estimate={estimate} sheet={activeSheet} onUpdate={updateMeta} />
+        )}
+
+        {/* 우레탄 세부내역 */}
+        {activeTab === 'urethane-detail' && activeSheet && (
           <WorkSheet
-            sheet={estimate.sheets[activeSheetIndex]}
+            sheet={activeSheet}
             m2={estimate.m2}
             margin={getSheetMargin(activeSheetIndex)}
-            onItemChange={(itemIdx, field, value) =>
-              updateItem(activeSheetIndex, itemIdx, field, value)
-            }
-            onSheetChange={(field, value) =>
-              updateSheet(activeSheetIndex, field, value)
-            }
+            onItemChange={(itemIdx, field, value) => updateItem(activeSheetIndex, itemIdx, field, value)}
+            onSheetChange={(field, value) => updateSheet(activeSheetIndex, field, value)}
           />
         )}
 
+        {/* 비교 */}
         {activeTab === 'compare' && (
           <CompareSheet sheets={estimate.sheets} m2={estimate.m2} />
         )}

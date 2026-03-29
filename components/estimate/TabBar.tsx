@@ -1,6 +1,11 @@
 'use client'
 
-export type TabId = 'cover' | 'complex' | 'urethane' | 'compare'
+export type TabId =
+  | 'complex-cover'
+  | 'complex-detail'
+  | 'urethane-cover'
+  | 'urethane-detail'
+  | 'compare'
 
 interface TabBarProps {
   activeTab: TabId
@@ -9,11 +14,12 @@ interface TabBarProps {
   hasUrethane: boolean
 }
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'cover', label: '표지' },
-  { id: 'complex', label: '복합' },
-  { id: 'urethane', label: '우레탄' },
-  { id: 'compare', label: '비교' },
+const TABS: { id: TabId; label: string; requires: 'complex' | 'urethane' | 'both' | 'none' }[] = [
+  { id: 'complex-cover', label: '복합-표지', requires: 'complex' },
+  { id: 'complex-detail', label: '복합-세부', requires: 'complex' },
+  { id: 'urethane-cover', label: '우레탄-표지', requires: 'urethane' },
+  { id: 'urethane-detail', label: '우레탄-세부', requires: 'urethane' },
+  { id: 'compare', label: '비교', requires: 'both' },
 ]
 
 export default function TabBar({
@@ -23,20 +29,19 @@ export default function TabBar({
   hasUrethane,
 }: TabBarProps) {
   return (
-    <div className="flex border-b bg-white">
+    <div className="flex overflow-x-auto border-b bg-white">
       {TABS.map((tab) => {
-        // 시트 없으면 비활성
         const disabled =
-          (tab.id === 'complex' && !hasComplex) ||
-          (tab.id === 'urethane' && !hasUrethane) ||
-          (tab.id === 'compare' && (!hasComplex || !hasUrethane))
+          (tab.requires === 'complex' && !hasComplex) ||
+          (tab.requires === 'urethane' && !hasUrethane) ||
+          (tab.requires === 'both' && (!hasComplex || !hasUrethane))
 
         return (
           <button
             key={tab.id}
             onClick={() => !disabled && onTabChange(tab.id)}
             disabled={disabled}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`shrink-0 px-3 py-2.5 text-xs font-medium transition-colors ${
               activeTab === tab.id
                 ? 'border-b-2 border-brand text-brand'
                 : disabled
