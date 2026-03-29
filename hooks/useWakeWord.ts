@@ -84,16 +84,19 @@ export function useWakeWord({ onToggle, onWakeWord, enabled = true }: UseWakeWor
       }
     }
 
-    recognition.onerror = () => {
-      setTimeout(() => {
-        try { recognition.start() } catch { /* */ }
-      }, 1000)
+    recognition.onerror = (e: { error: string }) => {
+      console.warn('[WakeWord] error:', e.error)
+      if (e.error !== 'aborted') {
+        setTimeout(() => {
+          try { recognition.start() } catch (err) { console.warn('[WakeWord] restart fail:', err) }
+        }, 1000)
+      }
     }
 
     recognition.onend = () => {
       if (enabled) {
         setTimeout(() => {
-          try { recognition.start() } catch { /* */ }
+          try { recognition.start() } catch (err) { console.warn('[WakeWord] restart fail:', err) }
         }, 500)
       }
     }
@@ -101,7 +104,8 @@ export function useWakeWord({ onToggle, onWakeWord, enabled = true }: UseWakeWor
     try {
       recognition.start()
       recognitionRef.current = recognition
-    } catch { /* */ }
+      console.log('[WakeWord] started listening')
+    } catch (err) { console.warn('[WakeWord] start fail:', err) }
 
     return () => {
       try { recognition.stop() } catch { /* */ }

@@ -117,8 +117,8 @@ export function parseAllFields(
 
   // 벽체: "벽체 37미터", "벽체 37헤베", "벽체 없어"
   if (currentState.wallM2 === null) {
-    const wallMatch = cleaned.match(/(?:벽체|벽)\s*(\d+(?:\.\d+)?)\s*(?:미터|헤베|m|㎡)?/)
-    const wallNone = /(?:벽체|벽)\s*없/.test(cleaned)
+    const wallMatch = cleaned.match(/(?:벽체|벽)\s*(?:면적)?\s*(\d+(?:\.\d+)?)\s*(?:미터|헤베|m|㎡)?/)
+    const wallNone = /(?:벽체|벽)\s*(?:면적)?\s*없/.test(cleaned)
     if (wallNone) {
       result.wallM2 = 0
     } else if (wallMatch) {

@@ -42,19 +42,15 @@ export function useVoiceFlow(callbacks: VoiceFlowCallbacks) {
     setFlowState(s)
   }
 
-  /** 플로우 시작 */
+  /** 플로우 시작 — TTS 없이 바로 녹음 */
   const startFlow = useCallback(async () => {
     clearTimer()
     const initial = createInitialFlowState()
     initial.step = 'collecting_area'
     updateState(initial)
 
-    callbacks.addLog('assistant', '면적, 벽체, 평단가를 한번에 말씀해도 됩니다.')
-    await callbacks.playTts('면적, 벽체, 평단가를 한번에 말씀하세요.')
-
-    resumeTimerRef.current = setTimeout(() => {
-      callbacks.startRecording()
-    }, AUTO_RESUME_DELAY)
+    callbacks.addLog('assistant', '말씀하세요.')
+    callbacks.startRecording()
   }, [callbacks])
 
   /** STT 텍스트를 플로우에 전달 */

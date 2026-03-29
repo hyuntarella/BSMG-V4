@@ -223,7 +223,7 @@ export default function EstimateEditor({
         voice.startRecording()
       }
     },
-    enabled: voice.status === 'idle',
+    enabled: voice.status === 'idle' || voice.status === 'speaking',
   })
 
   const hasComplex = estimate.sheets.some(s => s.type === '복합')
