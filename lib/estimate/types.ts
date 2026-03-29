@@ -34,7 +34,9 @@ export interface BaseItem {
   name: string
   spec: string
   unit: string
-  isBase?: boolean       // 기본 공종 (면적 연동)
+  isArea?: boolean       // qty = m² (면적 연동)
+  isWall?: boolean       // qty = wallM² (벽체 연동)
+  isBase?: boolean       // 기본 공종
   isEquipment?: boolean  // 장비류 (고정 수량)
   isFixedQty?: boolean   // 수량 고정 (공과잡비 등 제외)
 }

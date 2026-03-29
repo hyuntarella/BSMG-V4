@@ -37,16 +37,16 @@ export function buildItems(input: BuildItemsInput): {
     const costs: UnitCost = unitCosts[i] ?? [0, 0, 0]
     const [mat, labor, exp] = costs
 
-    // 수량 결정
+    // 수량 결정 (v1 원본 로직)
     let qty = 0
     if (b.isEquipment) {
       // 장비류: 기본 0 (옵션에서 오버라이드)
       if (b.name === '사다리차') qty = options.ladder?.days ?? 0
-      else if (b.name === '스카이차') qty = options.sky?.days ?? 0
-      else if (b.name === '폐기물 처리') qty = options.waste?.days ?? 0
-    } else if (b.name === '벽체실링') {
+      else if (b.name === '폐기물처리') qty = options.waste?.days ?? 0
+      else if (b.name === '드라이비트하부절개') qty = options.dryvit ? 1 : 0
+    } else if (b.isWall) {
       qty = wallM2
-    } else if (b.isBase) {
+    } else if (b.isArea) {
       qty = m2
     }
 
@@ -54,8 +54,7 @@ export function buildItems(input: BuildItemsInput): {
     let finalLabor = labor
     if (b.isEquipment && labor === 0) {
       if (b.name === '사다리차') finalLabor = options.ladder?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.ladder
-      else if (b.name === '스카이차') finalLabor = options.sky?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.sky
-      else if (b.name === '폐기물 처리') finalLabor = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
+      else if (b.name === '폐기물처리') finalLabor = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
     }
 
     const matAmount = Math.round(qty * mat)

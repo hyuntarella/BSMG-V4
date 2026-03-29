@@ -2,38 +2,39 @@ import type { BaseItem } from './types'
 
 /**
  * 복합방수 기본 공종 배열 (11개)
+ * v1 원본(견적서.html L48-106)과 1:1 대응
  * P매트릭스 item_index 순서와 1:1 대응
  */
 export const COMPLEX_BASE: BaseItem[] = [
-  { name: '바탕정리',        spec: '기존 방수층 철거',    unit: 'm²', isBase: true },
-  { name: '바탕조정제',      spec: '',                  unit: 'm²', isBase: true },
-  { name: '바탕미장',        spec: '시멘트 액체 방수',    unit: 'm²', isBase: true },
-  { name: '복합시트',        spec: '개량형 1.5T',        unit: 'm²', isBase: true },
-  { name: '보호누름',        spec: '시멘트 모르타르',     unit: 'm²', isBase: true },
-  { name: '우레탄도막',      spec: '1차+2차 (KS)',       unit: 'm²', isBase: true },
-  { name: '상도 (톱코트)',   spec: '불소계',             unit: 'm²', isBase: true },
-  { name: '벽체실링',        spec: '우레탄실링',         unit: 'm',  isBase: true },
-  { name: '사다리차',        spec: '1톤',               unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '폐기물 처리',     spec: '마대 및 운반',       unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '스카이차',        spec: '0.5톤',             unit: '일', isEquipment: true, isFixedQty: true },
+  { name: '바탕정리',               spec: '',                    unit: 'm²', isArea: true },
+  { name: '바탕조정제미장',          spec: '',                    unit: '식', isBase: false },
+  { name: '하도 프라이머',           spec: '',                    unit: 'm²', isArea: true },
+  { name: '복합 시트',              spec: '2.3mm',               unit: 'm²', isArea: true },
+  { name: '쪼인트 실란트\n보강포 부착', spec: '',                  unit: 'm²', isArea: true },
+  { name: '노출 우레탄',            spec: '중도 1.5mm(2회)',      unit: 'm²', isArea: true },
+  { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
+  { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
+  { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
+  { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
+  { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
 
 /**
- * 우레탄방수 기본 공종 배열 (11개)
+ * 우레탄방수 기본 공종 배열 (10개)
+ * v1 원본(견적서.html L107-161)과 1:1 대응
  * P매트릭스 item_index 순서와 1:1 대응
  */
 export const URETHANE_BASE: BaseItem[] = [
-  { name: '바탕정리',        spec: '기존 방수층 철거',    unit: 'm²', isBase: true },
-  { name: '바탕조정제',      spec: '',                  unit: 'm²', isBase: true },
-  { name: '바탕미장',        spec: '시멘트 액체 방수',    unit: 'm²', isBase: true },
-  { name: '노출 우레탄 1차', spec: 'KS 인증 1.0mm',     unit: 'm²', isBase: true },
-  { name: '노출 우레탄 2차', spec: 'KS 인증 1.0mm',     unit: 'm²', isBase: true },
-  { name: '상도 (톱코트)',   spec: '불소계',             unit: 'm²', isBase: true },
-  { name: '벽체실링',        spec: '우레탄실링',         unit: 'm',  isBase: true },
-  { name: '사다리차',        spec: '1톤',               unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '폐기물 처리',     spec: '마대 및 운반',       unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '스카이차',        spec: '0.5톤',             unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '',               spec: '',                  unit: '',   isBase: false },  // 예비 슬롯
+  { name: '바탕정리',               spec: '그라인더 연삭',         unit: 'm²', isArea: true },
+  { name: '바탕조정제미장',          spec: '',                    unit: '식', isBase: false },
+  { name: '하도 프라이머',           spec: '줄눈·크랙 실란트 보강포 부착', unit: 'm²', isArea: true },
+  { name: '노출 우레탄 1차',        spec: '중도 1mm',             unit: 'm²', isArea: true },
+  { name: '노출 우레탄 2차',        spec: '중도 2mm',             unit: 'm²', isArea: true },
+  { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
+  { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
+  { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
+  { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
+  { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
 
 /** 공과잡비 비율 */
