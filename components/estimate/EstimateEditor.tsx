@@ -14,6 +14,7 @@ import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
 import EmailModal from './EmailModal'
+import ChangeLogPanel from './ChangeLogPanel'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -29,6 +30,7 @@ export default function EstimateEditor({
   const [saving, setSaving] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
+  const [showChangeLog, setShowChangeLog] = useState(false)
 
   const {
     estimate,
@@ -40,8 +42,9 @@ export default function EstimateEditor({
     applyVoiceCommands,
     addSheet,
     getSheetMargin,
-    pushUndo,
     undo,
+    snapshots,
+    restoreTo,
   } = useEstimate(initialEstimate, priceMatrix)
 
   useAutoSave({
@@ -151,11 +154,10 @@ export default function EstimateEditor({
       // 수정 명령
       const targetSheet = activeSheetIndex >= 0 ? activeSheetIndex : 0
       if (estimate.sheets[targetSheet]) {
-        pushUndo()
         applyVoiceCommands(commands, targetSheet)
       }
     },
-    [activeSheetIndex, estimate.sheets, applyVoiceCommands, pushUndo, undo, handleSave, router],
+    [activeSheetIndex, estimate.sheets, applyVoiceCommands, undo, handleSave, router],
   )
 
   const voice = useVoice({
@@ -208,9 +210,28 @@ export default function EstimateEditor({
           >
             이메일
           </button>
+          {snapshots.length > 0 && (
+            <button
+              onClick={() => setShowChangeLog(!showChangeLog)}
+              className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              이력 {snapshots.length}
+            </button>
+          )}
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
         </div>
       </header>
+
+      {/* 이력 패널 */}
+      {showChangeLog && (
+        <div className="border-b bg-white shadow-sm">
+          <ChangeLogPanel
+            snapshots={snapshots}
+            onRestore={restoreTo}
+            onClose={() => setShowChangeLog(false)}
+          />
+        </div>
+      )}
 
       {/* 탭 */}
       <TabBar

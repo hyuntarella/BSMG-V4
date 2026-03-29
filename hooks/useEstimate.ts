@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import type { Estimate, EstimateSheet, EstimateItem, PriceMatrixRaw } from '@/lib/estimate/types'
+import type { Estimate, EstimateSheet, PriceMatrixRaw } from '@/lib/estimate/types'
 import { buildItems } from '@/lib/estimate/buildItems'
 import { calc } from '@/lib/estimate/calc'
 import { getMargin } from '@/lib/estimate/margin'
@@ -10,70 +10,98 @@ import type { VoiceCommand } from '@/lib/voice/commands'
 import { applyCommands } from '@/lib/voice/commands'
 import { routeCommands } from '@/lib/voice/confidenceRouter'
 
-interface ChangeRecord {
+// ── 스냅샷 ──
+export interface Snapshot {
+  estimate: Estimate
+  description: string
   type: 'voice' | 'manual' | 'auto'
-  data: Record<string, unknown>
   timestamp: number
 }
+
+// ── 변경 셀 추적 ──
+export type ModifiedCells = Map<string, 'added' | 'changed'>
 
 export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixRaw) {
   const [estimate, setEstimate] = useState<Estimate>(initialEstimate)
   const [isDirty, setIsDirty] = useState(false)
-  const changesRef = useRef<ChangeRecord[]>([])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [modifiedCells, setModifiedCells] = useState<ModifiedCells>(new Map())
+
+  // ── 스냅샷 저장 (변경 전 상태) ──
+  const saveSnapshot = useCallback((description: string, type: Snapshot['type'] = 'manual') => {
+    setSnapshots(prev => [...prev, {
+      estimate: JSON.parse(JSON.stringify(estimate)),
+      description,
+      type,
+      timestamp: Date.now(),
+    }])
+  }, [estimate])
+
+  // ── 특정 시점으로 복원 ──
+  const restoreTo = useCallback((index: number) => {
+    if (index < 0 || index >= snapshots.length) return
+    setEstimate(JSON.parse(JSON.stringify(snapshots[index].estimate)))
+    setModifiedCells(new Map())
+    setIsDirty(true)
+  }, [snapshots])
+
+  // ── 변경 셀 마킹 ──
+  const markCell = useCallback((key: string, type: 'added' | 'changed' = 'changed') => {
+    setModifiedCells(prev => {
+      const next = new Map(prev)
+      next.set(key, type)
+      return next
+    })
+  }, [])
 
   // ── 메타 업데이트 ──
   const updateMeta = useCallback(
     (field: keyof Estimate, value: string | number) => {
-      setEstimate((prev) => {
+      saveSnapshot(`${String(field)} 변경`, 'manual')
+      setEstimate(prev => {
         const updated = { ...prev, [field]: value }
-
-        // m2 변경 시 전체 재계산
         if (field === 'm2' || field === 'wall_m2') {
-          updated.sheets = prev.sheets.map((sheet) =>
+          updated.sheets = prev.sheets.map(sheet =>
             rebuildSheet(sheet, updated.m2, updated.wall_m2, priceMatrix)
           )
         }
-
         return updated
       })
       setIsDirty(true)
-      recordChange('manual', { field, value })
+      markCell(`meta:${String(field)}`)
     },
-    [priceMatrix],
+    [priceMatrix, saveSnapshot, markCell],
   )
 
-  // ── 시트 필드 업데이트 (평단가 등) ──
+  // ── 시트 필드 업데이트 ──
   const updateSheet = useCallback(
     (sheetIndex: number, field: string, value: number) => {
-      setEstimate((prev) => {
+      saveSnapshot(`시트${sheetIndex} ${field} 변경`, 'manual')
+      setEstimate(prev => {
         const sheets = [...prev.sheets]
         const sheet = { ...sheets[sheetIndex], [field]: value }
-
-        // 평단가 변경 시 재계산
         if (field === 'price_per_pyeong') {
-          const rebuilt = rebuildSheet(sheet, prev.m2, prev.wall_m2, priceMatrix)
-          sheets[sheetIndex] = rebuilt
+          sheets[sheetIndex] = rebuildSheet(sheet, prev.m2, prev.wall_m2, priceMatrix)
         } else {
           sheets[sheetIndex] = sheet
         }
-
         return { ...prev, sheets }
       })
       setIsDirty(true)
-      recordChange('manual', { sheetIndex, field, value })
+      markCell(`sheet:${sheetIndex}:${field}`)
     },
-    [priceMatrix],
+    [priceMatrix, saveSnapshot, markCell],
   )
 
   // ── 아이템 필드 업데이트 ──
   const updateItem = useCallback(
     (sheetIndex: number, itemIndex: number, field: string, value: number) => {
-      setEstimate((prev) => {
+      saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} ${field} 변경`, 'manual')
+      setEstimate(prev => {
         const sheets = [...prev.sheets]
         const items = [...sheets[sheetIndex].items]
         const item = { ...items[itemIndex], [field]: value }
 
-        // 금액 재계산
         item.mat_amount = Math.round(item.qty * item.mat)
         item.labor_amount = Math.round(item.qty * item.labor)
         item.exp_amount = Math.round(item.qty * item.exp)
@@ -82,67 +110,60 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         items[itemIndex] = item
         const calcResult = calc(items)
         sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
-
         return { ...prev, sheets }
       })
       setIsDirty(true)
-      recordChange('manual', { sheetIndex, itemIndex, field, value })
+      markCell(`item:${sheetIndex}:${itemIndex}:${field}`)
     },
-    [],
+    [estimate.sheets, saveSnapshot, markCell],
   )
 
   // ── 음성 명령 적용 ──
   const applyVoiceCommands = useCallback(
     (commands: VoiceCommand[], sheetIndex: number = 0) => {
       const routing = routeCommands(commands)
+      if (!routing.shouldExecute) return { executed: false, routing }
 
-      if (!routing.shouldExecute) {
-        return { executed: false, routing }
-      }
-
-      setEstimate((prev) => {
+      saveSnapshot(commands.map(c => `${c.action} ${c.target ?? ''}`).join(', '), 'voice')
+      setEstimate(prev => {
         const sheets = [...prev.sheets]
         if (!sheets[sheetIndex]) return prev
-
         const { sheet: updatedSheet } = applyCommands(sheets[sheetIndex], commands)
         sheets[sheetIndex] = updatedSheet
-
         return { ...prev, sheets }
       })
-
       setIsDirty(true)
-      recordChange('voice', { commands })
+
+      // 음성 변경 셀 마킹
+      commands.forEach(c => {
+        if (c.target) markCell(`voice:${sheetIndex}:${c.target}:${c.field ?? c.action}`)
+      })
 
       return { executed: true, routing }
     },
-    [],
+    [saveSnapshot, markCell],
   )
 
   // ── 시트 추가 ──
   const addSheet = useCallback(
     (type: '복합' | '우레탄') => {
-      setEstimate((prev) => {
+      setEstimate(prev => {
         if (prev.sheets.some(s => s.type === type)) return prev
-
         const ar = getAR(prev.m2 || 100)
         const methodData = priceMatrix[ar]?.[type]
         const prices = methodData ? Object.keys(methodData).map(Number).sort((a, b) => a - b) : []
         const ppp = prices[Math.floor(prices.length / 2)] ?? 35000
 
         const { items, calcResult } = buildItems({
-          method: type,
-          m2: prev.m2,
-          wallM2: prev.wall_m2,
-          pricePerPyeong: ppp,
-          priceMatrix,
+          method: type, m2: prev.m2, wallM2: prev.wall_m2,
+          pricePerPyeong: ppp, priceMatrix,
         })
 
         const newSheet: EstimateSheet = {
           type,
           title: type === '복합' ? '복합방수' : '우레탄방수',
           price_per_pyeong: ppp,
-          warranty_years: 5,
-          warranty_bond: 3,
+          warranty_years: 5, warranty_bond: 3,
           grand_total: calcResult.grandTotal,
           sort_order: type === '복합' ? 0 : 1,
           items,
@@ -156,7 +177,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [priceMatrix],
   )
 
-  // ── 마진율 계산 ──
+  // ── 마진율 ──
   const getSheetMargin = useCallback(
     (sheetIndex: number): number => {
       const sheet = estimate.sheets[sheetIndex]
@@ -166,31 +187,17 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate],
   )
 
-  // ── 실행 취소 (최근 변경 되돌리기) ──
-  const [undoStack, setUndoStack] = useState<Estimate[]>([])
-
-  const pushUndo = useCallback(() => {
-    setUndoStack((prev) => [...prev.slice(-9), estimate])
-  }, [estimate])
-
+  // ── undo (직전 스냅샷 복원) ──
   const undo = useCallback(() => {
-    setUndoStack((prev) => {
-      if (prev.length === 0) return prev
-      const last = prev[prev.length - 1]
-      setEstimate(last)
-      return prev.slice(0, -1)
-    })
+    if (snapshots.length === 0) return
+    const last = snapshots[snapshots.length - 1]
+    setEstimate(JSON.parse(JSON.stringify(last.estimate)))
+    setSnapshots(prev => prev.slice(0, -1))
+    setModifiedCells(new Map())
     setIsDirty(true)
-  }, [])
+  }, [snapshots])
 
-  // ── dirty 초기화 ──
-  const markClean = useCallback(() => {
-    setIsDirty(false)
-  }, [])
-
-  function recordChange(type: ChangeRecord['type'], data: Record<string, unknown>) {
-    changesRef.current.push({ type, data, timestamp: Date.now() })
-  }
+  const markClean = useCallback(() => setIsDirty(false), [])
 
   return {
     estimate,
@@ -203,30 +210,21 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     applyVoiceCommands,
     addSheet,
     getSheetMargin,
-    pushUndo,
     undo,
-    changes: changesRef,
+    // 스냅샷
+    snapshots,
+    restoreTo,
+    modifiedCells,
+    saveSnapshot,
   }
 }
 
-// ── 시트 재빌드 (면적/평단가 변경 시) ──
 function rebuildSheet(
-  sheet: EstimateSheet,
-  m2: number,
-  wallM2: number,
-  priceMatrix: PriceMatrixRaw,
+  sheet: EstimateSheet, m2: number, wallM2: number, priceMatrix: PriceMatrixRaw,
 ): EstimateSheet {
   const { items, calcResult } = buildItems({
-    method: sheet.type,
-    m2,
-    wallM2,
-    pricePerPyeong: sheet.price_per_pyeong,
-    priceMatrix,
+    method: sheet.type, m2, wallM2,
+    pricePerPyeong: sheet.price_per_pyeong, priceMatrix,
   })
-
-  return {
-    ...sheet,
-    items,
-    grand_total: calcResult.grandTotal,
-  }
+  return { ...sheet, items, grand_total: calcResult.grandTotal }
 }
