@@ -8,6 +8,7 @@ import { calc } from '@/lib/estimate/calc'
 export interface VoiceCommand {
   action: string
   target?: string
+  targetSheet?: string
   field?: string
   value?: number
   delta?: number
@@ -21,6 +22,10 @@ export interface VoiceCommand {
   query?: string
   date?: string
   tab?: string
+  /** 스냅샷 복원 인덱스 */
+  snapshotIndex?: number
+  /** 마진율 (%) */
+  marginPercent?: number
   confidence: number
 }
 

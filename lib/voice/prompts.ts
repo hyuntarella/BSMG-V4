@@ -59,6 +59,11 @@ ${recentCommands}
 - update_meta: 메타 수정 {field, value, confidence}
 - reorder_item: 순서 변경 {target, position, confidence}
 - sync_urethane_05: 동기화 {confidence}
+- set_margin: 마진율 기반 평단가 설정 {marginPercent, targetSheet?, confidence}
+  예: "마진 50%에 맞춰줘" → {action:"set_margin", marginPercent:50, confidence:0.96}
+- restore_to: 특정 시점으로 되돌리기 {snapshotIndex, confidence}
+  예: "3번째 변경으로 돌아가줘" → {action:"restore_to", snapshotIndex:2, confidence:0.95}
+  예: "바탕정리 올리기 전으로 돌아가줘" → 설명으로 매칭
 - save, email, load, compare, switch_tab, read_summary, undo, read_margin
 
 "으로" = 절대값(value). "올려/내려" = 증감(delta).

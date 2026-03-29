@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
 import { useEstimate } from '@/hooks/useEstimate'
+import { findPriceForMargin } from '@/lib/estimate/costBreakdown'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useVoice } from '@/hooks/useVoice'
 import { useWakeWord } from '@/hooks/useWakeWord'
@@ -126,7 +127,7 @@ export default function EstimateEditor({
   const handleVoiceCommands = useCallback(
     (commands: VoiceCommand[]) => {
       const sysCmd = commands.find(c =>
-        ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare'].includes(c.action)
+        ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare', 'set_margin', 'restore_to'].includes(c.action)
       )
 
       if (sysCmd) {
@@ -135,6 +136,24 @@ export default function EstimateEditor({
           case 'email': setEmailOpen(true); return
           case 'undo': undo(); return
           case 'compare': setActiveTab('compare'); return
+          case 'set_margin': {
+            const pct = sysCmd.marginPercent ?? 50
+            const pyeong = estimate.m2 / 3.306
+            const newPpp = findPriceForMargin(pct, pyeong)
+            if (newPpp > 0 && activeSheetIndex >= 0) {
+              updateSheet(activeSheetIndex, 'price_per_pyeong', newPpp)
+              voice.playTts(`마진 ${pct}퍼센트. 평단가 ${newPpp.toLocaleString()}원 적용.`)
+            }
+            return
+          }
+          case 'restore_to': {
+            const idx = sysCmd.snapshotIndex ?? (snapshots.length - 1)
+            if (idx >= 0 && idx < snapshots.length) {
+              restoreTo(idx)
+              voice.playTts(`${idx + 1}번째 시점으로 복원.`)
+            }
+            return
+          }
           case 'switch_tab': {
             const tab = sysCmd.tab ?? sysCmd.target
             if (tab === 'complex' || tab === '복합') setActiveTab('complex-detail')
