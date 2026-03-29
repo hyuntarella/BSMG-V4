@@ -4,6 +4,7 @@ import type { EstimateSheet, CalcResult } from '@/lib/estimate/types'
 import { calc } from '@/lib/estimate/calc'
 import { fm } from '@/lib/utils/format'
 import { getMarginDisplay, pricePerM2ToPyeong } from '@/lib/estimate/costBreakdown'
+import type { ModifiedCells } from '@/hooks/useEstimate'
 import InlineCell from './InlineCell'
 import MarginGauge from './MarginGauge'
 
@@ -11,6 +12,7 @@ interface WorkSheetProps {
   sheet: EstimateSheet
   m2: number
   margin: number
+  modifiedCells?: ModifiedCells
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onSheetChange: (field: string, value: number) => void
 }
@@ -19,6 +21,7 @@ export default function WorkSheet({
   sheet,
   m2,
   margin,
+  modifiedCells,
   onItemChange,
   onSheetChange,
 }: WorkSheetProps) {
@@ -105,12 +108,14 @@ export default function WorkSheet({
             </tr>
           </thead>
           <tbody>
-            {sheet.items.map((item, idx) => (
+            {sheet.items.map((item, idx) => {
+              const hasChange = modifiedCells && Array.from(modifiedCells.keys()).some(k => k.includes(`:${idx}:`))
+              return (
               <tr
                 key={idx}
                 className={`border-b border-gray-200 hover:bg-blue-50/50 ${
                   item.is_equipment ? 'bg-amber-50/50' : ''
-                }`}
+                } ${hasChange ? 'bg-yellow-50' : ''}`}
               >
                 <td className="px-2 py-1 text-center text-gray-400">{item.sort_order}</td>
                 <td className="px-2 py-1 font-medium">{item.name}</td>
@@ -138,7 +143,8 @@ export default function WorkSheet({
                 <td className="px-1 py-1 text-right font-semibold tabular-nums">{fm(item.total)}</td>
                 <td className="px-1 py-1" />
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
 
