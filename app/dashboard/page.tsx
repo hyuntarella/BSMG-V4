@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/layout/Header'
 import { fm } from '@/lib/utils/format'
+import ViewTrackingCard from '@/components/dashboard/ViewTrackingCard'
+import FollowUpCard from '@/components/dashboard/FollowUpCard'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -34,6 +36,33 @@ export default async function DashboardPage() {
     .select('id', { count: 'exact', head: true })
     .eq('company_id', userData?.company_id ?? '')
     .in('status', ['sent', 'viewed'])
+
+  // 열람한 견적서
+  const { data: viewedEstimates } = await supabase
+    .from('estimates')
+    .select('id, customer_name, email_viewed_at')
+    .eq('company_id', userData?.company_id ?? '')
+    .not('email_viewed_at', 'is', null)
+    .order('email_viewed_at', { ascending: false })
+    .limit(10)
+
+  // 발송 후 경과 견적서 (후속 관리)
+  const { data: sentEstimates } = await supabase
+    .from('estimates')
+    .select('id, customer_name, email_sent_at')
+    .eq('company_id', userData?.company_id ?? '')
+    .not('email_sent_at', 'is', null)
+    .is('email_viewed_at', null)
+    .order('email_sent_at', { ascending: true })
+    .limit(20)
+
+  const now = Date.now()
+  const followUpData = (sentEstimates ?? []).map(e => ({
+    ...e,
+    customer_name: e.customer_name ?? '',
+    email_sent_at: e.email_sent_at ?? '',
+    daysSinceSent: Math.floor((now - new Date(e.email_sent_at).getTime()) / (1000 * 60 * 60 * 24)),
+  })).filter(e => e.daysSinceSent >= 3)
 
   return (
     <div className="min-h-screen bg-bg">
@@ -81,6 +110,14 @@ export default async function DashboardPage() {
               <p className="text-xs text-gray-500">저장된 견적서 조회</p>
             </div>
           </Link>
+        </div>
+
+        {/* 열람 추적 + 후속 관리 */}
+        <div className="mb-6 space-y-4">
+          <ViewTrackingCard estimates={(viewedEstimates ?? []).map(e => ({
+            ...e, customer_name: e.customer_name ?? '', email_viewed_at: e.email_viewed_at ?? '',
+          }))} />
+          <FollowUpCard estimates={followUpData} />
         </div>
 
         {/* 최근 견적서 */}
