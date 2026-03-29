@@ -61,7 +61,7 @@ export const DEFAULT_EQUIPMENT_PRICES = {
   waste: 200000,    // 폐기물 1일
 }
 
-/** 원가 테이블 (m² 당 실제 원가) — getCostPerM2 용 */
+/** 원가 테이블 (m² 당 실제 원가) — getCostPerM2 용 (레거시) */
 export const COST_TABLE = {
   complex: {
     '20평이하':   15000,
@@ -78,3 +78,28 @@ export const COST_TABLE = {
     '200평이상':   7500,
   },
 } as const
+
+// ── 상세 원가 데이터 (면적대별, 재료비 인상 전 기준) ──
+
+/** 1품 = 22만원 */
+export const LABOR_COST_PER_PUM = 220000
+
+/** 재료비 인상률 (현재 20%) */
+export const MATERIAL_INCREASE_RATE = 0.20
+
+/** 면적대별 원가 브레이크포인트 */
+export interface CostBreakpoint {
+  pyeong: number
+  hado: number       // 하도 (프라이머)
+  jungdo15: number   // 중도 1.5mm 기준
+  sangdo: number     // 상도
+  sheet: number      // 시트
+  misc: number       // 경비 및 잡비
+  pum: number        // 품수 (인건비 = pum × LABOR_COST_PER_PUM)
+}
+
+export const COST_BREAKPOINTS: CostBreakpoint[] = [
+  { pyeong: 30,  hado: 80000,  jungdo15: 500000,  sangdo: 120000, sheet: 620000,  misc: 350000, pum: 6 },
+  { pyeong: 50,  hado: 170000, jungdo15: 800000,  sangdo: 220000, sheet: 970000,  misc: 450000, pum: 7 },
+  { pyeong: 100, hado: 320000, jungdo15: 1500000, sangdo: 350000, sheet: 1940000, misc: 600000, pum: 8 },
+]
