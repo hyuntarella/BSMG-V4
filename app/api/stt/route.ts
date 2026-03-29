@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const formData = new FormData()
   formData.append('file', blob, 'audio.webm')
-  formData.append('model', 'whisper-1')
+  formData.append('model', 'gpt-4o-transcribe')
   formData.append('language', 'ko')
   if (prompt) {
     formData.append('prompt', prompt)
