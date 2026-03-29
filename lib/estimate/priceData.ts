@@ -14,8 +14,10 @@ export function getPD(
   pricePerPyeong: number
 ): UnitCost[] {
   const methodData = matrix[areaRange]?.[method]
-  if (!methodData) {
-    throw new Error(`P매트릭스에 ${areaRange}/${method} 데이터 없음`)
+  if (!methodData || Object.keys(methodData).length === 0) {
+    // P매트릭스 비어있으면 기본 0값 배열 반환 (11개 공종)
+    console.warn(`P매트릭스에 ${areaRange}/${method} 데이터 없음 — 기본값 사용`)
+    return Array.from({ length: 11 }, (): UnitCost => [0, 0, 0])
   }
 
   const prices = Object.keys(methodData)
