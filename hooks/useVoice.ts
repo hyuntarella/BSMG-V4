@@ -12,6 +12,8 @@ interface UseVoiceOptions {
   estimateContext?: string
   /** STT 힌트 프롬프트 (방수 용어 등) */
   sttPrompt?: string
+  /** true이면 STT만 수행하고 LLM 호출 건너뜀 (voiceFlow 활성 중 또는 pendingConfirm 상태) */
+  skipLlm?: boolean
   /** 명령 실행 콜백 */
   onCommands?: (commands: VoiceCommand[]) => void
   /** extract/supplement 결과 콜백 */
@@ -34,6 +36,7 @@ export function useVoice(options: UseVoiceOptions) {
     mode,
     estimateContext,
     sttPrompt = DEFAULT_STT_PROMPT,
+    skipLlm,
     onCommands,
     onParsed,
     onTtsText,
@@ -41,6 +44,10 @@ export function useVoice(options: UseVoiceOptions) {
     onClarification,
     onError,
   } = options
+
+  // skipLlm ref — always-fresh value read inside processAudio callback
+  const skipLlmRef = useRef(skipLlm ?? false)
+  skipLlmRef.current = skipLlm ?? false
 
   const [status, setStatus] = useState<VoiceStatus>('idle')
   const [seconds, setSeconds] = useState(0)
@@ -145,6 +152,12 @@ export function useVoice(options: UseVoiceOptions) {
 
       // onSttText 콜백 — true 반환 시 LLM 건너뜀
       if (onSttText?.(text)) {
+        setStatus('idle')
+        return
+      }
+
+      // skipLlm prop — true이면 LLM 건너뜀 (voiceFlow 활성 중 또는 pendingConfirm)
+      if (skipLlmRef.current) {
         setStatus('idle')
         return
       }
@@ -278,6 +291,16 @@ export function useVoice(options: UseVoiceOptions) {
     }
   }, [])
 
+  // ── clearLastCommand: recentCommandsRef에서 마지막 명령 제거 (pendingConfirm undo 시) ──
+  const clearLastCommand = useCallback(() => {
+    recentCommandsRef.current = recentCommandsRef.current.slice(0, -1)
+  }, [])
+
+  // ── resetClarificationCount: 수정 모드 종료 시 되묻기 카운터 리셋 ──
+  const resetClarificationCount = useCallback(() => {
+    clarificationCountRef.current = 0
+  }, [])
+
   return {
     status,
     seconds,
@@ -287,6 +310,8 @@ export function useVoice(options: UseVoiceOptions) {
     toggleRecording,
     stopSpeaking,
     playTts,
+    clearLastCommand,
+    resetClarificationCount,
   }
 }
 

@@ -96,6 +96,7 @@ export default function EstimateEditor({
     addSheet,
     saveSnapshot,
     undo,
+    getSheetMargin,
     onSave: handleSave,
     onEmailOpen: () => setEmailOpen(true),
   })
