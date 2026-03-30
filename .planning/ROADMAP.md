@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 모든 음성 입력 후 TTS가 결과와 총액 변화를 한국어로 읽어준다
 **Plans**: 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — voiceFlow stateRef 동기화 안정화 + skipLlm 반응성 보장
+- [x] 01-01-PLAN.md — voiceFlow stateRef 동기화 안정화 + skipLlm 반응성 보장
 - [ ] 01-02-PLAN.md — 총액 TTS 피드백 추가 + E2E 검증
 **UI hint**: yes
 
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 음성 파이프라인 연결 | 0/2 | Planning complete | - |
+| 1. 음성 파이프라인 연결 | 1/2 | In Progress|  |
 | 2. 음성 편집 루프 | 0/TBD | Not started | - |
 | 3. 인라인 편집 + 저장 | 0/TBD | Not started | - |
 | 4. 견적서 UI 완성 | 0/TBD | Not started | - |
