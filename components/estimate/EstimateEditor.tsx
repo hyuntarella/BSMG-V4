@@ -21,7 +21,7 @@ export default function EstimateEditor({
   initialEstimate,
   priceMatrix,
 }: EstimateEditorProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('cover')
+  const [activeTab, setActiveTab] = useState<TabId>('complex-cover')
   const [saving, setSaving] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
@@ -36,7 +36,7 @@ export default function EstimateEditor({
     applyVoiceCommands,
     addSheet,
     getSheetMargin,
-    pushUndo,
+    saveSnapshot,
     undo,
   } = useEstimate(initialEstimate, priceMatrix)
 
@@ -45,9 +45,9 @@ export default function EstimateEditor({
 
   // 활성 시트 인덱스
   const activeSheetIndex =
-    activeTab === 'complex'
+    activeTab === 'complex-cover' || activeTab === 'complex-detail'
       ? estimate.sheets.findIndex((s) => s.type === '복합')
-      : activeTab === 'urethane'
+      : activeTab === 'urethane-cover' || activeTab === 'urethane-detail'
         ? estimate.sheets.findIndex((s) => s.type === '우레탄')
         : -1
 
@@ -94,7 +94,7 @@ export default function EstimateEditor({
     applyVoiceCommands,
     updateMeta,
     addSheet,
-    pushUndo,
+    saveSnapshot,
     undo,
     onSave: handleSave,
     onEmailOpen: () => setEmailOpen(true),
@@ -135,13 +135,13 @@ export default function EstimateEditor({
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
           {!hasComplex && (
             <button
-              onClick={() => { addSheet('복합'); setActiveTab('complex') }}
+              onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }}
               className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
             >+ 복합</button>
           )}
           {!hasUrethane && (
             <button
-              onClick={() => { addSheet('우레탄'); setActiveTab('urethane') }}
+              onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }}
               className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-700 hover:bg-purple-200"
             >+ 우레탄</button>
           )}
@@ -153,10 +153,10 @@ export default function EstimateEditor({
 
       {/* 콘텐츠 */}
       <main className="flex-1 px-3 py-3">
-        {activeTab === 'cover' && (
-          <CoverSheet estimate={estimate} onUpdate={updateMeta} />
+        {(activeTab === 'complex-cover' || activeTab === 'urethane-cover') && activeSheetIndex >= 0 && (
+          <CoverSheet estimate={estimate} sheet={estimate.sheets[activeSheetIndex]} onUpdate={updateMeta} />
         )}
-        {activeTab === 'complex' && activeSheetIndex >= 0 && (
+        {activeTab === 'complex-detail' && activeSheetIndex >= 0 && (
           <WorkSheet
             sheet={estimate.sheets[activeSheetIndex]}
             m2={estimate.m2}
@@ -165,7 +165,7 @@ export default function EstimateEditor({
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
           />
         )}
-        {activeTab === 'urethane' && activeSheetIndex >= 0 && (
+        {activeTab === 'urethane-detail' && activeSheetIndex >= 0 && (
           <WorkSheet
             sheet={estimate.sheets[activeSheetIndex]}
             m2={estimate.m2}

@@ -19,7 +19,7 @@ interface UseEstimateVoiceOptions {
   applyVoiceCommands: (commands: VoiceCommand[], sheetIndex?: number) => { executed: boolean }
   updateMeta: (field: keyof Estimate, value: string | number) => void
   addSheet: (type: '복합' | '우레탄') => void
-  pushUndo: () => void
+  saveSnapshot: (description: string, type?: 'auto' | 'voice' | 'manual') => void
   undo: () => void
   // 저장/이메일 콜백
   onSave: () => Promise<void>
@@ -41,7 +41,7 @@ export function useEstimateVoice({
   applyVoiceCommands,
   updateMeta,
   addSheet,
-  pushUndo,
+  saveSnapshot,
   undo,
   onSave,
   onEmailOpen,
@@ -120,9 +120,13 @@ export function useEstimateVoice({
           case 'undo':
             callbacksRef.current.undo()
             return
-          case 'switch_tab':
-            if (sysCmd.target) setActiveTab(sysCmd.target as TabId)
+          case 'switch_tab': {
+            const t = sysCmd.target
+            if (t === '복합' || t === 'complex') setActiveTab('complex-detail')
+            else if (t === '우레탄' || t === 'urethane') setActiveTab('urethane-detail')
+            else if (t === '비교' || t === 'compare') setActiveTab('compare')
             return
+          }
           case 'compare':
             setActiveTab('compare')
             return
@@ -131,10 +135,10 @@ export function useEstimateVoice({
 
       // 수정 명령: 현재 활성 시트에 적용
       const targetSheet = activeSheetIndex >= 0 ? activeSheetIndex : 0
-      pushUndo()
+      saveSnapshot('음성 수정', 'voice')
       applyVoiceCommands(commands, targetSheet)
     },
-    [activeSheetIndex, applyVoiceCommands, pushUndo, router, setActiveTab],
+    [activeSheetIndex, applyVoiceCommands, saveSnapshot, router, setActiveTab],
   )
 
   // editMode ref for onSttText closure
@@ -161,8 +165,8 @@ export function useEstimateVoice({
         const method = parsed.method as string
         if (method.includes('복합')) addSheet('복합')
         if (method.includes('우레탄')) addSheet('우레탄')
-        if (method === '복합' || method === '복합+우레탄') setActiveTab('complex')
-        else if (method === '우레탄') setActiveTab('urethane')
+        if (method === '복합' || method === '복합+우레탄') setActiveTab('complex-detail')
+        else if (method === '우레탄') setActiveTab('urethane-detail')
       }
     },
   })
