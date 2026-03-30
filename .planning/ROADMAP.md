@@ -44,7 +44,12 @@ Plans:
   3. 확신도 95% 이상 명령은 즉시 실행되고, 70-95%는 실행 후 TTS로 확인을 묻고, 70% 미만은 되묻는다
   4. "그거 올려" 처럼 직전 명령의 대상을 참조하는 발화가 정확히 처리된다
   5. "취소"를 말하면 직전 음성 명령이 undo된다
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 02-01-PLAN.md — 수정 모드 상태 기계 + 웨이크워드 + modify 파이프라인 배선
+- [ ] 02-02-PLAN.md — 확신도 확인 UX + 시스템 명령 + VAD 무음 감지
+- [ ] 02-03-PLAN.md — 빌드 검증 + E2E 음성 테스트 체크포인트
+**UI hint**: yes
 
 ### Phase 3: 인라인 편집 + 저장
 **Goal**: 터치로 셀을 직접 편집할 수 있고, 모든 변경사항이 Supabase에 안전하게 저장된다
@@ -84,7 +89,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 음성 파이프라인 연결 | 2/2 | Complete   | 2026-03-30 |
-| 2. 음성 편집 루프 | 0/TBD | Not started | - |
+| 2. 음성 편집 루프 | 0/3 | Not started | - |
 | 3. 인라인 편집 + 저장 | 0/TBD | Not started | - |
 | 4. 견적서 UI 완성 | 0/TBD | Not started | - |
 | 5. 외부 연동 | 0/TBD | Not started | - |
