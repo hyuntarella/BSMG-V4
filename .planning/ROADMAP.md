@@ -28,7 +28,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. 음성으로 면적/공법/평단가를 말하면 견적서 공종 테이블에 항목과 금액이 정확히 채워진다
   2. 시작/마디 넘기기/종료 명령이 정확히 동작하여 extract 모드와 supplement 모드가 순서대로 진행된다
   3. 모든 음성 입력 후 TTS가 결과와 총액 변화를 한국어로 읽어준다
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — voiceFlow stateRef 동기화 안정화 + skipLlm 반응성 보장
+- [ ] 01-02-PLAN.md — 총액 TTS 피드백 추가 + E2E 검증
 **UI hint**: yes
 
 ### Phase 2: 음성 편집 루프
@@ -80,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 음성 파이프라인 연결 | 0/TBD | Not started | - |
+| 1. 음성 파이프라인 연결 | 0/2 | Planning complete | - |
 | 2. 음성 편집 루프 | 0/TBD | Not started | - |
 | 3. 인라인 편집 + 저장 | 0/TBD | Not started | - |
 | 4. 견적서 UI 완성 | 0/TBD | Not started | - |
