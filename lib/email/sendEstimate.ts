@@ -1,6 +1,13 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// 런타임에 초기화 (빌드 시 환경변수 없어도 에러 없음)
+let resend: Resend | null = null
+function getResend(): Resend {
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY ?? '')
+  }
+  return resend
+}
 
 interface SendEstimateOptions {
   to: string
@@ -37,7 +44,7 @@ export async function sendEstimateEmail({
     attachments.push({ filename: `견적서_${mgmtNo}.xlsx`, content: excelBuffer })
   }
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: '방수명가 <estimate@bsmg.kr>',
     to: [to],
     subject: `[방수명가] 견적서 ${mgmtNo} - ${customerName ?? ''}`,

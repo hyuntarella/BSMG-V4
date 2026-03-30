@@ -137,10 +137,23 @@ export function useEstimateVoice({
     [activeSheetIndex, applyVoiceCommands, pushUndo, router, setActiveTab],
   )
 
+  // editMode ref for onSttText closure
+  const editModeRef = useRef({ isEditMode: false, exitEditMode: () => {} })
+
   // ── useVoice 훅 ──
   const voice = useVoice({
     mode: voiceMode,
     estimateContext,
+    onSttText: (text) => {
+      // 수정 모드에서 "그만"/"종료"/"멈춰" 감지 → 즉시 종료, LLM 건너뜀
+      if (editModeRef.current.isEditMode && /그만|종료|멈춰/.test(text.trim())) {
+        editModeRef.current.exitEditMode()
+        callbacksRef.current.addLog('assistant', '수정 모드 종료.')
+        voicePlayTtsRef.current('수정 모드를 종료합니다.')
+        return true  // LLM 건너뜀
+      }
+      return false
+    },
     onCommands: handleVoiceCommands,
     onParsed: (parsed) => {
       if (parsed.area) updateMeta('m2', parsed.area as number)
@@ -163,6 +176,9 @@ export function useEstimateVoice({
     onAutoResume: voice.startRecording,
     onPlayTts: voice.playTts,
   })
+
+  // editModeRef 동기화 (onSttText 클로저에서 최신 editMode 참조)
+  editModeRef.current = { isEditMode: editMode.isEditMode, exitEditMode: editMode.exitEditMode }
 
   // ── useWakeWord: 하드웨어/키보드/Web Speech API ──
   useWakeWord({

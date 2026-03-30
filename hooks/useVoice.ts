@@ -20,6 +20,8 @@ interface UseVoiceOptions {
   onTtsText?: (text: string) => void
   /** 되묻기 콜백 */
   onClarification?: (text: string) => void
+  /** STT 결과 텍스트 콜백. true 반환 시 LLM 처리 건너뜀 */
+  onSttText?: (text: string) => boolean | void
   /** 에러 콜백 */
   onError?: (error: string) => void
 }
@@ -35,6 +37,7 @@ export function useVoice(options: UseVoiceOptions) {
     onCommands,
     onParsed,
     onTtsText,
+    onSttText,
     onClarification,
     onError,
   } = options
@@ -139,6 +142,12 @@ export function useVoice(options: UseVoiceOptions) {
       }
 
       setLastText(text)
+
+      // onSttText 콜백 — true 반환 시 LLM 건너뜀
+      if (onSttText?.(text)) {
+        setStatus('idle')
+        return
+      }
 
       // 3. LLM
       const { system, user } = buildLlmPayload(
