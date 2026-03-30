@@ -1,0 +1,114 @@
+# Requirements: 방수명가 견적서 v4
+
+**Defined:** 2026-03-30
+**Core Value:** 음성 한마디로 견적서가 완성된다. 터치 0회가 목표.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### 음성 파이프라인 (VOICE)
+
+- [ ] **VOICE-01**: 음성 파싱 결과(extract 모드)가 견적서 테이블에 정확히 반영된다
+- [ ] **VOICE-02**: 음성 명령어 체계(시작/마디 넘기기/종료)가 정상 동작한다
+- [ ] **VOICE-03**: modify 모드로 단가 변경(절대값/증감)이 가능하다
+- [ ] **VOICE-04**: modify 모드로 공종 추가/삭제가 가능하다
+- [ ] **VOICE-05**: modify 모드로 일괄 비율 조정이 가능하다
+- [ ] **VOICE-06**: modify 모드로 총액 역산이 가능하다
+- [ ] **VOICE-07**: 확신도 3단계 분기가 동작한다 (95%+ 즉시실행 / 70-95% 실행+확인 / 70%- 되묻기)
+- [ ] **VOICE-08**: 되묻기 연속 2회 제한이 적용된다
+
+### 음성 UX (VUX)
+
+- [ ] **VUX-01**: 모든 음성 명령 후 TTS로 결과+총액 변화를 알려준다
+- [ ] **VUX-02**: 직전 3개 명령 컨텍스트를 유지하여 "그거 올려" 같은 참조가 동작한다
+- [ ] **VUX-03**: 볼륨 버튼 또는 Web Speech API 웨이크워드로 녹음을 활성화할 수 있다
+- [ ] **VUX-04**: 음성으로 시스템 명령(저장/탭전환/요약/비교)을 실행할 수 있다
+- [ ] **VUX-05**: 음성으로 실행 취소("취소"/"되돌려")가 가능하다
+
+### 견적서 UI (UI)
+
+- [ ] **UI-01**: 셀을 탭하면 인라인 편집이 가능하고, blur 시 금액이 재계산된다
+- [ ] **UI-02**: 견적서 목록 페이지에서 기존 견적서를 검색/조회할 수 있다
+- [ ] **UI-03**: 견적서 목록에서 선택하면 해당 견적서를 불러올 수 있다
+
+### 저장/출력 (OUT)
+
+- [ ] **OUT-01**: 견적서를 Supabase에 저장할 수 있다 (수동 저장 버튼)
+- [ ] **OUT-02**: 편집 중 자동저장이 동작한다 (디바운스 1초)
+- [ ] **OUT-03**: ExcelJS로 .xlsx 견적서를 생성하고 다운로드할 수 있다
+
+### CRM 연동 (CRM)
+
+- [ ] **CRM-01**: Notion CRM에서 고객 정보(주소/담당자)를 가져와 견적서에 자동 채울 수 있다
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### UI 확장
+
+- **UI-04**: 실시간 마진 게이지 표시
+- **UI-05**: 복합/우레탄 비교 탭
+
+### 출력 확장
+
+- **OUT-04**: PDF 생성 및 다운로드
+- **OUT-05**: Google Drive 자동 업로드
+- **OUT-06**: 이메일 자동 발송 (Resend)
+
+### CRM 확장
+
+- **CRM-02**: CRM 페이지에서 견적서 버튼으로 바로 시작
+- **CRM-03**: 음성으로 고객 검색 ("김철수 고객 불러와")
+
+### 음성 고도화
+
+- **VUX-06**: Picovoice 커스텀 웨이크워드 ("방수명가")
+- **VUX-07**: 다중 명령 체이닝 ("재료비 올리고 경비 빼줘")
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| 멀티테넌시/구독 과금 | 상용화 단계 (Phase D) |
+| 고객 포탈 (열람 전용) | 상용화 단계 |
+| 제안서 자동 작성 | 별도 프로젝트 (Phase C) |
+| 캘린더/정산 이관 | 별도 프로젝트 (Phase B) |
+| 실시간 협업 (Realtime) | 현재 단일 사용자 |
+| GAS 코드 수정 | v4는 GAS 완전 독립 |
+| v2 코드 재사용 | Figma 디자인만 참조 |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| VOICE-01 | — | Pending |
+| VOICE-02 | — | Pending |
+| VOICE-03 | — | Pending |
+| VOICE-04 | — | Pending |
+| VOICE-05 | — | Pending |
+| VOICE-06 | — | Pending |
+| VOICE-07 | — | Pending |
+| VOICE-08 | — | Pending |
+| VUX-01 | — | Pending |
+| VUX-02 | — | Pending |
+| VUX-03 | — | Pending |
+| VUX-04 | — | Pending |
+| VUX-05 | — | Pending |
+| UI-01 | — | Pending |
+| UI-02 | — | Pending |
+| UI-03 | — | Pending |
+| OUT-01 | — | Pending |
+| OUT-02 | — | Pending |
+| OUT-03 | — | Pending |
+| CRM-01 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 20 total
+- Mapped to phases: 0
+- Unmapped: 20
+
+---
+*Requirements defined: 2026-03-30*
+*Last updated: 2026-03-30 after initial definition*
