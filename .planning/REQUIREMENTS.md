@@ -11,18 +11,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **VOICE-01**: 음성 파싱 결과(extract 모드)가 견적서 테이블에 정확히 반영된다
 - [x] **VOICE-02**: 음성 명령어 체계(시작/마디 넘기기/종료)가 정상 동작한다
-- [ ] **VOICE-03**: modify 모드로 단가 변경(절대값/증감)이 가능하다
-- [ ] **VOICE-04**: modify 모드로 공종 추가/삭제가 가능하다
-- [ ] **VOICE-05**: modify 모드로 일괄 비율 조정이 가능하다
-- [ ] **VOICE-06**: modify 모드로 총액 역산이 가능하다
+- [x] **VOICE-03**: modify 모드로 단가 변경(절대값/증감)이 가능하다
+- [x] **VOICE-04**: modify 모드로 공종 추가/삭제가 가능하다
+- [x] **VOICE-05**: modify 모드로 일괄 비율 조정이 가능하다
+- [x] **VOICE-06**: modify 모드로 총액 역산이 가능하다
 - [ ] **VOICE-07**: 확신도 3단계 분기가 동작한다 (95%+ 즉시실행 / 70-95% 실행+확인 / 70%- 되묻기)
 - [ ] **VOICE-08**: 되묻기 연속 2회 제한이 적용된다
 
 ### 음성 UX (VUX)
 
 - [x] **VUX-01**: 모든 음성 명령 후 TTS로 결과+총액 변화를 알려준다
-- [ ] **VUX-02**: 직전 3개 명령 컨텍스트를 유지하여 "그거 올려" 같은 참조가 동작한다
-- [ ] **VUX-03**: 볼륨 버튼 또는 Web Speech API 웨이크워드로 녹음을 활성화할 수 있다
+- [x] **VUX-02**: 직전 3개 명령 컨텍스트를 유지하여 "그거 올려" 같은 참조가 동작한다
+- [x] **VUX-03**: 볼륨 버튼 또는 Web Speech API 웨이크워드로 녹음을 활성화할 수 있다
 - [ ] **VUX-04**: 음성으로 시스템 명령(저장/탭전환/요약/비교)을 실행할 수 있다
 - [ ] **VUX-05**: 음성으로 실행 취소("취소"/"되돌려")가 가능하다
 
@@ -86,14 +86,14 @@ Deferred to future release. Tracked but not in current roadmap.
 | VOICE-01 | Phase 1 | Complete |
 | VOICE-02 | Phase 1 | Complete |
 | VUX-01 | Phase 1 | Complete |
-| VOICE-03 | Phase 2 | Pending |
-| VOICE-04 | Phase 2 | Pending |
-| VOICE-05 | Phase 2 | Pending |
-| VOICE-06 | Phase 2 | Pending |
+| VOICE-03 | Phase 2 | Complete |
+| VOICE-04 | Phase 2 | Complete |
+| VOICE-05 | Phase 2 | Complete |
+| VOICE-06 | Phase 2 | Complete |
 | VOICE-07 | Phase 2 | Pending |
 | VOICE-08 | Phase 2 | Pending |
-| VUX-02 | Phase 2 | Pending |
-| VUX-03 | Phase 2 | Pending |
+| VUX-02 | Phase 2 | Complete |
+| VUX-03 | Phase 2 | Complete |
 | VUX-04 | Phase 2 | Pending |
 | VUX-05 | Phase 2 | Pending |
 | UI-01 | Phase 3 | Pending |
