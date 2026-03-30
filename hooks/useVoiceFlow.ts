@@ -56,9 +56,12 @@ export function useVoiceFlow(callbacks: VoiceFlowCallbacks) {
   /** STT 텍스트를 플로우에 전달 */
   const processText = useCallback(async (text: string) => {
     clearTimer()
-    callbacks.addLog('user', text)
 
     const current = stateRef.current
+    // 플로우가 완료되었거나 비활성 상태면 무시 (늦게 도착한 STT 결과 방어)
+    if (current.step === 'idle' || current.step === 'done') return
+
+    callbacks.addLog('user', text)
 
     // 취소 감지
     if (isCancelCommand(text)) {

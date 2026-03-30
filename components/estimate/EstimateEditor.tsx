@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
@@ -39,6 +39,7 @@ export default function EstimateEditor({
   const [showContractRef, setShowContractRef] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [voiceLogs, setVoiceLogs] = useState<{ type: 'user' | 'assistant'; text: string }[]>([])
+  const [flowActive, setFlowActive] = useState(false)
 
   const {
     estimate, isDirty, markClean, updateMeta, updateSheet, updateItem,
@@ -47,6 +48,8 @@ export default function EstimateEditor({
   } = useEstimate(initialEstimate, priceMatrix)
 
   useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
+
+  // 시트 자동 생성 제거 — 음성 가이드 또는 "바로 생성" 버튼으로만 시트 생성
 
   const activeSheetIndex =
     activeTab === 'complex-cover' || activeTab === 'complex-detail'
@@ -171,7 +174,7 @@ export default function EstimateEditor({
   const voice = useVoice({
     mode: voiceMode,
     estimateContext,
-    skipLlm: voiceFlowRef.current.isActive,
+    skipLlm: flowActive,
     onCommands: handleVoiceCommands,
     onTtsText: (text) => addLog('assistant', text),
     onSttText: (text) => {
@@ -212,6 +215,11 @@ export default function EstimateEditor({
 
   // voiceFlowRef 동기화
   voiceFlowRef.current = { processText: voiceFlow.processText, isActive: voiceFlow.isActive }
+
+  // flowActive를 React state로 동기화 — skipLlm이 항상 최신 render값을 가지도록
+  useEffect(() => {
+    setFlowActive(voiceFlow.isActive)
+  }, [voiceFlow.isActive])
 
   // ── 웨이크워드 "견적" ──
   useWakeWord({
