@@ -83,32 +83,32 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VOICE-01 | — | Pending |
-| VOICE-02 | — | Pending |
-| VOICE-03 | — | Pending |
-| VOICE-04 | — | Pending |
-| VOICE-05 | — | Pending |
-| VOICE-06 | — | Pending |
-| VOICE-07 | — | Pending |
-| VOICE-08 | — | Pending |
-| VUX-01 | — | Pending |
-| VUX-02 | — | Pending |
-| VUX-03 | — | Pending |
-| VUX-04 | — | Pending |
-| VUX-05 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| OUT-01 | — | Pending |
-| OUT-02 | — | Pending |
-| OUT-03 | — | Pending |
-| CRM-01 | — | Pending |
+| VOICE-01 | Phase 1 | Pending |
+| VOICE-02 | Phase 1 | Pending |
+| VUX-01 | Phase 1 | Pending |
+| VOICE-03 | Phase 2 | Pending |
+| VOICE-04 | Phase 2 | Pending |
+| VOICE-05 | Phase 2 | Pending |
+| VOICE-06 | Phase 2 | Pending |
+| VOICE-07 | Phase 2 | Pending |
+| VOICE-08 | Phase 2 | Pending |
+| VUX-02 | Phase 2 | Pending |
+| VUX-03 | Phase 2 | Pending |
+| VUX-04 | Phase 2 | Pending |
+| VUX-05 | Phase 2 | Pending |
+| UI-01 | Phase 3 | Pending |
+| OUT-01 | Phase 3 | Pending |
+| OUT-02 | Phase 3 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| CRM-01 | Phase 5 | Pending |
+| OUT-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 — traceability mapped after roadmap creation*

@@ -1086,7 +1086,63 @@ v4 (Vercel):
 
 ---
 
-## 16. 참조 파일
+## 16. GSD 워크플로우 규칙
+
+### 16-1. 작업 원칙
+- 모든 기능 구현은 반드시 GSD 워크플로우(`/gsd:` 명령어)를 통해 진행한다
+- 계획 없이 코드를 작성하지 않는다
+- 하나의 작업이 완료되기 전에 다음 작업으로 넘어가지 않는다
+
+### 16-2. 서브에이전트 실행 규칙
+- 파일 겹침이 없고 상태 공유가 없는 독립 작업만 병렬 실행한다
+- 동일 파일을 수정하거나 의존성이 있는 작업은 반드시 순차 실행한다
+- 각 서브에이전트는 작업 완료 시 자체 커밋 + SUMMARY.md를 생성한다
+- 메인 컨텍스트는 오케스트레이션만 담당하며 전체 용량의 5% 이하를 유지한다
+- 서브에이전트에 지시할 때 반드시 포함: 대상 파일 경로, 구체적 행동, 성공 기준
+
+### 16-3. 컨텍스트 관리
+- 작업 전환 시 `/clear`로 컨텍스트를 초기화한다
+- 컨텍스트 50% 이상 사용 시 `/compact`를 실행한다
+- compact 시 유지할 정보: 현재 작업명, 수정 중인 파일, 미해결 이슈
+- 대화 기록이 아닌 구조화된 문서(PLAN.md, SUMMARY.md)만 참조한다
+
+### 16-4. 코드 작성 규칙
+- 서버 컴포넌트를 기본으로 하고, 클라이언트 상호작용이 필요한 경우에만 `'use client'`를 선언한다
+- Supabase 클라이언트는 기존 생성 패턴(`lib/supabase/client.ts`, `lib/supabase/server.ts`)을 그대로 사용한다. 새로운 인스턴스를 만들지 않는다
+- API 라우트는 `app/api/` 하위에 `route.ts`로 작성한다
+- 환경변수 접근 시 `process.env`를 직접 사용하고, 클라이언트에서는 `NEXT_PUBLIC_` 접두사가 붙은 변수만 사용한다
+- 기존 코드의 패턴과 네이밍 컨벤션을 반드시 따른다
+- 기존 코드를 임의로 리팩토링하지 않는다. 지시된 범위만 수정한다
+- 새 패키지 설치가 필요하면 설치 전에 반드시 보고하고 승인을 받는다
+
+### 16-5. Supabase 규칙
+- RLS 정책이 적용된 테이블의 쿼리는 반드시 인증된 클라이언트로 수행한다
+- 테이블 스키마를 임의로 변경하지 않는다. 마이그레이션이 필요하면 보고한다
+- supabase-js의 타입은 기존 타입 정의 파일(`lib/estimate/types.ts`)을 따른다
+
+### 16-6. 견적서 로직 규칙
+- 금액 계산 로직을 수정할 때는 기존 계산식을 먼저 명시하고 변경 사항을 보고한다
+- ExcelJS 템플릿 구조를 임의로 변경하지 않는다
+- 숫자 포맷(원화, 소수점, 천단위 구분)은 기존 패턴(`lib/utils/format.ts`)을 따른다
+
+### 16-7. 검증 규칙
+- 구현 완료 후 반드시 `npm run build`를 실행하여 빌드 에러가 없는지 확인한다
+- `npm run lint`를 실행하여 린트 에러가 없는 상태에서만 커밋한다
+- "완료했습니다"라고 보고하기 전에 검증을 먼저 수행한다
+- 자가 평가를 신뢰하지 않는다. 빌드/린트 통과 여부만 완료 기준이다
+
+### 16-8. 금지 사항
+- 지시 범위 밖의 파일을 수정하지 않는다
+- 기존 테스트를 통과시키기 위해 테스트 자체를 수정하지 않는다
+- 에러 발생 시 임의로 우회하지 않고 원인을 보고한다
+- 대충 마무리하고 종료하지 않는다. 미완료 시 명시적으로 보고한다
+- Next.js 15 업그레이드, React 19 마이그레이션, Tailwind CSS 4 업그레이드 금지
+- 인라인 스타일, CSS 모듈, styled-components 사용 금지 (Tailwind CSS만 사용)
+- 클래스 컴포넌트 사용 금지 (함수형 + Hooks만 사용)
+
+---
+
+## 17. 참조 파일
 
 | 파일 | 이식 대상 | 비고 |
 |------|----------|------|
@@ -1101,3 +1157,304 @@ v4 (Vercel):
 ---
 
 *v4 종합 기획서 v1.1 | 2026-03-26*
+
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**방수명가 견적서 v4**
+
+방수 시공 업체의 음성 기반 견적서 시스템. CRM에서 고객을 선택하고, 음성으로 견적 데이터를 입력/수정하며, 엑셀/PDF로 출력한다. 차량 내 핸즈프리 사용이 핵심. Next.js 14 + Supabase + OpenAI(STT/TTS) + Claude(LLM) 스택으로 기존 GAS 시스템을 완전 대체한다.
+
+**Core Value:** 음성 한마디로 견적서가 완성된다. 터치 0회가 목표.
+
+### Constraints
+
+- **Tech stack**: Next.js 14 + Supabase + Tailwind 3 — 변경 금지
+- **No GAS**: GAS 코드 수정/의존 금지
+- **No v2 code**: Figma 디자인만 참조, v2 코드 재사용 금지
+- **TypeScript strict**: any 타입 금지
+- **Component size**: 파일당 200줄 이내
+- **Voice first**: 모든 입력/수정은 음성으로 가능해야 함
+<!-- GSD:project-end -->
+
+<!-- GSD:stack-start source:codebase/STACK.md -->
+## Technology Stack
+
+## Languages
+- TypeScript 5.9.3 - Full application codebase
+- JavaScript - Build configuration and scripts
+- HTML - Email templates, PDF generation
+- CSS - Tailwind CSS utility styles
+## Runtime
+- Node.js 18+ (LTS)
+- npm
+- Lockfile: `package-lock.json` (present)
+## Frameworks
+- Next.js 14.2.35 (App Router) - Server-side rendering, API routes, deployment
+- React 18.3.1 - UI components
+- React DOM 18.3.1 - DOM rendering
+- Tailwind CSS 3.4.19 - Utility-first CSS framework
+- PostCSS 8.5.8 - CSS transformation pipeline
+- Autoprefixer 10.4.27 - Browser vendor prefixes
+- tsx 4.21.0 - TypeScript execution for scripts
+## Key Dependencies
+- @supabase/supabase-js 2.100.0 - PostgreSQL database, Auth, Storage client
+- @supabase/ssr 0.9.0 - Server-side rendering helpers for Supabase Auth
+- exceljs 4.4.0 - Excel workbook generation (XLSX creation)
+- googleapis 171.4.0 - Google Drive API for file management
+- resend 6.9.4 - Email sending service
+- @types/node 25.5.0 - Node.js type definitions
+- @types/react 18.3.28 - React type definitions
+- @types/react-dom 18.3.7 - React DOM type definitions
+## Configuration
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (public)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key (public)
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role for server-side operations (private)
+- `OPENAI_API_KEY` - OpenAI API key for STT/TTS (private)
+- `ANTHROPIC_API_KEY` - Anthropic Claude API key for LLM (private)
+- `RESEND_API_KEY` - Resend email service key (private)
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL` - Google Drive service account email (optional)
+- `GOOGLE_PRIVATE_KEY` - Google Drive private key (optional, private)
+- `GOOGLE_DRIVE_FOLDER_ID` - Default Google Drive folder for estimates (optional)
+- `GOOGLE_DRIVE_PROPOSAL_FOLDER_ID` - Default Google Drive folder for proposals (optional)
+- `next.config.js` - Minimal Next.js configuration
+- `tsconfig.json` - TypeScript strict mode enabled, path aliases `@/*` → root
+- `tailwind.config.js` - Tailwind CSS with custom brand colors and fonts
+- `postcss.config.js` - PostCSS with Tailwind and Autoprefixer
+## Platform Requirements
+- Node.js 18+
+- npm or compatible package manager
+- Supabase account (PostgreSQL + Auth)
+- OpenAI API key
+- Anthropic API key
+- Resend API key
+- (Optional) Google Drive service account
+- Vercel (primary deployment platform)
+- Supabase PostgreSQL database
+- Supabase Storage (S3-compatible)
+- Supabase Auth
+- OpenAI API endpoint access
+- Anthropic API endpoint access
+- Resend API endpoint access
+- Modern browser with Web Audio API support (for voice recording)
+- MediaRecorder API support
+- Web Speech API support (for wake word detection)
+<!-- GSD:stack-end -->
+
+<!-- GSD:conventions-start source:CONVENTIONS.md -->
+## Conventions
+
+## Naming Patterns
+- Components: PascalCase (e.g., `EstimateEditor.tsx`, `VoiceBar.tsx`)
+- Utilities/libraries: camelCase (e.g., `buildItems.ts`, `priceData.ts`)
+- Types: PascalCase with `.ts` extension (e.g., `types.ts`)
+- Hooks: camelCase with `use` prefix (e.g., `useEstimate.ts`, `useVoice.ts`)
+- API routes: kebab-case or descriptive (e.g., `/api/stt/route.ts`, `/api/llm/route.ts`)
+- camelCase for all functions: `getPD()`, `buildItems()`, `calc()`, `getMargin()`
+- Prefix with action verb: `get*`, `build*`, `apply*`, `update*`, `handle*`
+- Single responsibility — function names describe one action
+- camelCase for local variables: `priceMatrix`, `estimateContext`, `clarificationCount`
+- CONST_ALL_CAPS for module-level constants: `OVERHEAD_RATE`, `PROFIT_RATE`, `ROUND_UNIT`, `DEFAULT_EQUIPMENT_PRICES`
+- `Ref` suffix for refs: `mediaRecorderRef`, `callbacksRef`, `timerRef`, `chunksRef`
+- `Id` suffix for identifiers: `company_id`, `estimate_id`, `sheet_id`
+- PascalCase for interfaces and types: `EstimateItem`, `EstimateSheet`, `VoiceCommand`, `CalcResult`
+- Descriptive names matching domain: `PriceMatrixRaw`, `BuildItemsInput`, `ConfidenceResult`, `VoiceStatus`
+- Union types for status: `type VoiceStatus = 'idle' | 'recording' | 'processing' | 'speaking'`
+- Database row types suffix with `Row`: `PriceMatrixRow`, `PresetRow`
+## Code Style
+- Prettier (via Next.js default, though not explicitly configured)
+- 2-space indentation
+- Single quotes for strings: `'복합'`, `'견적서'`
+- Semicolons required
+- Max line length ~100-120 characters
+- Next.js default ESLint rules (no explicit `.eslintrc` file)
+- TypeScript strict mode enabled (`"strict": true` in `tsconfig.json`)
+- `jsx: "preserve"` in tsconfig for Next.js App Router compatibility
+- JSDoc for public functions and complex logic
+- Single-line comments for inline explanations: `// ──`와 `// 내용`
+- Divider comments: `// ── Section Name ──` for major logical blocks
+- No commented-out code — remove or use git history
+## Import Organization
+- `@/*` maps to project root (configured in `tsconfig.json`)
+- Always use absolute paths: `@/lib/`, `@/components/`, `@/hooks/`
+- Never use relative `../` paths
+## Error Handling
+- Return `NextResponse.json({ error: string }, { status: number })`
+- Error messages include context: `{ error: 'STT 실패: ${err}' }`
+- Check required fields first: `if (!audio) return NextResponse.json({ error: ... }, { status: 400 })`
+- Try/catch for external API calls with informative messages
+- Use callbacks with proper error handling: `try/catch` + `finally`
+- Callbacks set error state or log to console
+- State updated in `finally` to unlock UI (e.g., `setSaving(false)`)
+- No try/catch in calculation/transformation functions (let caller handle)
+- Validation at function entry: `if (!methodData || Object.keys(methodData).length === 0) { console.warn(...) }`
+- Return sensible defaults for missing data: `Array.from({ length: 11 }, (): UnitCost => [0, 0, 0])`
+## Logging
+- Development: `console.log()`, `console.warn()`
+- API errors: Include context in error message
+- Calculation warnings: Log to console with `console.warn()` when P매트릭스 data missing
+- No logging in production-critical paths (calculation functions)
+## Comments
+- Complex algorithm logic (e.g., interpolation in `getPD`)
+- Non-obvious design decisions (e.g., why equipment items excluded from overhead calculation)
+- v1 legacy code references: "v1 원본(파일명:라인) 로직을 TypeScript로 이식"
+- Business logic context (e.g., "면적대 경계값 (평 기준)")
+- Used for public functions with complex signatures
+- Include parameter types and return description
+- Example (from `buildItems.ts`):
+## Function Design
+- Prefer <50 lines per function
+- Complex operations (buildItems, applyCommands) 50-120 lines acceptable
+- Split long functions into sub-functions with descriptive names
+- Prefer objects over multiple primitives: `BuildItemsInput` instead of 6 individual params
+- Use `Partial<T>` for optional configs: `options?: { leak?: boolean, rooftop?: boolean }`
+- Type all parameters explicitly (strict TypeScript)
+- Return objects with clear structure: `{ items: EstimateItem[], calcResult: CalcResult }`
+- Don't return nullable values from core functions — return empty array or default object
+- Use unions for conditional returns: `ConfidenceResult` with `level: 'high' | 'medium' | 'low'`
+## Module Design
+- Named exports for reusable functions: `export function calc()`, `export function buildItems()`
+- Default export for React components: `export default function EstimateEditor()`
+- Type exports with `export type`: `export type VoiceStatus = 'idle' | ...`
+- Group related functions in same file (e.g., `commands.ts` has `applyCommand`, `applyCommands`)
+- Not used in this codebase — import directly from source files
+- Example: `import { buildItems } from '@/lib/estimate/buildItems'` (not from index.ts)
+- `lib/estimate/*`: Calculation/transformation functions (pure, no side effects)
+- `lib/voice/*`: Voice processing (STT parsing, command routing, prompts)
+- `lib/utils/*`: Format utilities (numbers, lerp, Korean conversion)
+- `lib/supabase/*`: Database client initialization
+- `lib/excel/*`, `lib/pdf/*`: File generation
+- `hooks/`: React state management hooks
+- `components/`: React UI components
+- `app/api/`: Next.js API routes
+- `app/(authenticated)/`: Protected pages (app router groups)
+## React-Specific Conventions
+- `useCallback` for event handlers and memoized functions
+- `useRef` for refs explicitly documented: `const timerRef = useRef<ReturnType<typeof setInterval>>`
+- Dependencies array carefully managed — use ESLint rule `exhaustive-deps` (comment when intentional)
+- Example comment: `// eslint-disable-next-line react-hooks/exhaustive-deps` when needed
+- Define interface: `interface EstimateEditorProps { initialEstimate: Estimate; priceMatrix: PriceMatrixRaw }`
+- Use destructuring in function params: `export default function ({ estimate, isDirty }: Props)`
+- No boolean trap parameters — use object: `{ enabled: boolean }` over `(enabled: boolean)`
+- useState for component-level state
+- Multiple useState calls for independent values (not single object)
+- Example from `EstimateEditor.tsx`:
+## TypeScript Conventions
+- All code written with `"strict": true`
+- No `any` types — use `unknown` with type narrowing if necessary
+- Type all function parameters and returns
+- Use `satisfies` operator for type inference
+- `Partial<T>`: Optional configurations
+- `Record<K, V>`: Maps (e.g., `CostTable = Record<string, number>`)
+- `Omit<T, K>`: Exclude certain fields
+- Type unions instead of optional: `'복합' | '우레탄'` over `Method | null`
+- Use literal union types instead of enums
+- Example: `type TabId = 'complex-cover' | 'complex-detail' | 'urethane-cover' | 'urethane-detail' | 'compare'`
+- Reason: Better for JSON serialization and tree-shaking
+<!-- GSD:conventions-end -->
+
+<!-- GSD:architecture-start source:ARCHITECTURE.md -->
+## Architecture
+
+## Pattern Overview
+- Voice-first input: all estimate modifications flow through speech recognition → LLM parsing → command execution
+- Server-side data fetching + client-side state management for responsive editing
+- Layered estimate computation: buildItems (P-matrix interpolation) → overrides → calc (overhead/profit/rounding)
+- Multi-mode voice processing: extract (new estimate) → supplement (missing fields) → modify (command editing)
+- Real-time Supabase sync with debounce (useAutoSave)
+## Layers
+- Purpose: UI rendering + user interaction (voice/touch)
+- Location: `components/`
+- Contains: Page shells (EstimateEditor, CoverSheet, WorkSheet), inline editing (InlineCell), voice feedback (VoiceBar)
+- Depends on: Hooks (useEstimate, useVoice, useVoiceFlow), voice commands
+- Used by: Next.js App Router pages
+- Purpose: Centralized estimate state, undo snapshots, dirty tracking, cell modification tracking
+- Location: `hooks/useEstimate.ts`
+- Contains: estimate state, snapshots[], modifiedCells Map, rebuild logic on m2/wall_m2 changes
+- Depends on: lib/estimate/* (buildItems, calc, margin)
+- Used by: EstimateEditor + all subcomponents
+- Purpose: STT → LLM parsing → command routing → execution
+- Location: `hooks/useVoice.ts`, `hooks/useVoiceFlow.ts`, `lib/voice/*`
+- Contains: MediaRecorder wrapper, API proxying (STT/LLM/TTS), 3-level confidence routing, flow state machine
+- Depends on: /api/stt, /api/llm, /api/tts + external (OpenAI, Anthropic)
+- Used by: EstimateEditor (modify mode) + VoiceBar (UI feedback)
+- Purpose: Estimate calculation engine (P-matrix → items → costs → totals)
+- Location: `lib/estimate/`
+- Contains: buildItems, calc, margin, cost breakdown, area ranges, constants (BASE arrays)
+- Depends on: types.ts, constants.ts
+- Used by: hooks/useEstimate, voice command executor
+- Purpose: Backend proxies + database operations
+- Location: `app/api/`
+- Contains: STT/LLM/TTS proxies, estimate CRUD, file generation (Excel/PDF), email sending
+- Depends on: Supabase client, external services (OpenAI, Anthropic, Resend)
+- Used by: Client hooks + form submissions
+- Purpose: Database + authentication abstraction
+- Location: `lib/supabase/`, `app/api/`
+- Contains: Supabase client creation (browser + server), middleware auth, RLS policies
+- Depends on: Supabase JS SDK
+- Used by: API routes + initial page SSR
+- Purpose: Shared helpers
+- Location: `lib/utils/`
+- Contains: format (Korean numerals), lerp (interpolation), number conversion
+## Data Flow
+- `estimate` (useState): root state tree { id, sheets: [{type, items: []}] }
+- `snapshots` (useState): array of past states, saveSnapshot() before each change (voice/manual)
+- `isDirty` (useState): tracks unsaved changes, markClean() after Supabase sync
+- `modifiedCells` (Map): tracks which cells changed for UI highlighting
+- `recentCommandsRef` (useVoice): keeps last 3 voice commands for context carryover
+## Key Abstractions
+- Purpose: Represents one method variant (복합 OR 우레탄) with calculated items
+- Example: `{ type: '복합', items: [{name: '바탕정리', qty: 150, mat: 1000, mat_amount: 150000, total: 225000}], grand_total: 3900000 }`
+- Pattern: Immutable updates via spread operator, calc() applied after mutations
+- Purpose: Interpolate unit costs [mat, labor, exp] by area_range × method × price_per_pyeong
+- File: `lib/estimate/priceData.ts` (getPD), `lib/estimate/areaRange.ts` (getAR)
+- Usage: buildItems input → getAR(m2) → getPD(matrix, areaRange, method, ppp) → UnitCost[]
+- Pattern: 3-level nested object, store in DB (price_matrix), loaded server-side with service role (RLS bypass)
+- Purpose: Parsed LLM output representing one atomic edit
+- Example: `{ action: 'update_item', target: '바탕정리', field: 'mat', delta: +100, confidence: 0.96 }`
+- Pattern: applyCommand() pure function, returns CommandResult, chained via applyCommands()
+- Purpose: State machine for structured data collection (4 required fields for new estimate)
+- Location: `lib/voice/voiceFlow.ts`
+- Pattern: FlowStep enum (collecting_area → collecting_wall → ...) + FLOW_STEPS map, transitions on parseFlowInput()
+## Entry Points
+- Location: `app/(authenticated)/estimate/[id]/page.tsx` (SSR)
+- Triggers: User navigates to /estimate/:id
+- Responsibilities:
+- POST /api/stt: OpenAI Whisper proxy
+- POST /api/llm: Claude Sonnet proxy
+- POST /api/tts: OpenAI TTS proxy
+- POST /api/estimates/[id]/generate: Excel + PDF creation
+- POST /api/estimates/[id]/email: Send via Resend
+- GET /api/estimates/search: CRM lookup
+- Location: `app/(authenticated)/estimate/new/page.tsx`
+- Responsibilities: Create empty estimate in DB, redirect to [id]
+## Error Handling
+- API failures (STT/LLM/TTS): catch in useVoice, set error state, play TTS "오류 발생", addLog
+- Voice clarification loop: 2-attempt limit, after which "알겠습니다" + abort
+- Invalid estimates: redirect from SSR page if estimate not found
+- RLS violations: Supabase returns error, caught in useAutoSave, logged
+## Cross-Cutting Concerns
+- M2/wall_m2: parseAllFields() regex validation, fallback to null
+- Price per pyeong: validate > 0 in updateSheet()
+- Quantities: enforce qty >= 0
+<!-- GSD:architecture-end -->
+
+<!-- GSD:workflow-start source:GSD defaults -->
+## GSD Workflow Enforcement
+
+Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+
+Use these entry points:
+- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
+- `/gsd:debug` for investigation and bug fixing
+- `/gsd:execute-phase` for planned phase work
+
+Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- GSD:workflow-end -->
+
+<!-- GSD:profile-start -->
+## Developer Profile
+
+> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
+> This section is managed by `generate-claude-profile` -- do not edit manually.
+<!-- GSD:profile-end -->
