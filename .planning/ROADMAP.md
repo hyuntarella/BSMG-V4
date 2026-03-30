@@ -12,7 +12,7 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: 음성 파이프라인 연결** - 음성 발화 → 파싱 → 견적서 테이블 반영 → TTS 피드백 end-to-end 동작
+- [x] **Phase 1: 음성 파이프라인 연결** - 음성 발화 → 파싱 → 견적서 테이블 반영 → TTS 피드백 end-to-end 동작 (completed 2026-03-30)
 - [ ] **Phase 2: 음성 편집 루프** - modify 모드로 단가/공종을 음성으로 수정, 확신도 분기 + 컨텍스트 유지
 - [ ] **Phase 3: 인라인 편집 + 저장** - 셀 탭 편집 동작, Supabase 저장 + 자동저장 완성
 - [ ] **Phase 4: 견적서 UI 완성** - 견적서 목록 + 불러오기 워크플로우 완성
@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 Plans:
 - [x] 01-01-PLAN.md — voiceFlow stateRef 동기화 안정화 + skipLlm 반응성 보장
-- [ ] 01-02-PLAN.md — 총액 TTS 피드백 추가 + E2E 검증
+- [x] 01-02-PLAN.md — 총액 TTS 피드백 추가 + E2E 검증
 **UI hint**: yes
 
 ### Phase 2: 음성 편집 루프
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 음성 파이프라인 연결 | 1/2 | In Progress|  |
+| 1. 음성 파이프라인 연결 | 2/2 | Complete   | 2026-03-30 |
 | 2. 음성 편집 루프 | 0/TBD | Not started | - |
 | 3. 인라인 편집 + 저장 | 0/TBD | Not started | - |
 | 4. 견적서 UI 완성 | 0/TBD | Not started | - |
