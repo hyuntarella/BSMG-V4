@@ -47,7 +47,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 02-01-PLAN.md — 수정 모드 상태 기계 + 웨이크워드 + modify 파이프라인 배선
-- [ ] 02-02-PLAN.md — 확신도 확인 UX + 시스템 명령 + VAD 무음 감지
+- [x] 02-02-PLAN.md — 확신도 확인 UX + 시스템 명령 + VAD 무음 감지
 - [ ] 02-03-PLAN.md — 빌드 검증 + E2E 음성 테스트 체크포인트
 **UI hint**: yes
 

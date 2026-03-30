@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-30T09:17:54.293Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-30T09:35:33.550Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 02 (voice-edit-loop) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-voice-pipeline P01 | 8 | 1 tasks | 2 files |
 | Phase 01-voice-pipeline P02 | 15 | 2 tasks | 1 files |
 | Phase 02-voice-edit-loop P01 | 45 | 2 tasks | 6 files |
+| Phase 02-voice-edit-loop P02 | 25 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Phase 01-voice-pipeline]: Compute grand_total inside onComplete via buildItems() instead of reading estimate.sheets — setState is async so sheets[].grand_total would be stale at callback time
 - [Phase 02-voice-edit-loop]: useEstimateVoice uses voicePlayTtsRef pattern to avoid circular dependency between handleVoiceCommands and voice.playTts
 - [Phase 02-voice-edit-loop]: onSttText returns boolean to short-circuit LLM pipeline for 그만/종료 detection in edit mode
+- [Phase 02-voice-edit-loop]: pendingConfirm uses both useState (reactive skipLlm) + Ref (always-fresh callback) — dual mechanism defends against render timing race in medium confidence confirm loop
+- [Phase 02-voice-edit-loop]: exitEditMode is useCallback in useVoiceEditMode so VAD useEffect dependency array works without stale closure
 
 ### Pending Todos
 
@@ -84,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T09:17:54.284Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-30T09:35:33.533Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
