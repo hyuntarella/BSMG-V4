@@ -10,6 +10,8 @@ import { useVoice } from '@/hooks/useVoice'
 import { useVoiceFlow } from '@/hooks/useVoiceFlow'
 import { useWakeWord } from '@/hooks/useWakeWord'
 import { findPriceForMargin } from '@/lib/estimate/costBreakdown'
+import { buildItems } from '@/lib/estimate/buildItems'
+import { getAR } from '@/lib/estimate/areaRange'
 // jsonIO는 저장 시 내부적으로만 사용 (헤더 버튼 제거됨)
 import TabBar, { type TabId } from './TabBar'
 import CoverSheet from './CoverSheet'
@@ -202,7 +204,8 @@ export default function EstimateEditor({
     stopRecording: voice.stopRecording,
     playTts: voice.playTts,
     addLog,
-    onComplete: (state) => {
+    onComplete: async (state) => {
+      // 시트 생성
       initFromVoiceFlow({
         area: state.area ?? 0,
         wallM2: state.wallM2 ?? 0,
@@ -210,6 +213,39 @@ export default function EstimateEditor({
         urethanePpp: state.urethanePpp,
       })
       setActiveTab('complex-detail')
+
+      // 총액 계산 (initFromVoiceFlow가 setState라 즉시 반영 안 되므로 직접 계산)
+      const m2 = state.area ?? 100
+      const wallM2 = state.wallM2 ?? 0
+      const ar = getAR(m2)
+
+      const complexMethodData = priceMatrix[ar]?.['복합']
+      const complexPrices = complexMethodData
+        ? Object.keys(complexMethodData).map(Number).sort((a, b) => a - b)
+        : []
+      const complexPpp = state.complexPpp ?? complexPrices[Math.floor(complexPrices.length / 2)] ?? 35000
+
+      const urethaneMethodData = priceMatrix[ar]?.['우레탄']
+      const urethanePrices = urethaneMethodData
+        ? Object.keys(urethaneMethodData).map(Number).sort((a, b) => a - b)
+        : []
+      const urethanePpp = state.urethanePpp ?? urethanePrices[Math.floor(urethanePrices.length / 2)] ?? 30000
+
+      const complexResult = buildItems({ method: '복합', m2, wallM2, pricePerPyeong: complexPpp, priceMatrix })
+      const urethaneResult = buildItems({ method: '우레탄', m2, wallM2, pricePerPyeong: urethanePpp, priceMatrix })
+
+      const complexTotal = complexResult.calcResult.grandTotal
+      const urethaneTotal = urethaneResult.calcResult.grandTotal
+
+      // 금액을 만원 단위 한국어로 변환
+      const formatWon = (v: number) => {
+        const man = Math.round(v / 10000)
+        return `${man.toLocaleString()}만원`
+      }
+
+      const ttsText = `견적서 생성 완료. 면적 ${m2}제곱미터. 복합 ${formatWon(complexTotal)}, 우레탄 ${formatWon(urethaneTotal)}.`
+      addLog('assistant', ttsText)
+      await voice.playTts(ttsText)
     },
   })
 
