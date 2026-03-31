@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-settings/37-PLAN.md
-last_updated: "2026-03-31T12:13:39.584Z"
+stopped_at: Completed 12-settings/38-PLAN.md
+last_updated: "2026-03-31T12:21:13.487Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 53
-  completed_plans: 46
+  completed_plans: 47
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 12 (settings) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -92,6 +92,7 @@ Progress: [████████░░] 80%
 | Phase 11-calendar P35 | 358 | 2 tasks | 5 files |
 | Phase 11-calendar P36 | 480 | 2 tasks | 8 files |
 | Phase 12-settings P37 | 4 | 2 tasks | 4 files |
+| Phase 12-settings P38 | 8 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,8 @@ Recent decisions affecting current work:
 - [Phase 11-calendar]: EventDetail 우측 고정 패널: fixed right-0 w-80 — 모달보다 비침습적으로 이벤트 상세 표시
 - [Phase 11-calendar]: getMembers() 실패 시 빈 배열 반환 — NOTION_CALENDAR_MEMBER_DB 미설정 환경에서도 앱 동작
 - [Phase 12-settings]: Service role client at module level in price-matrix API route (not per-request) — safe for server-side only
+- [Phase 12-settings]: BaseItemsEditor stores edits in cost_config JSONB (base_items key) — no new table needed
+- [Phase 12-settings]: cost-config PUT supports section/value partial update so BaseItemsEditor and CostEditor can save independently
 
 ### Pending Todos
 
@@ -173,6 +176,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T12:13:39.570Z
-Stopped at: Completed 12-settings/37-PLAN.md
+Last session: 2026-03-31T12:21:13.473Z
+Stopped at: Completed 12-settings/38-PLAN.md
 Resume file: None
