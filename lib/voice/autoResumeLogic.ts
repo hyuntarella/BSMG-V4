@@ -12,7 +12,9 @@ export function shouldAutoResume(
   currentStatus: VoiceStatus,
   isEditMode: boolean,
 ): boolean {
-  throw new Error('Not implemented');
+  const wasActiveStatus = prevStatus === 'speaking' || prevStatus === 'processing'
+  const isNowIdle = currentStatus === 'idle'
+  return wasActiveStatus && isNowIdle && isEditMode
 }
 
 /**
@@ -22,5 +24,5 @@ export function shouldAutoResume(
  * @returns true면 녹음 시작 가능
  */
 export function canStartRecording(currentStatus: VoiceStatus): boolean {
-  throw new Error('Not implemented');
+  return currentStatus === 'idle'
 }
