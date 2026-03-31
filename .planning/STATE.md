@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-manual-edit/15-PLAN.md
-last_updated: "2026-03-31T09:47:12.698Z"
+stopped_at: Completed 08-manual-edit/16-PLAN.md
+last_updated: "2026-03-31T09:56:50.967Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 5
   total_plans: 53
-  completed_plans: 24
+  completed_plans: 26
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 08 (manual-edit) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -72,6 +72,7 @@ Progress: [████████░░] 80%
 | Phase 07-proposal P14 | 65 | 2 tasks | 2 files |
 | Phase 08-manual-edit P19 | 3 | 1 tasks | 0 files |
 | Phase 08-manual-edit P15 | 15 | 3 tasks | 4 files |
+| Phase 08-manual-edit P16 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,7 @@ Recent decisions affecting current work:
 - [Phase 07-proposal]: Drive 업로드 타임아웃 10초 — 제안서는 단일 파일이므로 generate/route.ts 20초보다 짧게
 - [Phase 08-manual-edit]: CoverSheet already contained all 4 required fields — plan 19 requirements were pre-satisfied, no code changes needed
 - [Phase 08-manual-edit]: AddItemModal uses DEFAULT_PRESETS fallback when /api/presets not available
+- [Phase 08-manual-edit]: x button reuses existing 비고 td for delete — no new column, keeps table width unchanged
 
 ### Pending Todos
 
@@ -125,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T09:47:12.684Z
-Stopped at: Completed 08-manual-edit/15-PLAN.md
+Last session: 2026-03-31T09:56:50.954Z
+Stopped at: Completed 08-manual-edit/16-PLAN.md
 Resume file: None
