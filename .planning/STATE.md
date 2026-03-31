@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 11-calendar/35-PLAN.md
-last_updated: "2026-03-31T11:55:07.029Z"
+status: verifying
+stopped_at: Completed 11-calendar/36-PLAN.md
+last_updated: "2026-03-31T12:07:11.973Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 53
-  completed_plans: 44
+  completed_plans: 45
   percent: 80
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 11 (calendar) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [████████░░] 80%
@@ -90,6 +90,7 @@ Progress: [████████░░] 80%
 | Phase 10-dashboard P33 | 12 | 2 tasks | 7 files |
 | Phase 11-calendar P34 | 432 | 2 tasks | 6 files |
 | Phase 11-calendar P35 | 358 | 2 tasks | 5 files |
+| Phase 11-calendar P36 | 480 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,9 @@ Recent decisions affecting current work:
 - [Phase 11-calendar]: getEventsForDate() preserved as getEvents(date, date) wrapper for dashboard backward compatibility
 - [Phase 11-calendar]: TimeGrid 공통 컴포넌트: WeekView/DayView 재사용, HOUR_HEIGHT=64px 기준 absolute positioning
 - [Phase 11-calendar]: CalendarHeader에 title/onPrev/onNext/onToday optional props 추가 — 기존 onDateChange fallback으로 하위 호환 유지
+- [Phase 11-calendar]: EventModal CRM 검색: /api/crm/search 신규 라우트 생성 — debounce 300ms, 고객명/주소 contains 필터
+- [Phase 11-calendar]: EventDetail 우측 고정 패널: fixed right-0 w-80 — 모달보다 비침습적으로 이벤트 상세 표시
+- [Phase 11-calendar]: getMembers() 실패 시 빈 배열 반환 — NOTION_CALENDAR_MEMBER_DB 미설정 환경에서도 앱 동작
 
 ### Pending Todos
 
@@ -167,6 +171,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T11:55:07.015Z
-Stopped at: Completed 11-calendar/35-PLAN.md
+Last session: 2026-03-31T12:07:11.959Z
+Stopped at: Completed 11-calendar/36-PLAN.md
 Resume file: None
