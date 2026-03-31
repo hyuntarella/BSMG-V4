@@ -813,15 +813,21 @@ export default function ProposalEditor() {
     if (!found) u.push({ cat, items: [val] });
     const n = { ...cfg, [field]: u };
     setCfg(n);
-    // TODO: Plan 12에서 API route로 교체
-    // google.script.run.proposal_saveConfig(n)
+    fetch('/api/proposal/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(n),
+    }).catch(err => console.error('proposal/config save error:', err));
   }, [cfg]);
 
   const updateCfg = useCallback((k: keyof ProposalConfig, val: unknown) => {
     const n = { ...cfg, [k]: val };
     setCfg(n);
-    // TODO: Plan 12에서 API route로 교체
-    // google.script.run.proposal_saveConfig(n)
+    fetch('/api/proposal/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(n),
+    }).catch(err => console.error('proposal/config save error:', err));
   }, [cfg]);
 
   const handlePhoto = useCallback((key: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -831,8 +837,13 @@ export default function ProposalEditor() {
     r.onload = ev => {
       resizeImg(ev.target?.result as string, 1200, res => {
         sp(key, res);
-        // TODO: Plan 12에서 API route로 교체
-        // google.script.run.proposal_savePhoto(key, res)
+        // Also upload to Supabase Storage for persistence
+        const blob = new Blob([f], { type: f.type });
+        const formData = new FormData();
+        formData.append('file', blob, f.name);
+        fetch('/api/proposal/photo', { method: 'POST', body: formData })
+          .then(r2 => r2.ok ? r2.json() : Promise.reject(r2.statusText))
+          .catch(err => console.error('proposal/photo upload error:', err));
       });
     };
     r.readAsDataURL(f);
@@ -892,8 +903,14 @@ export default function ProposalEditor() {
 
   // ── Config load ──
   useEffect(() => {
-    // TODO: Plan 12에서 API route로 교체
-    // google.script.run.withSuccessHandler(d => { if (d) setCfg({...}) }).proposal_getConfig()
+    fetch('/api/proposal/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && Object.keys(d).length > 0) {
+          setCfg(prev => ({ ...prev, ...d }));
+        }
+      })
+      .catch(err => console.error('proposal/config load error:', err));
   }, []);
 
   const mgrOpts = [{ v: '', l: '선택' }, ...cfg.mgr.map(m => ({ v: m.name, l: m.name }))];
