@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import path from 'path'
 import type { Estimate, EstimateSheet, EstimateItem, CalcResult } from '@/lib/estimate/types'
 import { calc } from '@/lib/estimate/calc'
+import { toKoreanAmount } from '@/lib/utils/numberToKorean'
 
 const FONT_NAME = '맑은 고딕'
 const BRAND_COLOR = 'A11D1F'
@@ -101,7 +102,7 @@ function generateFromTemplate(
   // ── Sheet1 (표지) 업데이트 ──
   const coverWs = wb.getWorksheet(1)
   if (coverWs) {
-    fillCoverFromTemplate(coverWs, estimate)
+    fillCoverFromTemplate(coverWs, estimate, estimate.sheets[0])
   }
 
   // ── Sheet2 (상세) 업데이트 — 첫 번째 시트 ──
@@ -127,8 +128,18 @@ function generateFromTemplate(
  *   Row 7 col D: 견적일
  *   Row 8 col D: 고객명 (귀하)
  *   Row 9 col D: 공사명
+ *   Row 11 col E: 한글 금액 (일금 X원 정(₩X) — 템플릿 수식 덮어쓰기)
+ *   Row 14 col K: 계 금액 (totalBeforeRound — 템플릿 수식 덮어쓰기)
+ *   Row 18 col K: 합계 금액 (grandTotal — 템플릿 수식 덮어쓰기)
+ *   Row 19 col D: 보증조건 텍스트
+ *
+ * @param sheet - 첫 번째 시트 (표지 금액/보증 조건 출처)
  */
-function fillCoverFromTemplate(ws: ExcelJS.Worksheet, estimate: Estimate): void {
+function fillCoverFromTemplate(
+  ws: ExcelJS.Worksheet,
+  estimate: Estimate,
+  sheet: EstimateSheet | undefined,
+): void {
   // 관리번호 (Row 6, col D=4)
   ws.getCell(6, 4).value = estimate.mgmt_no ?? ''
 
@@ -142,6 +153,27 @@ function fillCoverFromTemplate(ws: ExcelJS.Worksheet, estimate: Estimate): void 
   // 공사명 (Row 9, col D=4)
   const siteText = estimate.site_name ?? '방수공사'
   ws.getCell(9, 4).value = siteText
+
+  if (!sheet) return
+
+  const calcResult: CalcResult = calc(sheet.items)
+
+  // 한글 금액 (Row 11, col E=5)
+  // 템플릿 수식 NUMBERSTRING이 Node.js에서 지원 안 되므로 직접 값으로 덮어쓴다
+  ws.getCell(11, 5).value = toKoreanAmount(calcResult.grandTotal)
+
+  // 계 금액 (Row 14, col K=11) — totalBeforeRound (공과잡비+기업이윤 포함, 절사 전)
+  ws.getCell(14, 11).value = calcResult.totalBeforeRound
+
+  // 합계 금액 (Row 18, col K=11) — grandTotal (10만원 절사 후)
+  ws.getCell(18, 11).value = calcResult.grandTotal
+
+  // 보증조건 (Row 19, col D=4) — 기존 richText를 단순 텍스트로 교체
+  ws.getCell(19, 4).value =
+    `  1. 하자보증기간 ${sheet.warranty_years}년 (하자이행증권 ${sheet.warranty_bond}년)\n` +
+    `  2. 견적서 제출 30일 유효\n` +
+    `  3. 열차단 효과, 크랙방지, 반영구적 방수 공법\n` +
+    `       * 부가가치세별도`
 }
 
 /**
