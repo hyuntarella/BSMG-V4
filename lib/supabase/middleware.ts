@@ -25,6 +25,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Playwright 테스트 모드: 인증 우회
+  if (process.env.TEST_MODE === 'true') {
+    return supabaseResponse;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
