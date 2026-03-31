@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-crm/26-PLAN.md
-last_updated: "2026-03-31T10:57:18.545Z"
+stopped_at: Completed 09-crm/28-PLAN.md
+last_updated: "2026-03-31T11:06:27.714Z"
 last_activity: 2026-03-31
 progress:
-  total_phases: 12
-  completed_phases: 6
-  total_plans: 53
-  completed_plans: 36
+  total_phases: 10
+  completed_phases: 2
+  total_plans: 22
+  completed_plans: 33
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 09 (crm) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -82,6 +82,7 @@ Progress: [████████░░] 80%
 | Phase 09-crm P24 | 206 | 2 tasks | 5 files |
 | Phase 09-crm P27 | 406 | 2 tasks | 3 files |
 | Phase 09-crm P26 | 420 | 2 tasks | 5 files |
+| Phase 09-crm P28 | 365 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,7 @@ Recent decisions affecting current work:
 - [Phase 09-crm]: 월 sticky 헤더 top-10 오프셋: 연도 헤더(~40px) 아래 겹치도록 z-[9] 처리
 - [Phase 09-crm]: HTML5 DnD API 사용 (외부 라이브러리 없음): draggable + onDragStart/onDragOver/onDrop으로 순수 구현
 - [Phase 09-crm]: KanbanBoard에 FAB + Undo 토스트 통합: 칸반 관련 UI 응집도 향상
+- [Phase 09-crm]: TEST_MODE 우회는 updateSession에서 getUser() 호출 전에 위치 — 불필요한 Supabase 호출 없이 early return
 
 ### Pending Todos
 
@@ -148,6 +150,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T10:57:18.531Z
-Stopped at: Completed 09-crm/26-PLAN.md
+Last session: 2026-03-31T11:06:27.700Z
+Stopped at: Completed 09-crm/28-PLAN.md
 Resume file: None
