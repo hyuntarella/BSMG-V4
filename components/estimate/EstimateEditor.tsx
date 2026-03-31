@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
 import { useAutoSave } from '@/hooks/useAutoSave'
@@ -23,6 +24,7 @@ export default function EstimateEditor({
   initialEstimate,
   priceMatrix,
 }: EstimateEditorProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('complex-cover')
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -178,6 +180,18 @@ export default function EstimateEditor({
             className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
           >
             이메일
+          </button>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (estimate.site_name) params.set('address', estimate.site_name);
+              if (estimate.manager_name) params.set('manager', estimate.manager_name);
+              router.push(`/proposal${params.toString() ? '?' + params.toString() : ''}`);
+            }}
+            disabled={!estimate.id}
+            className="rounded border border-green-600 px-3 py-1 text-xs font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
+          >
+            제안서
           </button>
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
           {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200">+ 복합</button>}
