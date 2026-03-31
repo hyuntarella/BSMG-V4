@@ -51,7 +51,19 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
               placeholder="현장 주소"
             />
           </CoverRow>
-          <CoverRow label="공 사 명" value="방수공사" last />
+          <CoverRow label="공 사 명" value="방수공사" />
+          <CoverRow label="고 객 명">
+            <EditableField value={estimate.customer_name ?? ''} onChange={v => onUpdate('customer_name', v)} placeholder="고객명" />
+          </CoverRow>
+          <CoverRow label="담 당 자">
+            <EditableField value={estimate.manager_name ?? ''} onChange={v => onUpdate('manager_name', v)} placeholder="담당자" />
+          </CoverRow>
+          <CoverRow label="연 락 처">
+            <EditableField value={estimate.manager_phone ?? ''} onChange={v => onUpdate('manager_phone', v)} placeholder="연락처" />
+          </CoverRow>
+          <CoverRow label="메    모" last>
+            <EditableField value={estimate.memo ?? ''} onChange={v => onUpdate('memo', v)} placeholder="특이사항" />
+          </CoverRow>
         </div>
 
         {/* 우측: 공급자 */}
