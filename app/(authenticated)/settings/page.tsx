@@ -4,6 +4,9 @@ import { useState } from 'react'
 import Header from '@/components/layout/Header'
 import SettingsTabs from '@/components/settings/SettingsTabs'
 import PriceMatrixEditor from '@/components/settings/PriceMatrixEditor'
+import BaseItemsEditor from '@/components/settings/BaseItemsEditor'
+import PresetsEditor from '@/components/settings/PresetsEditor'
+import CostEditor from '@/components/settings/CostEditor'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('단가표')
@@ -17,20 +20,14 @@ export default function SettingsPage() {
           <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
           <div className="p-4">
             {activeTab === '단가표' && <PriceMatrixEditor />}
-            {activeTab === '기본공종' && (
-              <PlaceholderTab label="기본공종" note="Phase 38에서 구현" />
-            )}
-            {activeTab === '프리셋' && (
-              <PlaceholderTab label="프리셋" note="Phase 38에서 구현" />
-            )}
-            {activeTab === '원가' && (
-              <PlaceholderTab label="원가" note="Phase 39에서 구현" />
-            )}
+            {activeTab === '기본공종' && <BaseItemsEditor />}
+            {activeTab === '프리셋' && <PresetsEditor />}
+            {activeTab === '원가' && <CostEditor />}
             {activeTab === '계산규칙' && (
               <PlaceholderTab label="계산규칙" note="Phase 39에서 구현" />
             )}
             {activeTab === '장비단가' && (
-              <PlaceholderTab label="장비단가" note="Phase 38에서 구현" />
+              <PlaceholderTab label="장비단가" note="Phase 39에서 구현" />
             )}
             {activeTab === '보증' && (
               <PlaceholderTab label="보증" note="Phase 39에서 구현" />
