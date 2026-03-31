@@ -40,7 +40,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### CRM 연동 (CRM)
 
-- [ ] **CRM-01**: Notion CRM에서 고객 정보(주소/담당자)를 가져와 견적서에 자동 채울 수 있다
+- [x] **CRM-01**: Notion CRM에서 고객 정보(주소/담당자)를 가져와 견적서에 자동 채울 수 있다
 
 ## v2 Requirements
 
@@ -104,7 +104,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | OUT-03 | Phase 5 | Complete |
 | OUT-04 | Phase 6 | Complete |
 | OUT-05 | Phase 6 | Complete |
-| CRM-01 | Phase 9 | Pending |
+| CRM-01 | Phase 9 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total + 2 promoted from v2
