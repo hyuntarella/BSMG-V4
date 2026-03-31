@@ -7,8 +7,11 @@ import type { VoiceCommand } from '@/lib/voice/commands'
 import type { ConfidenceResult } from '@/lib/voice/confidenceRouter'
 import { useVoice } from '@/hooks/useVoice'
 import { useVoiceEditMode } from '@/hooks/useVoiceEditMode'
+import { useVoiceFlow } from '@/hooks/useVoiceFlow'
 import { useWakeWord } from '@/hooks/useWakeWord'
+import type { FlowState } from '@/lib/voice/voiceFlow'
 import type { TabId } from '@/components/estimate/TabBar'
+import { normalizeText, matchKeyword } from '@/lib/voice/keywordMatcher'
 
 // ── 인터페이스 ──
 
@@ -20,6 +23,7 @@ interface UseEstimateVoiceOptions {
   applyVoiceCommands: (commands: VoiceCommand[], sheetIndex?: number) => { executed: boolean; routing: ConfidenceResult }
   updateMeta: (field: keyof Estimate, value: string | number) => void
   addSheet: (type: '복합' | '우레탄') => void
+  initFromVoiceFlow: (data: { area: number; wallM2: number; complexPpp: number | null; urethanePpp: number | null }) => void
   saveSnapshot: (description: string, type?: 'auto' | 'voice' | 'manual') => void
   undo: () => void
   getSheetMargin: (sheetIndex: number) => number
@@ -43,6 +47,7 @@ export function useEstimateVoice({
   applyVoiceCommands,
   updateMeta,
   addSheet,
+  initFromVoiceFlow,
   saveSnapshot,
   undo,
   getSheetMargin,
@@ -57,6 +62,30 @@ export function useEstimateVoice({
   const addLog = useCallback((type: 'user' | 'assistant', text: string) => {
     setVoiceLogs((prev) => [...prev.slice(-49), { type, text }])
   }, [])
+
+  // voice ref — voiceFlow에서 startRecording/stopRecording/playTts 접근용
+  const voiceRef = useRef<{ startRecording: () => void; stopRecording: () => void; playTts: (text: string) => Promise<void> }>({
+    startRecording: () => {},
+    stopRecording: () => {},
+    playTts: async () => {},
+  })
+
+  // ── voiceFlow: 면적→벽체→복합평단가→우레탄평단가 순서 수집 ──
+  const voiceFlow = useVoiceFlow({
+    startRecording: () => voiceRef.current.startRecording(),
+    stopRecording: () => voiceRef.current.stopRecording(),
+    playTts: (text: string) => voiceRef.current.playTts(text),
+    onComplete: (state: FlowState) => {
+      initFromVoiceFlow({
+        area: state.area ?? 100,
+        wallM2: state.wallM2 ?? 0,
+        complexPpp: state.complexPpp,
+        urethanePpp: state.urethanePpp,
+      })
+      setActiveTab('complex-detail')
+    },
+    addLog,
+  })
 
   // ── medium confidence 확인 대기 상태 ──
   // useState (not useRef): pendingConfirm이 true일 때 skipLlm이 reactive하게 true가 되어야 함.
@@ -192,34 +221,74 @@ export function useEstimateVoice({
   const pendingConfirmRef = useRef(false)
   pendingConfirmRef.current = pendingConfirm
 
+  // enterEditMode ref for onSttText closure
+  const enterEditModeRef = useRef<() => void>(() => {})
+
   // voiceClearLastCommandRef for onSttText closure
   const voiceClearLastCommandRef = useRef<() => void>(() => {})
+
+  // voiceFlow ref for onSttText closure
+  const voiceFlowRef = useRef(voiceFlow)
+  voiceFlowRef.current = voiceFlow
 
   // ── useVoice 훅 ──
   const voice = useVoice({
     mode: voiceMode,
     estimateContext,
-    skipLlm: pendingConfirm,
+    skipLlm: pendingConfirm || voiceFlow.isActive,
     onSttText: (text) => {
-      // 수정 모드에서 "그만"/"종료"/"멈춰" 감지 → 즉시 종료, LLM 건너뜀
-      if (editModeRef.current.isEditMode && /그만|종료|멈춰/.test(text.trim())) {
+      // STT 텍스트 정규화 + 키워드 매칭 (순수 함수)
+      const normalized = normalizeText(text)
+      console.log('[STT] raw:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
+      console.log('[KeywordMatch]', { normalized, isEditMode: editModeRef.current.isEditMode, sheetsLen: estimate.sheets.length })
+
+      const action = matchKeyword(normalized, editModeRef.current.isEditMode, estimate.sheets.length > 0)
+      if (action === 'exit_edit') {
+        console.log('[그만] 키워드 감지 → exitEditMode 호출')
         editModeRef.current.exitEditMode()
-        callbacksRef.current.addLog('assistant', '수정 모드 종료.')
-        voicePlayTtsRef.current('수정 모드를 종료합니다.')
-        return true  // LLM 건너뜀
+        callbacksRef.current.addLog('assistant', '종료합니다.')
+        voicePlayTtsRef.current('종료합니다.')
+        return true
+      }
+      if (action === 'confirm') {
+        console.log('[확정] 키워드 감지 → 수정 확정, 자동 녹음 재개 대기')
+        callbacksRef.current.addLog('assistant', '확인했습니다.')
+        voicePlayTtsRef.current('확인했습니다.')
+        return true
+      }
+      if (action === 'enter_edit') {
+        console.log('[수정] 키워드 감지 → enterEditMode 호출 (무음 진입)')
+        enterEditModeRef.current()
+        callbacksRef.current.addLog('assistant', '수정 모드 진입.')
+        return true
+      }
+
+      // 시트 없을 때(extract 모드): voiceFlow가 비활성이면 자동 시작 후 전달
+      if (estimate.sheets.length === 0) {
+        if (!voiceFlowRef.current.isActive) {
+          voiceFlowRef.current.startFlow()
+        }
+        voiceFlowRef.current.processText(text)
+        return true
+      }
+
+      // voiceFlow 활성 시 → voiceFlow에 전달, LLM 건너뜀
+      if (voiceFlowRef.current.isActive) {
+        voiceFlowRef.current.processText(text)
+        return true
       }
 
       // medium confidence 확인 응답 체크 (pendingConfirmRef: always-fresh in callback)
       if (pendingConfirmRef.current) {
         setPendingConfirm(false)
-        if (/^(아니|아니오|아니요|틀려|틀렸|달라|다르)/.test(text.trim())) {
+        if (/^(아니|아니오|아니요|틀려|틀렸|달라|다르)/.test(normalized)) {
           callbacksRef.current.undo()
           voiceClearLastCommandRef.current()
           callbacksRef.current.addLog('assistant', '되돌렸습니다.')
           voicePlayTtsRef.current('되돌렸습니다.')
-          return true  // LLM 건너뜀
+          return true
         }
-        // 긍정("네"/"응"/"맞아") 또는 새 명령 → LLM으로 전달 (skipLlm이 이미 false로 복귀)
+        // 긍정("네"/"응"/"맞아") 또는 새 명령 → LLM으로 전달
         return false
       }
 
@@ -238,10 +307,10 @@ export function useEstimateVoice({
     },
   })
 
-  // playTts ref 동기화
+  // ref 동기화
   voicePlayTtsRef.current = voice.playTts
-  // clearLastCommand ref 동기화
   voiceClearLastCommandRef.current = voice.clearLastCommand
+  voiceRef.current = { startRecording: voice.startRecording, stopRecording: voice.stopRecording, playTts: voice.playTts }
 
   // ── useVoiceEditMode: 수정 모드 상태 기계 ──
   const editMode = useVoiceEditMode({
@@ -260,13 +329,18 @@ export function useEstimateVoice({
 
   // editModeRef 동기화 (onSttText 클로저에서 최신 editMode 참조)
   editModeRef.current = { isEditMode: editMode.isEditMode, exitEditMode: handleExitEditMode }
+  enterEditModeRef.current = editMode.enterEditMode
 
   // ── useWakeWord: 하드웨어/키보드/Web Speech API ──
   useWakeWord({
     onToggle: voice.toggleRecording,
     onWakeWord: () => {
-      // "견적" 웨이크워드: 시트 없으면 녹음 시작, 있으면 녹음 토글
-      voice.startRecording()
+      // "견적" 웨이크워드: 시트 없으면 voiceFlow 시작, 있으면 녹음 토글
+      if (estimate.sheets.length === 0) {
+        voiceFlow.startFlow()
+      } else {
+        voice.startRecording()
+      }
     },
     onEditMode: () => {
       // "수정" 웨이크워드: 수정 모드 진입
@@ -285,6 +359,7 @@ export function useEstimateVoice({
       ...editMode,
       exitEditMode: handleExitEditMode,
     },
+    voiceFlow,
     pendingConfirm,
   }
 }

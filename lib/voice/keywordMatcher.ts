@@ -10,7 +10,7 @@ export type KeywordAction = 'enter_edit' | 'exit_edit' | 'confirm';
  * STT 텍스트 정규화: trim + 끝부분 마침표/물음표/공백 제거
  */
 export function normalizeText(raw: string): string {
-  throw new Error('Not implemented');
+  return raw.trim().replace(/[.?!。？！\s]+$/g, '');
 }
 
 /**
@@ -25,5 +25,19 @@ export function matchKeyword(
   isEditMode: boolean,
   hasSheets: boolean,
 ): KeywordAction | null {
-  throw new Error('Not implemented');
+  const isShortCommand = normalized.length <= 6;
+
+  if (isShortCommand && /그만|종료|멈춰/.test(normalized)) {
+    return 'exit_edit';
+  }
+
+  if (isShortCommand && /됐어|넘겨|다음|확인/.test(normalized) && isEditMode) {
+    return 'confirm';
+  }
+
+  if (isShortCommand && /수정/.test(normalized) && hasSheets && !isEditMode) {
+    return 'enter_edit';
+  }
+
+  return null;
 }
