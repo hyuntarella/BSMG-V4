@@ -26,6 +26,7 @@ export default function EstimateEditor({
   const [activeTab, setActiveTab] = useState<TabId>('complex-cover')
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [pdfDownloading, setPdfDownloading] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
 
@@ -81,6 +82,24 @@ export default function EstimateEditor({
     } catch (err) { console.error('다운로드 실패:', err) }
     finally { setDownloading(false) }
   }, [estimate.id, estimate.mgmt_no, downloading])
+
+  const handlePdfDownload = useCallback(async () => {
+    if (!estimate.id || pdfDownloading) return
+    setPdfDownloading(true)
+    try {
+      const res = await fetch(`/api/estimates/${estimate.id}/pdf`, { method: 'POST' })
+      if (!res.ok) throw new Error('PDF 생성 실패')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `견적서_${estimate.mgmt_no ?? estimate.id.slice(0, 8)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('PDF 다운로드 실패:', err)
+    } finally { setPdfDownloading(false) }
+  }, [estimate.id, estimate.mgmt_no, pdfDownloading])
 
   const handleEmail = useCallback(async (to: string) => {
     if (!estimate.id) return
@@ -145,6 +164,13 @@ export default function EstimateEditor({
             className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
           >
             {downloading ? '생성 중...' : '엑셀'}
+          </button>
+          <button
+            onClick={handlePdfDownload}
+            disabled={pdfDownloading || !estimate.id}
+            className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
+          >
+            {pdfDownloading ? '생성 중...' : 'PDF'}
           </button>
           <button
             onClick={() => setEmailOpen(true)}
