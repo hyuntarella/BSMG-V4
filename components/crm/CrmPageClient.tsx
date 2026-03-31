@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useCrm } from '@/hooks/useCrm';
 import type { CrmRecord } from '@/lib/notion/types';
+import { PIPELINE_TO_STAGE } from '@/lib/notion/types';
 import KanbanBoard from './KanbanBoard';
 import DetailModal from './DetailModal';
 
@@ -22,6 +23,7 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
     setSearchQuery,
     setManagerFilter,
     updateRecordLocal,
+    addRecordLocal,
     loading,
     error,
   } = useCrm({ initialRecords });
@@ -36,6 +38,19 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
     updateRecordLocal(id, partial);
     // Keep modal in sync with updated data
     setSelectedRecord((prev) => (prev && prev.id === id ? { ...prev, ...partial } : prev));
+  };
+
+  const handleRecordCreate = (record: CrmRecord) => {
+    addRecordLocal(record);
+  };
+
+  const handlePipelineChange = (id: string, pipeline: string, stage: string) => {
+    const newStage = stage || PIPELINE_TO_STAGE[pipeline] || null;
+    updateRecordLocal(id, { pipeline, stage: newStage });
+    // Keep modal in sync if open
+    setSelectedRecord((prev) =>
+      prev && prev.id === id ? { ...prev, pipeline, stage: newStage } : prev
+    );
   };
 
   return (
@@ -68,6 +83,8 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
         activeStage={activeStage}
         onStageChange={setActiveStage}
         onCardClick={handleCardClick}
+        onRecordCreate={handleRecordCreate}
+        onPipelineChange={handlePipelineChange}
       />
 
       {/* 상세 모달 */}

@@ -43,6 +43,40 @@ export function useCrm({ initialRecords = [] }: UseCrmOptions = {}) {
     );
   }, []);
 
+  // ── API + 로컬 업데이트 (낙관적, 에러 시 롤백) ──
+  const updateRecord = useCallback(async (id: string, partial: Partial<CrmRecord>) => {
+    // 현재 값 저장 (롤백용)
+    const prev = records.find((r) => r.id === id);
+    if (!prev) return;
+
+    // 낙관적 업데이트
+    updateRecordLocal(id, partial);
+
+    try {
+      const res = await fetch(`/api/crm/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(partial),
+      });
+      if (!res.ok) {
+        throw new Error(`업데이트 실패: ${res.status}`);
+      }
+    } catch (err) {
+      // 롤백
+      console.error('updateRecord failed, rolling back:', err);
+      updateRecordLocal(id, {
+        pipeline: prev.pipeline,
+        stage: prev.stage,
+        contractStatus: prev.contractStatus,
+      });
+    }
+  }, [records, updateRecordLocal]);
+
+  // ── 레코드 추가 (생성 후 로컬 추가) ──
+  const addRecordLocal = useCallback((record: CrmRecord) => {
+    setRecords((prev) => [record, ...prev]);
+  }, []);
+
   // ── 필터링된 레코드 ──
   const filteredRecords = useMemo(() => {
     let result = records.filter(
@@ -76,6 +110,8 @@ export function useCrm({ initialRecords = [] }: UseCrmOptions = {}) {
     managerFilter,
     fetchRecords,
     updateRecordLocal,
+    updateRecord,
+    addRecordLocal,
     setActiveStage,
     setSearchQuery,
     setManagerFilter,

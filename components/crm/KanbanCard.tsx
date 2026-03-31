@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { CrmRecord } from '@/lib/notion/types';
 
 // ── KanbanCard ──
@@ -21,16 +22,33 @@ function formatAmountMan(amount: number | null): string | null {
 }
 
 export default function KanbanCard({ record, onClick }: KanbanCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
+
   const managerColor = record.manager
     ? (MANAGER_COLORS[record.manager] ?? 'bg-gray-100 text-gray-600')
     : 'bg-gray-100 text-gray-400';
 
   const managerLabel = record.manager ?? '미배정';
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', record.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={onClick}
-      className="cursor-pointer rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+      className={`cursor-pointer rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md ${
+        isDragging ? 'opacity-50' : 'opacity-100'
+      }`}
     >
       {/* 주소 */}
       <p className="truncate text-sm font-medium text-gray-900">{record.address}</p>
