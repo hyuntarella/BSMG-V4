@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Header from '@/components/layout/Header'
 import ViewTrackingCard from '@/components/dashboard/ViewTrackingCard'
 import FollowUpCard from '@/components/dashboard/FollowUpCard'
+import CsStatusSection from '@/components/dashboard/CsStatusSection'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -55,6 +56,9 @@ export default async function DashboardPage() {
         </h1>
 
         <div className="space-y-5">
+          {/* 0. CS 현황 (정보 입력 완료) */}
+          <CsStatusSection />
+
           {/* 1. 오늘 할 일 */}
           <div>
             <h3 className="mb-2 text-sm font-semibold text-gray-700">오늘 할 일</h3>
@@ -72,6 +76,11 @@ export default async function DashboardPage() {
 
           {/* 3. 연락해야 할 곳 */}
           <FollowUpCard estimates={followUpData} />
+
+          {/* 미발송 섹션 — Phase 30 */}
+          {/* 열람 고객 섹션 — Phase 31 */}
+          {/* 연락해야 할 곳 섹션 — Phase 32 */}
+          {/* 오늘 일정 + 견적서 불러오기 — Phase 33 */}
         </div>
       </div>
     </div>
