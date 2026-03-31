@@ -5,12 +5,14 @@ import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useEstimateVoice } from '@/hooks/useEstimateVoice'
+import { downloadBlobResponse } from '@/lib/utils/downloadBlob'
 import TabBar, { type TabId } from './TabBar'
 import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
 import EmailModal from './EmailModal'
+import InitialGuide from './InitialGuide'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -23,6 +25,7 @@ export default function EstimateEditor({
 }: EstimateEditorProps) {
   const [activeTab, setActiveTab] = useState<TabId>('complex-cover')
   const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
 
@@ -35,15 +38,14 @@ export default function EstimateEditor({
     updateItem,
     applyVoiceCommands,
     addSheet,
+    initFromVoiceFlow,
     getSheetMargin,
     saveSnapshot,
     undo,
   } = useEstimate(initialEstimate, priceMatrix)
 
-  // 자동 저장
   useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
 
-  // 활성 시트 인덱스
   const activeSheetIndex =
     activeTab === 'complex-cover' || activeTab === 'complex-detail'
       ? estimate.sheets.findIndex((s) => s.type === '복합')
@@ -51,10 +53,8 @@ export default function EstimateEditor({
         ? estimate.sheets.findIndex((s) => s.type === '우레탄')
         : -1
 
-  // playTts ref — 저장/이메일 핸들러에서 voice보다 먼저 선언되어야 하므로 ref 사용
   const playTtsRef = useRef<(text: string) => Promise<void>>(async () => {})
 
-  // ── 저장 ──
   const handleSave = useCallback(async () => {
     if (!estimate.id || saving) return
     setSaving(true)
@@ -67,7 +67,21 @@ export default function EstimateEditor({
     } finally { setSaving(false) }
   }, [estimate.id, estimate.mgmt_no, saving])
 
-  // ── 이메일 발송 ──
+  const handleDownload = useCallback(async () => {
+    if (!estimate.id || downloading) return
+    setDownloading(true)
+    try {
+      const filename = `견적서_${estimate.mgmt_no ?? estimate.id.slice(0, 8)}.xlsx`
+      const res = await fetch(`/api/estimates/${estimate.id}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ download: true }),
+      })
+      await downloadBlobResponse(res, filename)
+    } catch (err) { console.error('다운로드 실패:', err) }
+    finally { setDownloading(false) }
+  }, [estimate.id, estimate.mgmt_no, downloading])
+
   const handleEmail = useCallback(async (to: string) => {
     if (!estimate.id) return
     setEmailSending(true)
@@ -86,7 +100,6 @@ export default function EstimateEditor({
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
-  // ── 음성 훅 ──
   const { voice } = useEstimateVoice({
     estimate,
     activeSheetIndex,
@@ -94,6 +107,7 @@ export default function EstimateEditor({
     applyVoiceCommands,
     updateMeta,
     addSheet,
+    initFromVoiceFlow,
     saveSnapshot,
     undo,
     getSheetMargin,
@@ -101,7 +115,6 @@ export default function EstimateEditor({
     onEmailOpen: () => setEmailOpen(true),
   })
 
-  // playTts ref 동기화
   playTtsRef.current = voice.playTts
 
   const hasComplex = estimate.sheets.some((s) => s.type === '복합')
@@ -127,6 +140,13 @@ export default function EstimateEditor({
             {saving ? '저장 중...' : '저장'}
           </button>
           <button
+            onClick={handleDownload}
+            disabled={downloading || !estimate.id}
+            className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {downloading ? '생성 중...' : '엑셀'}
+          </button>
+          <button
             onClick={() => setEmailOpen(true)}
             disabled={!estimate.id}
             className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
@@ -134,18 +154,8 @@ export default function EstimateEditor({
             이메일
           </button>
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
-          {!hasComplex && (
-            <button
-              onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }}
-              className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
-            >+ 복합</button>
-          )}
-          {!hasUrethane && (
-            <button
-              onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }}
-              className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-700 hover:bg-purple-200"
-            >+ 우레탄</button>
-          )}
+          {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200">+ 복합</button>}
+          {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }} className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-700 hover:bg-purple-200">+ 우레탄</button>}
         </div>
       </header>
 
@@ -154,19 +164,15 @@ export default function EstimateEditor({
 
       {/* 콘텐츠 */}
       <main className="flex-1 px-3 py-3">
+        {/* 시트 없을 때 — 음성 가이드 안내 */}
+        {!hasComplex && !hasUrethane && (
+          <InitialGuide onCreateSheets={() => { addSheet('복합'); addSheet('우레탄'); setActiveTab('complex-detail') }} />
+        )}
+
         {(activeTab === 'complex-cover' || activeTab === 'urethane-cover') && activeSheetIndex >= 0 && (
           <CoverSheet estimate={estimate} sheet={estimate.sheets[activeSheetIndex]} onUpdate={updateMeta} />
         )}
-        {activeTab === 'complex-detail' && activeSheetIndex >= 0 && (
-          <WorkSheet
-            sheet={estimate.sheets[activeSheetIndex]}
-            m2={estimate.m2}
-            margin={getSheetMargin(activeSheetIndex)}
-            onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
-            onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
-          />
-        )}
-        {activeTab === 'urethane-detail' && activeSheetIndex >= 0 && (
+        {(activeTab === 'complex-detail' || activeTab === 'urethane-detail') && activeSheetIndex >= 0 && (
           <WorkSheet
             sheet={estimate.sheets[activeSheetIndex]}
             m2={estimate.m2}
@@ -180,17 +186,8 @@ export default function EstimateEditor({
         )}
       </main>
 
-      {/* 이메일 모달 */}
       <EmailModal open={emailOpen} onSend={handleEmail} onClose={() => setEmailOpen(false)} sending={emailSending} />
-
-      {/* 음성 바 */}
-      <VoiceBar
-        status={voice.status}
-        seconds={voice.seconds}
-        lastText={voice.lastText}
-        onToggle={voice.toggleRecording}
-        onStop={voice.stopSpeaking}
-      />
+      <VoiceBar status={voice.status} seconds={voice.seconds} lastText={voice.lastText} onToggle={voice.toggleRecording} onStop={voice.stopSpeaking} />
     </div>
   )
 }
