@@ -252,6 +252,61 @@ export async function getPageComments(id: string): Promise<CrmComment[]> {
 }
 
 /**
+ * 특정 파이프라인 값으로 레코드 조회
+ */
+export async function queryCrmByPipeline(pipeline: string): Promise<CrmRecord[]> {
+  const dbId = process.env.NOTION_CRM_DB_ID;
+  if (!dbId) {
+    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+  }
+
+  const records: CrmRecord[] = [];
+  let hasMore = true;
+  let startCursor: string | undefined = undefined;
+
+  while (hasMore) {
+    const body: Record<string, unknown> = {
+      filter: {
+        property: '파이프라인',
+        select: { equals: pipeline },
+      },
+      sorts: [{ property: '문의일자', direction: 'descending' }],
+    };
+    if (startCursor) {
+      body.start_cursor = startCursor;
+    }
+
+    const result = (await notionFetch(
+      `/databases/${dbId}/query`,
+      'POST',
+      body
+    )) as NotionQueryResult;
+
+    for (const page of result.results) {
+      if (!page.archived) {
+        records.push(parseNotionPage(page));
+      }
+    }
+
+    hasMore = result.has_more;
+    startCursor = result.next_cursor ?? undefined;
+  }
+
+  return records;
+}
+
+/**
+ * 파이프라인 속성만 업데이트
+ */
+export async function updateCrmPipeline(pageId: string, newPipeline: string): Promise<void> {
+  await notionFetch(`/pages/${pageId}`, 'PATCH', {
+    properties: {
+      파이프라인: { select: { name: newPipeline } },
+    },
+  });
+}
+
+/**
  * 댓글 추가
  */
 export async function addComment(pageId: string, content: string): Promise<CrmComment> {
