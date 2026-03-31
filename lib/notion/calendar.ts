@@ -261,3 +261,72 @@ export async function updateEvent(id: string, input: Partial<CreateEventInput>):
 export async function deleteEvent(id: string): Promise<void> {
   await notionFetch(`/pages/${id}`, 'PATCH', { archived: true });
 }
+
+// ── 멤버 관련 타입 + 함수 ──
+
+export interface CalendarMember {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface NotionMemberPage {
+  id: string;
+  properties: Record<string, unknown>;
+}
+
+interface NotionMemberQueryResult {
+  results: NotionMemberPage[];
+}
+
+const MEMBER_COLOR_MAP: Record<string, string> = {
+  red: '#EF4444',
+  blue: '#3B82F6',
+  green: '#10B981',
+  yellow: '#F59E0B',
+  purple: '#8B5CF6',
+  orange: '#F97316',
+  pink: '#EC4899',
+  gray: '#6B7280',
+};
+
+/**
+ * 팀원 목록 조회 (NOTION_CALENDAR_MEMBER_DB)
+ */
+export async function getMembers(): Promise<CalendarMember[]> {
+  const dbId = process.env.NOTION_CALENDAR_MEMBER_DB;
+  if (!dbId) {
+    // 멤버 DB가 없으면 빈 배열 반환 (옵셔널 기능)
+    return [];
+  }
+
+  try {
+    const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', {
+      sorts: [{ property: '이름', direction: 'ascending' }],
+      page_size: 50,
+    })) as NotionMemberQueryResult;
+
+    const results = data?.results ?? [];
+    return results.map((page) => {
+      const p = page.properties as Record<string, Record<string, unknown>>;
+
+      // 이름
+      const nameProp = (p['이름'] ?? p['Name']) as
+        | { title?: Array<{ plain_text?: string }> }
+        | undefined;
+      const name = nameProp?.title?.[0]?.plain_text ?? '(이름 없음)';
+
+      // 색상 (select 또는 rich_text)
+      const colorProp = p['색상'] as
+        | { select?: { name?: string; color?: string }; rich_text?: Array<{ plain_text?: string }> }
+        | undefined;
+      const colorName = colorProp?.select?.name ?? colorProp?.select?.color ?? '';
+      const colorHex = MEMBER_COLOR_MAP[colorName] ?? '#6B7280';
+
+      return { id: page.id, name, color: colorHex };
+    });
+  } catch (err) {
+    console.error('[getMembers] 오류:', err);
+    return [];
+  }
+}

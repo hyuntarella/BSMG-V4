@@ -6,9 +6,18 @@ import CalendarHeader from '@/components/calendar/CalendarHeader';
 import MonthView from '@/components/calendar/MonthView';
 import WeekView from '@/components/calendar/WeekView';
 import DayView from '@/components/calendar/DayView';
+import EventModal from '@/components/calendar/EventModal';
+import EventDetail from '@/components/calendar/EventDetail';
+import SettingsModal from '@/components/calendar/SettingsModal';
 import { CalendarEvent } from '@/lib/notion/calendar';
 
 type CalendarView = 'month' | 'week' | 'day';
+
+interface Member {
+  id: string;
+  name: string;
+  color: string;
+}
 
 // ── 날짜 유틸 ──
 
@@ -80,7 +89,20 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+
+  // 이벤트 상세 패널
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+  // 이벤트 생성/편집 모달
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [modalInitialDate, setModalInitialDate] = useState<string | undefined>(undefined);
+
+  // 설정 모달
+  const [showSettings, setShowSettings] = useState(false);
+
+  // ── 이벤트 로드 ──
 
   const fetchEvents = useCallback(async (date: Date, v: CalendarView) => {
     setLoading(true);
@@ -98,9 +120,19 @@ export default function CalendarPage() {
     }
   }, []);
 
+  // 팀원 로드
+  useEffect(() => {
+    fetch('/api/calendar/members')
+      .then((r) => r.json())
+      .then((data) => setMembers(data.members ?? []))
+      .catch((err) => console.error('[캘린더] 팀원 조회 오류:', err));
+  }, []);
+
   useEffect(() => {
     fetchEvents(currentDate, view);
   }, [currentDate, view, fetchEvents]);
+
+  // ── 네비게이션 핸들러 ──
 
   function handleDateChange(d: Date) {
     setCurrentDate(d);
@@ -110,18 +142,19 @@ export default function CalendarPage() {
   function handleViewChange(v: CalendarView) {
     setView(v);
     setSelectedDate(null);
+    setSelectedEvent(null);
   }
 
   function handleDateClick(dateStr: string) {
     setSelectedDate((prev) => (prev === dateStr ? null : dateStr));
+    setSelectedEvent(null);
   }
 
   function handleEventClick(ev: CalendarEvent) {
     setSelectedEvent((prev) => (prev?.id === ev.id ? null : ev));
+    setSelectedDate(null);
   }
 
-  // CalendarHeader goPrev/goNext를 view에 따라 처리하기 위해 onDateChange에 direction 로직 통합
-  // CalendarHeader는 onDateChange(Date) 인터페이스 → navigate 결과를 직접 전달
   function handlePrev() {
     setCurrentDate((prev) => navigate(prev, view, -1));
     setSelectedDate(null);
@@ -130,6 +163,49 @@ export default function CalendarPage() {
     setCurrentDate((prev) => navigate(prev, view, 1));
     setSelectedDate(null);
   }
+
+  // ── 이벤트 생성/편집 ──
+
+  function openCreateModal(dateStr?: string) {
+    setEditingEvent(null);
+    setModalInitialDate(dateStr);
+    setShowEventModal(true);
+  }
+
+  function openEditModal(ev: CalendarEvent) {
+    setEditingEvent(ev);
+    setModalInitialDate(undefined);
+    setShowEventModal(true);
+    setSelectedEvent(null);
+  }
+
+  function handleEventSaved(savedEvent: CalendarEvent) {
+    setShowEventModal(false);
+    setEditingEvent(null);
+    // events 업데이트
+    setEvents((prev) => {
+      const idx = prev.findIndex((e) => e.id === savedEvent.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = savedEvent;
+        return updated;
+      }
+      return [...prev, savedEvent];
+    });
+  }
+
+  async function handleDeleteEvent(id: string) {
+    try {
+      const res = await fetch(`/api/calendar/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('삭제 실패');
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+      setSelectedEvent(null);
+    } catch (err) {
+      console.error('[캘린더] 이벤트 삭제 오류:', err);
+    }
+  }
+
+  // ── 렌더링 ──
 
   const selectedEvents = selectedDate
     ? events.filter((e) => e.start.startsWith(selectedDate))
@@ -150,10 +226,31 @@ export default function CalendarPage() {
             title={title}
             onPrev={handlePrev}
             onNext={handleNext}
-            onToday={() => { setCurrentDate(new Date()); setSelectedDate(null); }}
+            onToday={() => { setCurrentDate(new Date()); setSelectedDate(null); setSelectedEvent(null); }}
             onDateChange={handleDateChange}
             onViewChange={handleViewChange}
           />
+
+          {/* 헤더 액션 바 */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50">
+            <button
+              onClick={() => openCreateModal(toDateStr(currentDate))}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <span className="text-base leading-none">+</span>
+              <span>새 일정</span>
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="설정"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
+            </button>
+          </div>
 
           {/* 로딩 표시 */}
           {loading && (
@@ -184,6 +281,7 @@ export default function CalendarPage() {
               events={events}
               currentDate={currentDate}
               onEventClick={handleEventClick}
+              members={members}
             />
           )}
         </div>
@@ -191,16 +289,28 @@ export default function CalendarPage() {
         {/* 선택된 날짜 이벤트 목록 (월간 뷰에서만) */}
         {view === 'month' && selectedDate && (
           <div className="mt-4 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              {selectedDate} 일정 {selectedEvents.length > 0 ? `(${selectedEvents.length}건)` : ''}
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {selectedDate} 일정 {selectedEvents.length > 0 ? `(${selectedEvents.length}건)` : ''}
+              </h3>
+              <button
+                onClick={() => openCreateModal(selectedDate)}
+                className="text-xs text-brand hover:underline"
+              >
+                + 추가
+              </button>
+            </div>
 
             {selectedEvents.length === 0 ? (
               <p className="text-sm text-gray-400">이 날짜에 등록된 일정이 없습니다.</p>
             ) : (
               <ul className="space-y-2">
                 {selectedEvents.map((ev) => (
-                  <li key={ev.id} className="flex items-start gap-3">
+                  <li
+                    key={ev.id}
+                    className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 rounded p-1 -mx-1"
+                    onClick={() => openEditModal(ev)}
+                  >
                     <span
                       className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: ev.color }}
@@ -230,45 +340,33 @@ export default function CalendarPage() {
             )}
           </div>
         )}
-
-        {/* 선택된 이벤트 상세 (주간/일간 뷰) */}
-        {selectedEvent && (view === 'week' || view === 'day') && (
-          <div className="mt-4 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <span
-                  className="mt-1 w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: selectedEvent.color }}
-                />
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{selectedEvent.title}</h3>
-                  {selectedEvent.type && (
-                    <p className="text-xs text-gray-500 mt-0.5">{selectedEvent.type}</p>
-                  )}
-                  {selectedEvent.memo && (
-                    <p className="text-xs text-gray-600 mt-1">{selectedEvent.memo}</p>
-                  )}
-                  {selectedEvent.memberName && (
-                    <p className="text-xs text-gray-400 mt-1">담당: {selectedEvent.memberName}</p>
-                  )}
-                  {!selectedEvent.allDay && selectedEvent.start.includes('T') && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {selectedEvent.start.slice(11, 16)}
-                      {selectedEvent.end && ` ~ ${selectedEvent.end.slice(11, 16)}`}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* EventDetail 사이드 패널 */}
+      {selectedEvent && (
+        <EventDetail
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onEdit={openEditModal}
+          onDelete={handleDeleteEvent}
+        />
+      )}
+
+      {/* EventModal */}
+      <EventModal
+        isOpen={showEventModal}
+        onClose={() => { setShowEventModal(false); setEditingEvent(null); }}
+        onSave={handleEventSaved}
+        initialDate={modalInitialDate}
+        editEvent={editingEvent}
+        members={members}
+      />
+
+      {/* SettingsModal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }
