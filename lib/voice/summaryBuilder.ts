@@ -3,14 +3,20 @@
  * - 'read_summary': 전체 상태 요약
  * - 'read_margin': 마진만 읽기
  */
-export type SummaryAction = 'read_summary' | 'read_margin';
+export type SummaryAction = 'read_summary' | 'read_margin'
 
 /**
  * 정규화된 텍스트에서 상태 요약 키워드를 감지한다.
  * LLM 호출 없이 로컬에서 처리하기 위한 사전 분류.
  */
 export function matchSummaryKeyword(normalized: string): SummaryAction | null {
-  throw new Error('Not implemented');
+  if (/현재\s*상태|상태\s*알려|요약/.test(normalized)) {
+    return 'read_summary'
+  }
+  if (/마진\s*얼마|^마진$/.test(normalized)) {
+    return 'read_margin'
+  }
+  return null
 }
 
 /**
@@ -28,7 +34,8 @@ export function buildSummaryText(
   grandTotal: number,
   margin: number,
 ): string {
-  throw new Error('Not implemented');
+  const totalManWon = Math.round(grandTotal / 10000)
+  return `${sheetType} 면적 ${m2}제곱미터, 공종 ${itemCount}개, 총액 ${totalManWon.toLocaleString()}만원, 마진 ${Math.round(margin)}퍼센트.`
 }
 
 /**
@@ -37,5 +44,5 @@ export function buildSummaryText(
  * @param margin - 마진율 (%)
  */
 export function buildMarginText(sheetType: string, margin: number): string {
-  throw new Error('Not implemented');
+  return `${sheetType} 마진 ${Math.round(margin)}퍼센트.`
 }
