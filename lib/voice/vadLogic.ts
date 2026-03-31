@@ -10,7 +10,8 @@ export const VAD_SILENCE_DURATION_MS = 5000;
  * @returns dB 값 (무음에 가까울수록 음수가 큼)
  */
 export function rmsToDb(samples: Float32Array): number {
-  throw new Error('Not implemented');
+  const rms = Math.sqrt(samples.reduce((sum, v) => sum + v * v, 0) / samples.length);
+  return 20 * Math.log10(Math.max(rms, 1e-10));
 }
 
 /**
@@ -18,8 +19,8 @@ export function rmsToDb(samples: Float32Array): number {
  * @param db - rmsToDb() 결과
  * @param threshold - 임계값 (기본 VAD_SILENCE_THRESHOLD_DB)
  */
-export function isSilent(db: number, threshold?: number): boolean {
-  throw new Error('Not implemented');
+export function isSilent(db: number, threshold: number = VAD_SILENCE_THRESHOLD_DB): boolean {
+  return db < threshold;
 }
 
 /**
@@ -31,9 +32,10 @@ export function isSilent(db: number, threshold?: number): boolean {
 export function shouldStopByVad(
   silenceStartMs: number | null,
   nowMs: number,
-  durationMs?: number,
+  durationMs: number = VAD_SILENCE_DURATION_MS,
 ): boolean {
-  throw new Error('Not implemented');
+  if (silenceStartMs === null) return false;
+  return nowMs - silenceStartMs >= durationMs;
 }
 
 /**
@@ -47,5 +49,5 @@ export function shouldEnableVad(
   enableVad: boolean,
   voiceStatus: VoiceStatus,
 ): boolean {
-  throw new Error('Not implemented');
+  return isEditMode && enableVad && voiceStatus === 'recording';
 }
