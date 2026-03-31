@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-dashboard/30-PLAN.md
-last_updated: "2026-03-31T11:28:25.966Z"
+stopped_at: Completed 10-dashboard/31-PLAN.md
+last_updated: "2026-03-31T11:30:55.733Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 53
-  completed_plans: 40
+  completed_plans: 41
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 10 (dashboard) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -86,6 +86,7 @@ Progress: [████████░░] 80%
 | Phase 10-dashboard P29 | 10 | 2 tasks | 5 files |
 | Phase 10-dashboard P32 | 8 | 2 tasks | 4 files |
 | Phase 10-dashboard P30 | 8 | 2 tasks | 3 files |
+| Phase 10-dashboard P31 | 10 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,7 @@ Recent decisions affecting current work:
 - [Phase 10-dashboard]: Notion REST fetch pattern preserved — no @notionhq/client SDK installed
 - [Phase 10-dashboard]: FollowUpCard rewritten as no-prop Notion CRM component; pipeline filter uses 견적서전송 (no space)
 - [Phase 10-dashboard]: queryCrmByPipeline reused for unsent query — estimateSentDate=null filter applied in API layer
+- [Phase 10-dashboard]: ViewTrackingCard SSR replaced by ViewedCard client-fetch — avoids duplication, aligns with established dashboard client-component pattern
 
 ### Pending Todos
 
@@ -157,6 +159,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T11:28:25.952Z
-Stopped at: Completed 10-dashboard/30-PLAN.md
+Last session: 2026-03-31T11:30:55.720Z
+Stopped at: Completed 10-dashboard/31-PLAN.md
 Resume file: None
