@@ -38,6 +38,7 @@ export default function EstimateEditor({
     markClean,
     updateMeta,
     updateSheet,
+    updateSheetPpp,
     updateItem,
     updateItemText,
     addItem,
@@ -224,6 +225,7 @@ export default function EstimateEditor({
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
             onItemTextChange={(i, f, v) => updateItemText(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
+            onPppChange={(ppp, rebuild) => updateSheetPpp(activeSheetIndex, ppp, rebuild)}
             onMetaChange={(field, value) => updateMeta(field, value)}
             onAddItem={(item) => addItem(activeSheetIndex, item)}
             onRemoveItem={(idx) => removeItem(activeSheetIndex, idx)}

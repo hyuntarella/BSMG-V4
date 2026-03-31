@@ -19,6 +19,7 @@ interface WorkSheetProps {
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onItemTextChange?: (itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => void
   onSheetChange: (field: string, value: number) => void
+  onPppChange?: (ppp: number, rebuild: boolean) => void
   onMetaChange?: (field: 'm2' | 'wall_m2', value: number) => void
   onAddItem?: (item: Partial<EstimateItem>) => void
   onRemoveItem?: (itemIndex: number) => void
@@ -33,6 +34,7 @@ export default function WorkSheet({
   onItemChange,
   onItemTextChange,
   onSheetChange,
+  onPppChange,
   onMetaChange,
   onAddItem,
   onRemoveItem,
@@ -93,7 +95,16 @@ export default function WorkSheet({
           <span className="text-gray-500">내부단가</span>{' '}
           <InlineCell
             value={sheet.price_per_pyeong}
-            onSave={(v) => onSheetChange('price_per_pyeong', v as number)}
+            onSave={(v) => {
+              if (onPppChange) {
+                const rebuild = window.confirm(
+                  '공종을 재생성하시겠습니까?\n\n확인: 새 평단가로 공종 재생성 (수동 수정 초기화)\n취소: 평단가만 변경 (기존 공종 유지)'
+                )
+                onPppChange(v as number, rebuild)
+              } else {
+                onSheetChange('price_per_pyeong', v as number)
+              }
+            }}
             className="inline-block w-16 text-right"
           />
           <span className="text-gray-400">원/㎡</span>
