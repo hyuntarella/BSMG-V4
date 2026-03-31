@@ -166,6 +166,54 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate],
   )
 
+  // ── 공종 추가 ──
+  const addItem = useCallback(
+    (sheetIndex: number, item: Partial<EstimateItem>) => {
+      setEstimate((prev) => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+
+        const items = [...sheets[sheetIndex].items]
+        const newIndex = items.length
+        const qty = item.qty ?? 1
+        const mat = item.mat ?? 0
+        const labor = item.labor ?? 0
+        const exp = item.exp ?? 0
+        const mat_amount = Math.round(qty * mat)
+        const labor_amount = Math.round(qty * labor)
+        const exp_amount = Math.round(qty * exp)
+        const total = mat_amount + labor_amount + exp_amount
+
+        const newItem: EstimateItem = {
+          sort_order: newIndex + 1,
+          name: item.name ?? '',
+          spec: item.spec ?? '',
+          unit: item.unit ?? 'm²',
+          qty,
+          mat,
+          labor,
+          exp,
+          mat_amount,
+          labor_amount,
+          exp_amount,
+          total,
+          is_base: false,
+          is_equipment: item.is_equipment ?? false,
+          is_fixed_qty: item.is_fixed_qty ?? false,
+        }
+
+        items.push(newItem)
+        const calcResult = calc(items)
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+      recordChange('manual', { sheetIndex, action: 'add_item', name: item.name })
+    },
+    [],
+  )
+
   // ── 실행 취소 (최근 변경 되돌리기) ──
   const [undoStack, setUndoStack] = useState<Estimate[]>([])
 
@@ -200,6 +248,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateMeta,
     updateSheet,
     updateItem,
+    addItem,
     applyVoiceCommands,
     addSheet,
     getSheetMargin,
