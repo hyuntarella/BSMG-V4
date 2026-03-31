@@ -3,11 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { VoiceStatus } from '@/hooks/useVoice'
 import { shouldAutoResume } from '@/lib/voice/autoResumeLogic'
+import { rmsToDb, isSilent, shouldStopByVad, shouldEnableVad } from '@/lib/voice/vadLogic'
 
 // ── 상수 ──
 const AUTO_RESUME_DELAY = 2000  // D-03: TTS 완료 후 2초 뒤 자동 재개
-const SILENCE_THRESHOLD = -35   // dB — 이 값 미만이면 무음으로 간주
-const SILENCE_DURATION = 5000   // 5초 무음 감지 시 수정 모드 종료 (D-05)
 
 // ── 인터페이스 ──
 
@@ -22,6 +21,8 @@ interface UseVoiceEditModeOptions {
   onStopRecording?: () => void
   /** VAD feature flag (갤럭시탭 dual-stream 위험 대응). 기본값 true */
   enableVad?: boolean
+  /** 녹음용 MediaStream (VAD에서 재사용, 별도 getUserMedia 불필요) */
+  recordingStream?: MediaStream | null
 }
 
 /**
@@ -46,6 +47,7 @@ export function useVoiceEditMode({
   onPlayTts,
   onStopRecording,
   enableVad = true,
+  recordingStream,
 }: UseVoiceEditModeOptions) {
   const [isEditMode, setIsEditMode] = useState(false)
 
@@ -103,71 +105,59 @@ export function useVoiceEditMode({
   // 수정 모드 + enableVad + 녹음 중 → AnalyserNode로 무음 감지
   // 5초 무음 시 stopRecording + exitEditMode
   useEffect(() => {
-    if (!isEditMode || !enableVad) return
-    if (voiceStatus !== 'recording') {
-      // 녹음 중 아니면 VAD 정리
+    if (!shouldEnableVad(isEditMode, enableVad, voiceStatus)) {
       vadCleanupRef.current?.()
       vadCleanupRef.current = null
       return
     }
 
-    // 녹음 중: 별도 마이크 스트림으로 무음 감지
+    // 녹음용 stream이 없으면 VAD 불가
+    if (!recordingStream) return
+
     let active = true
 
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      if (!active) {
-        stream.getTracks().forEach(t => t.stop())
-        return
-      }
+    const ctx = new AudioContext()
+    const source = ctx.createMediaStreamSource(recordingStream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 2048
+    source.connect(analyser)
 
-      const ctx = new AudioContext()
-      const source = ctx.createMediaStreamSource(stream)
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 2048
-      source.connect(analyser)
+    const dataArray = new Float32Array(analyser.frequencyBinCount)
+    let silenceStart: number | null = null
 
-      const dataArray = new Float32Array(analyser.frequencyBinCount)
-      let silenceStart: number | null = null
+    const check = () => {
+      if (!active) return
+      analyser.getFloatTimeDomainData(dataArray)
+      const db = rmsToDb(dataArray)
 
-      const check = () => {
-        if (!active) return
-        analyser.getFloatTimeDomainData(dataArray)
-        const rms = Math.sqrt(dataArray.reduce((s, v) => s + v * v, 0) / dataArray.length)
-        const db = 20 * Math.log10(Math.max(rms, 1e-10))
-
-        if (db < SILENCE_THRESHOLD) {
-          if (!silenceStart) {
-            silenceStart = Date.now()
-          } else if (Date.now() - silenceStart >= SILENCE_DURATION) {
-            // 5초 무음: 녹음 중지 + 수정 모드 종료
-            callbacksRef.current.onStopRecording?.()
-            exitEditMode()
-            return  // requestAnimationFrame 루프 중단
-          }
-        } else {
-          silenceStart = null
+      if (isSilent(db)) {
+        if (!silenceStart) {
+          silenceStart = Date.now()
+        } else if (shouldStopByVad(silenceStart, Date.now())) {
+          // 5초 무음: 녹음 중지 + 수정 모드 종료
+          callbacksRef.current.onStopRecording?.()
+          exitEditMode()
+          return  // setInterval 루프는 cleanup에서 정리
         }
-
-        requestAnimationFrame(check)
+      } else {
+        silenceStart = null
       }
+    }
 
-      check()
+    const intervalId = setInterval(check, 100)
 
-      vadCleanupRef.current = () => {
-        active = false
-        stream.getTracks().forEach(t => t.stop())
-        ctx.close().catch(() => {})
-      }
-    }).catch(() => {
-      // 마이크 접근 실패 시 VAD 비활성화 (에러 무시)
-    })
+    vadCleanupRef.current = () => {
+      active = false
+      clearInterval(intervalId)
+      ctx.close().catch(() => {})
+    }
 
     return () => {
       active = false
       vadCleanupRef.current?.()
       vadCleanupRef.current = null
     }
-  }, [isEditMode, voiceStatus, enableVad, exitEditMode])
+  }, [isEditMode, voiceStatus, enableVad, recordingStream, exitEditMode])
 
   // ── 수정 모드 진입 (TTS 없이 상태만 전환 → auto-resume이 녹음 시작) ──
   const enterEditMode = useCallback(() => {

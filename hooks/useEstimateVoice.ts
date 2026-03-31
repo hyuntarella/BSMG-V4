@@ -338,6 +338,7 @@ export function useEstimateVoice({
     onAutoResume: voice.startRecording,
     onPlayTts: voice.playTts,
     onStopRecording: voice.stopRecording,
+    recordingStream: voice.streamRef.current,
   })
 
   // ── 수정 모드 종료 래퍼: clarificationCountRef 리셋 + pendingConfirm 초기화 ──
