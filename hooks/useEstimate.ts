@@ -273,6 +273,41 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [],
   )
 
+  // ── 시트 삭제 ──
+  const removeSheet = useCallback(
+    (sheetIndex: number) => {
+      saveSnapshot(`시트 삭제: ${estimate.sheets[sheetIndex]?.type ?? ''}`, 'manual')
+      setEstimate(prev => {
+        const sheets = prev.sheets.filter((_, i) => i !== sheetIndex)
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [estimate.sheets, saveSnapshot],
+  )
+
+  // ── 공종 순서 변경 ──
+  const moveItem = useCallback(
+    (sheetIndex: number, fromIndex: number, toIndex: number) => {
+      const items = estimate.sheets[sheetIndex]?.items
+      if (!items) return
+      if (toIndex < 0 || toIndex >= items.length) return
+      saveSnapshot(`${items[fromIndex]?.name ?? ''} 순서 변경`, 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const newItems = [...sheets[sheetIndex].items]
+        const [moved] = newItems.splice(fromIndex, 1)
+        newItems.splice(toIndex, 0, moved)
+        const reordered = newItems.map((item, i) => ({ ...item, sort_order: i + 1 }))
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items: reordered }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [estimate.sheets, saveSnapshot],
+  )
+
   // ── 공종 삭제 ──
   const removeItem = useCallback(
     (sheetIndex: number, itemIndex: number) => {
@@ -367,6 +402,8 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateItemText,
     addItem,
     removeItem,
+    removeSheet,
+    moveItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
