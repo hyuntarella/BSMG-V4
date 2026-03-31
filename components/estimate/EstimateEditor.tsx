@@ -40,6 +40,7 @@ export default function EstimateEditor({
     updateSheet,
     updateItem,
     addItem,
+    removeItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
@@ -221,6 +222,7 @@ export default function EstimateEditor({
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
             onAddItem={(item) => addItem(activeSheetIndex, item)}
+            onRemoveItem={(idx) => removeItem(activeSheetIndex, idx)}
           />
         )}
         {activeTab === 'compare' && (

@@ -18,6 +18,7 @@ interface WorkSheetProps {
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onSheetChange: (field: string, value: number) => void
   onAddItem?: (item: Partial<EstimateItem>) => void
+  onRemoveItem?: (itemIndex: number) => void
 }
 
 export default function WorkSheet({
@@ -28,6 +29,7 @@ export default function WorkSheet({
   onItemChange,
   onSheetChange,
   onAddItem,
+  onRemoveItem,
 }: WorkSheetProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const calcResult: CalcResult = calc(sheet.items)
@@ -146,7 +148,21 @@ export default function WorkSheet({
                 <td className="px-1 py-1 text-right tabular-nums text-gray-600">{fm(item.exp_amount)}</td>
                 {/* 합계 금액 */}
                 <td className="px-1 py-1 text-right font-semibold tabular-nums">{fm(item.total)}</td>
-                <td className="px-1 py-1" />
+                <td className="px-1 py-1 text-center">
+                  {onRemoveItem && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`${item.name} 항목을 삭제하시겠습니까?`)) {
+                          onRemoveItem(idx)
+                        }
+                      }}
+                      className="text-gray-300 hover:text-red-500 text-xs cursor-pointer"
+                      title="삭제"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </td>
               </tr>
               )
             })}
