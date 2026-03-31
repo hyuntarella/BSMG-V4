@@ -1,12 +1,14 @@
 'use client'
 
-import type { EstimateSheet, CalcResult } from '@/lib/estimate/types'
+import { useState } from 'react'
+import type { EstimateSheet, EstimateItem, CalcResult } from '@/lib/estimate/types'
 import { calc } from '@/lib/estimate/calc'
 import { fm } from '@/lib/utils/format'
 import { getMarginDisplay, pricePerM2ToPyeong } from '@/lib/estimate/costBreakdown'
 import type { ModifiedCells } from '@/hooks/useEstimate'
 import InlineCell from './InlineCell'
 import MarginGauge from './MarginGauge'
+import AddItemModal from './AddItemModal'
 
 interface WorkSheetProps {
   sheet: EstimateSheet
@@ -15,6 +17,7 @@ interface WorkSheetProps {
   modifiedCells?: ModifiedCells
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onSheetChange: (field: string, value: number) => void
+  onAddItem?: (item: Partial<EstimateItem>) => void
 }
 
 export default function WorkSheet({
@@ -24,7 +27,9 @@ export default function WorkSheet({
   modifiedCells,
   onItemChange,
   onSheetChange,
+  onAddItem,
 }: WorkSheetProps) {
+  const [addModalOpen, setAddModalOpen] = useState(false)
   const calcResult: CalcResult = calc(sheet.items)
   const pyeong = m2 / 3.306
 
@@ -163,6 +168,26 @@ export default function WorkSheet({
           </div>
         </div>
       </div>
+
+      {/* 공종 추가 버튼 */}
+      {onAddItem && (
+        <button
+          onClick={() => setAddModalOpen(true)}
+          className="w-full rounded border border-dashed border-gray-300 py-2 text-xs text-gray-500 hover:bg-gray-50"
+        >
+          + 공종 추가
+        </button>
+      )}
+
+      {/* 공종 추가 모달 */}
+      <AddItemModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onAdd={(item) => {
+          onAddItem?.(item)
+          setAddModalOpen(false)
+        }}
+      />
     </div>
   )
 }

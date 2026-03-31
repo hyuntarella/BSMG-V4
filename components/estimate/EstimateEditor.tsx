@@ -39,6 +39,7 @@ export default function EstimateEditor({
     updateMeta,
     updateSheet,
     updateItem,
+    addItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
@@ -219,6 +220,7 @@ export default function EstimateEditor({
             margin={getSheetMargin(activeSheetIndex)}
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
+            onAddItem={(item) => addItem(activeSheetIndex, item)}
           />
         )}
         {activeTab === 'compare' && (

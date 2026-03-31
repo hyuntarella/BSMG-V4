@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import type { Estimate, EstimateSheet, PriceMatrixRaw } from '@/lib/estimate/types'
+import type { Estimate, EstimateItem, EstimateSheet, PriceMatrixRaw } from '@/lib/estimate/types'
 import { buildItems } from '@/lib/estimate/buildItems'
 import { calc } from '@/lib/estimate/calc'
 import { getMargin } from '@/lib/estimate/margin'
@@ -187,6 +187,53 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate],
   )
 
+  // ── 공종 추가 ──
+  const addItem = useCallback(
+    (sheetIndex: number, item: Partial<EstimateItem>) => {
+      setEstimate((prev) => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+
+        const items = [...sheets[sheetIndex].items]
+        const newIndex = items.length
+        const qty = item.qty ?? 1
+        const mat = item.mat ?? 0
+        const labor = item.labor ?? 0
+        const exp = item.exp ?? 0
+        const mat_amount = Math.round(qty * mat)
+        const labor_amount = Math.round(qty * labor)
+        const exp_amount = Math.round(qty * exp)
+        const total = mat_amount + labor_amount + exp_amount
+
+        const newItem: EstimateItem = {
+          sort_order: newIndex + 1,
+          name: item.name ?? '',
+          spec: item.spec ?? '',
+          unit: item.unit ?? 'm²',
+          qty,
+          mat,
+          labor,
+          exp,
+          mat_amount,
+          labor_amount,
+          exp_amount,
+          total,
+          is_base: false,
+          is_equipment: item.is_equipment ?? false,
+          is_fixed_qty: item.is_fixed_qty ?? false,
+        }
+
+        items.push(newItem)
+        const calcResult = calc(items)
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [],
+  )
+
   // ── undo (직전 스냅샷 복원) ──
   const undo = useCallback(() => {
     if (snapshots.length === 0) return
@@ -258,6 +305,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateMeta,
     updateSheet,
     updateItem,
+    addItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
