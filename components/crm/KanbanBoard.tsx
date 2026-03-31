@@ -3,10 +3,11 @@
 import type { CrmRecord } from '@/lib/notion/types';
 import { STAGE_MAP } from '@/lib/notion/types';
 import KanbanCard from './KanbanCard';
+import PerformanceTab from './PerformanceTab';
 
 // ── KanbanBoard ──
 
-const STAGE_TABS = ['0.문의', '1.영업', '1-1.장기', '2.시공', '3.하자'];
+const STAGE_TABS = ['0.문의', '1.영업', '1-1.장기', '2.시공', '3.하자', '실적'];
 
 const STAGE_LABELS: Record<string, string> = {
   '0.문의': '문의',
@@ -14,6 +15,7 @@ const STAGE_LABELS: Record<string, string> = {
   '1-1.장기': '장기',
   '2.시공': '시공',
   '3.하자': '하자',
+  '실적': '실적',
 };
 
 interface KanbanBoardProps {
@@ -30,6 +32,7 @@ export default function KanbanBoard({
   onCardClick,
 }: KanbanBoardProps) {
   const pipelines = STAGE_MAP[activeStage] ?? [];
+  const isPerformanceTab = activeStage === '실적';
 
   return (
     <div className="flex flex-col">
@@ -38,13 +41,19 @@ export default function KanbanBoard({
         <div className="flex min-w-max px-2 pt-2">
           {STAGE_TABS.map((stage) => {
             const isActive = stage === activeStage;
-            const stageCount = records.filter(
-              (r) => {
-                // count records matching this stage via pipeline
-                const pipesForStage = STAGE_MAP[stage] ?? [];
-                return pipesForStage.includes(r.pipeline ?? '');
-              }
-            ).length;
+            const stageCount =
+              stage === '실적'
+                ? records.filter(
+                    (r) =>
+                      r.contractStatus === '계약성공' ||
+                      r.pipeline === '잔금완료' ||
+                      r.contractStatus === '계약실패' ||
+                      r.pipeline === '재연락금지'
+                  ).length
+                : records.filter((r) => {
+                    const pipesForStage = STAGE_MAP[stage] ?? [];
+                    return pipesForStage.includes(r.pipeline ?? '');
+                  }).length;
 
             return (
               <button
@@ -70,42 +79,49 @@ export default function KanbanBoard({
         </div>
       </div>
 
+      {/* 실적 탭 */}
+      {isPerformanceTab && (
+        <PerformanceTab records={records} onCardClick={onCardClick} />
+      )}
+
       {/* 파이프라인 컬럼들 */}
-      <div className="flex gap-3 overflow-x-auto p-3">
-        {pipelines.map((pipeline) => {
-          const pipelineCards = records.filter((r) => r.pipeline === pipeline);
+      {!isPerformanceTab && (
+        <div className="flex gap-3 overflow-x-auto p-3">
+          {pipelines.map((pipeline) => {
+            const pipelineCards = records.filter((r) => r.pipeline === pipeline);
 
-          return (
-            <div
-              key={pipeline}
-              className="flex min-w-[260px] max-w-[300px] flex-shrink-0 flex-col rounded-lg bg-gray-50"
-            >
-              {/* 컬럼 헤더 */}
-              <div className="flex items-center justify-between rounded-t-lg border-b bg-white px-3 py-2">
-                <span className="text-xs font-semibold text-gray-700">{pipeline}</span>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                  {pipelineCards.length}
-                </span>
-              </div>
+            return (
+              <div
+                key={pipeline}
+                className="flex min-w-[260px] max-w-[300px] flex-shrink-0 flex-col rounded-lg bg-gray-50"
+              >
+                {/* 컬럼 헤더 */}
+                <div className="flex items-center justify-between rounded-t-lg border-b bg-white px-3 py-2">
+                  <span className="text-xs font-semibold text-gray-700">{pipeline}</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                    {pipelineCards.length}
+                  </span>
+                </div>
 
-              {/* 카드 목록 */}
-              <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto p-2">
-                {pipelineCards.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-gray-400">레코드 없음</p>
-                ) : (
-                  pipelineCards.map((record) => (
-                    <KanbanCard
-                      key={record.id}
-                      record={record}
-                      onClick={() => onCardClick(record)}
-                    />
-                  ))
-                )}
+                {/* 카드 목록 */}
+                <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto p-2">
+                  {pipelineCards.length === 0 ? (
+                    <p className="py-4 text-center text-xs text-gray-400">레코드 없음</p>
+                  ) : (
+                    pipelineCards.map((record) => (
+                      <KanbanCard
+                        key={record.id}
+                        record={record}
+                        onClick={() => onCardClick(record)}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
