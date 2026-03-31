@@ -28,15 +28,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 견적서 UI (UI)
 
-- [ ] **UI-01**: 셀을 탭하면 인라인 편집이 가능하고, blur 시 금액이 재계산된다
-- [ ] **UI-02**: 견적서 목록 페이지에서 기존 견적서를 검색/조회할 수 있다
-- [ ] **UI-03**: 견적서 목록에서 선택하면 해당 견적서를 불러올 수 있다
+- [x] **UI-01**: 셀을 탭하면 인라인 편집이 가능하고, blur 시 금액이 재계산된다
+- [x] **UI-02**: 견적서 목록 페이지에서 기존 견적서를 검색/조회할 수 있다
+- [x] **UI-03**: 견적서 목록에서 선택하면 해당 견적서를 불러올 수 있다
 
 ### 저장/출력 (OUT)
 
-- [ ] **OUT-01**: 견적서를 Supabase에 저장할 수 있다 (수동 저장 버튼)
-- [ ] **OUT-02**: 편집 중 자동저장이 동작한다 (디바운스 1초)
-- [ ] **OUT-03**: ExcelJS로 .xlsx 견적서를 생성하고 다운로드할 수 있다
+- [x] **OUT-01**: 견적서를 Supabase에 저장할 수 있다 (수동 저장 버튼)
+- [x] **OUT-02**: 편집 중 자동저장이 동작한다 (디바운스 1초)
+- [x] **OUT-03**: ExcelJS로 .xlsx 견적서를 생성하고 다운로드할 수 있다
 
 ### CRM 연동 (CRM)
 
@@ -53,8 +53,8 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### 출력 확장
 
-- **OUT-04**: PDF 생성 및 다운로드
-- **OUT-05**: Google Drive 자동 업로드
+- [x] **OUT-04**: PDF 생성 및 다운로드
+- [x] **OUT-05**: Google Drive 자동 업로드
 - **OUT-06**: 이메일 자동 발송 (Resend)
 
 ### CRM 확장
@@ -96,17 +96,19 @@ Deferred to future release. Tracked but not in current roadmap.
 | VUX-03 | Phase 2 | Complete |
 | VUX-04 | Phase 2 | Complete |
 | VUX-05 | Phase 2 | Complete |
-| UI-01 | Phase 3 | Pending |
-| OUT-01 | Phase 3 | Pending |
-| OUT-02 | Phase 3 | Pending |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
-| CRM-01 | Phase 5 | Pending |
-| OUT-03 | Phase 5 | Pending |
+| UI-01 | Phase 3 | Complete |
+| OUT-01 | Phase 3 | Complete |
+| OUT-02 | Phase 3 | Complete |
+| UI-02 | Phase 4 | Complete |
+| UI-03 | Phase 4 | Complete |
+| OUT-03 | Phase 5 | Complete |
+| OUT-04 | Phase 6 | Complete |
+| OUT-05 | Phase 6 | Complete |
+| CRM-01 | Phase 9 | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
+- v1 requirements: 20 total + 2 promoted from v2
+- Mapped to phases: 22
 - Unmapped: 0
 
 ---
