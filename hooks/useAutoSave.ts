@@ -61,32 +61,53 @@ export function useAutoSave({
             })
             .eq('id', sheet.id)
 
-          // 기존 아이템 삭제 후 재삽입 (간단한 전략)
-          await supabase
+          // upsert by id: 기존 아이템 update, 새 아이템 insert, 삭제된 아이템 delete
+          const { data: dbItems } = await supabase
             .from('estimate_items')
-            .delete()
+            .select('id')
             .eq('sheet_id', sheet.id)
 
-          if (sheet.items.length > 0) {
+          const dbIds = new Set((dbItems ?? []).map((r) => r.id))
+          const clientIds = new Set(sheet.items.filter((i) => i.id).map((i) => i.id!))
+
+          // 삭제: DB에는 있지만 클라이언트에 없는 아이템
+          const toDelete = Array.from(dbIds).filter((id) => !clientIds.has(id))
+          if (toDelete.length > 0) {
+            await supabase.from('estimate_items').delete().in('id', toDelete)
+          }
+
+          const itemFields = (item: typeof sheet.items[0]) => ({
+            sheet_id: sheet.id,
+            sort_order: item.sort_order,
+            name: item.name,
+            spec: item.spec,
+            unit: item.unit,
+            qty: item.qty,
+            mat: item.mat,
+            labor: item.labor,
+            exp: item.exp,
+            mat_amount: item.mat_amount,
+            labor_amount: item.labor_amount,
+            exp_amount: item.exp_amount,
+            total: item.total,
+            is_base: item.is_base,
+            is_equipment: item.is_equipment,
+            is_fixed_qty: item.is_fixed_qty,
+          })
+
+          // update: id가 있는 기존 아이템
+          for (const item of sheet.items.filter((i) => i.id)) {
+            await supabase
+              .from('estimate_items')
+              .update(itemFields(item))
+              .eq('id', item.id!)
+          }
+
+          // insert: id가 없는 새 아이템
+          const newItems = sheet.items.filter((i) => !i.id)
+          if (newItems.length > 0) {
             await supabase.from('estimate_items').insert(
-              sheet.items.map((item) => ({
-                sheet_id: sheet.id,
-                sort_order: item.sort_order,
-                name: item.name,
-                spec: item.spec,
-                unit: item.unit,
-                qty: item.qty,
-                mat: item.mat,
-                labor: item.labor,
-                exp: item.exp,
-                mat_amount: item.mat_amount,
-                labor_amount: item.labor_amount,
-                exp_amount: item.exp_amount,
-                total: item.total,
-                is_base: item.is_base,
-                is_equipment: item.is_equipment,
-                is_fixed_qty: item.is_fixed_qty,
-              }))
+              newItems.map((item) => itemFields(item))
             )
           }
         }

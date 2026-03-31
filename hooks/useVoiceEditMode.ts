@@ -17,8 +17,10 @@ interface UseVoiceEditModeOptions {
   onAutoResume: () => void
   /** TTS 재생 함수 (voice.playTts) */
   onPlayTts: (text: string) => Promise<void>
-  /** VAD 무음 감지 시 녹음 중지 (voice.stopRecording) */
+  /** VAD 무음 감지 시 녹음 중지 (voice.stopRecording) — 일반 중지 */
   onStopRecording?: () => void
+  /** 녹음 강제 중지 (processAudio 호출 안 함) — VAD/그만 종료 시 사용 */
+  onForceStopRecording?: () => void
   /** VAD feature flag (갤럭시탭 dual-stream 위험 대응). 기본값 true */
   enableVad?: boolean
   /** 녹음용 MediaStream (VAD에서 재사용, 별도 getUserMedia 불필요) */
@@ -46,17 +48,21 @@ export function useVoiceEditMode({
   onAutoResume,
   onPlayTts,
   onStopRecording,
+  onForceStopRecording,
   enableVad = true,
   recordingStream,
 }: UseVoiceEditModeOptions) {
   const [isEditMode, setIsEditMode] = useState(false)
 
   // stale closure 방지
-  const callbacksRef = useRef({ onAutoResume, onPlayTts, onStopRecording })
-  callbacksRef.current = { onAutoResume, onPlayTts, onStopRecording }
+  const callbacksRef = useRef({ onAutoResume, onPlayTts, onStopRecording, onForceStopRecording })
+  callbacksRef.current = { onAutoResume, onPlayTts, onStopRecording, onForceStopRecording }
 
   const isEditModeRef = useRef(false)
   isEditModeRef.current = isEditMode
+
+  const voiceStatusRef = useRef<VoiceStatus>(voiceStatus)
+  voiceStatusRef.current = voiceStatus
 
   // 이전 상태 추적
   const prevStatusRef = useRef<VoiceStatus>('idle')
@@ -71,12 +77,18 @@ export function useVoiceEditMode({
   const exitEditMode = useCallback(() => {
     console.log('[EditMode] exitEditMode 호출 → isEditMode=false 설정')
     setIsEditMode(false)
+    // 자동 재개 타이머 취소
     if (resumeTimerRef.current) {
       clearTimeout(resumeTimerRef.current)
       resumeTimerRef.current = null
     }
+    // VAD interval 정리
     vadCleanupRef.current?.()
     vadCleanupRef.current = null
+    // 녹음 중이면 강제 중지 (processAudio 호출 안 함)
+    if (voiceStatusRef.current === 'recording') {
+      callbacksRef.current.onForceStopRecording?.()
+    }
   }, [])
 
   // ── 자동 재개 useEffect ──
@@ -134,10 +146,15 @@ export function useVoiceEditMode({
         if (!silenceStart) {
           silenceStart = Date.now()
         } else if (shouldStopByVad(silenceStart, Date.now())) {
-          // 5초 무음: 녹음 중지 + 수정 모드 종료
-          callbacksRef.current.onStopRecording?.()
-          exitEditMode()
-          return  // setInterval 루프는 cleanup에서 정리
+          console.log('[VAD] 5s silence → force stop + schedule restart')
+          callbacksRef.current.onForceStopRecording?.()
+          // shouldAutoResume 경유 안 함 — VAD에서 직접 재개
+          resumeTimerRef.current = setTimeout(() => {
+            if (isEditModeRef.current) {
+              callbacksRef.current.onAutoResume()
+            }
+          }, AUTO_RESUME_DELAY)
+          return
         }
       } else {
         silenceStart = null
@@ -159,10 +176,16 @@ export function useVoiceEditMode({
     }
   }, [isEditMode, voiceStatus, enableVad, recordingStream, exitEditMode])
 
-  // ── 수정 모드 진입 (TTS 없이 상태만 전환 → auto-resume이 녹음 시작) ──
+  // ── 수정 모드 진입: 상태 전환 + 녹음 즉시 시작 ──
   const enterEditMode = useCallback(() => {
-    console.log('[EditMode] enterEditMode → isEditMode=true')
+    console.log('[EditMode] enterEditMode → isEditMode=true + startRecording')
     setIsEditMode(true)
+    // idle이면 500ms 후 녹음 시작 (state 반영 대기)
+    if (voiceStatusRef.current === 'idle') {
+      resumeTimerRef.current = setTimeout(() => {
+        callbacksRef.current.onAutoResume()
+      }, 500)
+    }
   }, [])
 
   return {

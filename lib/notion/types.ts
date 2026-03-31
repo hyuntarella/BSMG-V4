@@ -59,27 +59,30 @@ export interface NotionDate {
 export interface NotionProperties {
   주소?: { title: NotionRichText[] };
   고객명?: { rich_text: NotionRichText[] };
-  시공평수?: { rich_text: NotionRichText[] };
+  '시공 평수'?: { rich_text: NotionRichText[] };
   전화번호?: { phone_number: string | null };
   담당자?: { select: NotionSelect | null };
   단계?: { select: NotionSelect | null };
-  파이프라인?: { select: NotionSelect | null };
+  '파이프라인 단계'?: { select: NotionSelect | null };
   계약상태?: { select: NotionSelect | null };
-  문의채널?: { select: NotionSelect | null };
+  '문의 채널'?: { select: NotionSelect | null };
   시공분야?: { multi_select: NotionSelect[] };
-  견적금액?: { number: number | null };
+  '견적 금액'?: { number: number | null };
   계약금액?: { number: number | null };
   착수금?: { number: number | null };
   잔금?: { number: number | null };
-  문의일자?: { date: NotionDate | null };
-  견적방문일자?: { date: NotionDate | null };
+  '문의 일자'?: { date: NotionDate | null };
+  '견적 방문 일자'?: { date: NotionDate | null };
   잔금완료?: { date: NotionDate | null };
   견적서발송일?: { date: NotionDate | null };
   견적서열람일?: { date: NotionDate | null };
-  구글드라이브URL?: { url: string | null };
+  '구글드라이브 URL'?: { url: string | null };
   견적서웹URL?: { url: string | null };
   고객이메일?: { email: string | null };
   메모?: { rich_text: NotionRichText[] };
+  '정산 상태'?: { status: NotionSelect | null };
+  연락시도횟수?: { number: number | null };
+  최근연락일?: { date: NotionDate | null };
 }
 
 export interface NotionPage {

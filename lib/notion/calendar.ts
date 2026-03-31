@@ -3,6 +3,9 @@
 
 import { notionFetch } from './client';
 
+const calToken = () => process.env.NOTION_CALENDAR_TOKEN;
+const CAL_API_VERSION = '2022-06-28';
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -169,7 +172,7 @@ export async function getEvents(start: string, end: string): Promise<CalendarEve
     page_size: 100,
   };
 
-  const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', body)) as NotionQueryResult;
+  const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', body, calToken(), CAL_API_VERSION)) as NotionQueryResult;
   const results = data?.results ?? [];
   return results.map(mapPageToEvent);
 }
@@ -217,7 +220,7 @@ export async function createEvent(input: CreateEventInput): Promise<CalendarEven
   const newPage = (await notionFetch('/pages', 'POST', {
     parent: { database_id: dbId },
     properties,
-  })) as NotionCalendarPage;
+  }, calToken(), CAL_API_VERSION)) as NotionCalendarPage;
 
   return mapPageToEvent(newPage);
 }
@@ -252,14 +255,14 @@ export async function updateEvent(id: string, input: Partial<CreateEventInput>):
     properties.고객 = { relation: [{ id: input.crmCustomerId }] };
   }
 
-  await notionFetch(`/pages/${id}`, 'PATCH', { properties });
+  await notionFetch(`/pages/${id}`, 'PATCH', { properties }, calToken(), CAL_API_VERSION);
 }
 
 /**
  * 이벤트 삭제 (archive)
  */
 export async function deleteEvent(id: string): Promise<void> {
-  await notionFetch(`/pages/${id}`, 'PATCH', { archived: true });
+  await notionFetch(`/pages/${id}`, 'PATCH', { archived: true }, calToken(), CAL_API_VERSION);
 }
 
 // ── 멤버 관련 타입 + 함수 ──
@@ -304,7 +307,7 @@ export async function getMembers(): Promise<CalendarMember[]> {
     const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', {
       sorts: [{ property: '이름', direction: 'ascending' }],
       page_size: 50,
-    })) as NotionMemberQueryResult;
+    }, calToken(), CAL_API_VERSION)) as NotionMemberQueryResult;
 
     const results = data?.results ?? [];
     return results.map((page) => {

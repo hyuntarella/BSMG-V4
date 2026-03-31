@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
 import type { ConfidenceResult } from '@/lib/voice/confidenceRouter'
-import { useVoice } from '@/hooks/useVoice'
-import { useVoiceEditMode } from '@/hooks/useVoiceEditMode'
+import { useRealtimeVoice } from '@/hooks/useRealtimeVoice'
 import { useVoiceFlow } from '@/hooks/useVoiceFlow'
-import { useWakeWord } from '@/hooks/useWakeWord'
 import type { FlowState } from '@/lib/voice/voiceFlow'
 import type { TabId } from '@/components/estimate/TabBar'
 import { normalizeText, matchKeyword } from '@/lib/voice/keywordMatcher'
@@ -20,7 +18,6 @@ interface UseEstimateVoiceOptions {
   estimate: Estimate
   activeSheetIndex: number
   setActiveTab: (tab: TabId) => void
-  // useEstimate 메서드
   applyVoiceCommands: (commands: VoiceCommand[], sheetIndex?: number) => { executed: boolean; routing: ConfidenceResult }
   updateMeta: (field: keyof Estimate, value: string | number) => void
   addSheet: (type: '복합' | '우레탄') => void
@@ -28,18 +25,18 @@ interface UseEstimateVoiceOptions {
   saveSnapshot: (description: string, type?: 'auto' | 'voice' | 'manual') => void
   undo: () => void
   getSheetMargin: (sheetIndex: number) => number
-  // 저장/이메일 콜백
   onSave: () => Promise<void>
   onEmailOpen: () => void
 }
 
 /**
- * EstimateEditor에서 추출된 음성 관련 핸들러, 상태, 콜백 통합 훅.
+ * EstimateEditor 음성 통합 훅 (Realtime API 버전).
  *
- * - useVoice: 녹음 + STT + LLM + TTS 파이프라인
- * - useVoiceEditMode: 수정 모드 상태 기계 (진입/종료/자동재개)
- * - useWakeWord: "수정"/"견적" 키워드 감지
- * - handleVoiceCommands: 시스템 명령 + modify 명령 라우팅
+ * - useRealtimeVoice: OpenAI Realtime WebRTC — STT + 서버 VAD 통합
+ * - useVoiceFlow: 면적/벽체/평단가 순서 수집 상태 기계
+ * - 키워드 감지: "수정", "그만", "됐어" 등 실시간 감지
+ * - LLM: Claude Sonnet (modify 모드 명령 파싱)
+ * - TTS: OpenAI gpt-4o-mini-tts
  */
 export function useEstimateVoice({
   estimate,
@@ -59,73 +56,37 @@ export function useEstimateVoice({
 
   // ── 음성 로그 ──
   const [voiceLogs, setVoiceLogs] = useState<{ type: 'user' | 'assistant'; text: string }[]>([])
-
   const addLog = useCallback((type: 'user' | 'assistant', text: string) => {
     setVoiceLogs((prev) => [...prev.slice(-49), { type, text }])
   }, [])
 
-  // voice ref — voiceFlow에서 startRecording/stopRecording/playTts 접근용
-  const voiceRef = useRef<{ startRecording: () => void; stopRecording: () => void; playTts: (text: string) => Promise<void> }>({
-    startRecording: () => {},
-    stopRecording: () => {},
-    playTts: async () => {},
-  })
+  // ── 수정 모드 ──
+  const [isEditMode, setIsEditMode] = useState(false)
+  const isEditModeRef = useRef(false)
+  isEditModeRef.current = isEditMode
 
-  // ── voiceFlow: 면적→벽체→복합평단가→우레탄평단가 순서 수집 ──
-  const voiceFlow = useVoiceFlow({
-    startRecording: () => voiceRef.current.startRecording(),
-    stopRecording: () => voiceRef.current.stopRecording(),
-    playTts: (text: string) => voiceRef.current.playTts(text),
-    onComplete: (state: FlowState) => {
-      initFromVoiceFlow({
-        area: state.area ?? 100,
-        wallM2: state.wallM2 ?? 0,
-        complexPpp: state.complexPpp,
-        urethanePpp: state.urethanePpp,
-      })
-      setActiveTab('complex-detail')
-    },
-    addLog,
-  })
-
-  // ── medium confidence 확인 대기 상태 ──
-  // useState (not useRef): pendingConfirm이 true일 때 skipLlm이 reactive하게 true가 되어야 함.
-  // re-render를 트리거해야 useVoice에 전달되는 skipLlm prop이 최신값을 가짐.
+  // ── pendingConfirm ──
   const [pendingConfirm, setPendingConfirm] = useState(false)
-
-  // ── 음성 모드 결정 ──
-  const voiceMode = estimate.sheets.length === 0 ? 'extract' as const : 'modify' as const
-
-  // ── 견적서 상태 JSON (LLM 컨텍스트) ──
-  const estimateContext = JSON.stringify({
-    m2: estimate.m2,
-    sheets: estimate.sheets.map((s) => ({
-      type: s.type,
-      grand_total: s.grand_total,
-      items: s.items.map((it) => ({
-        name: it.name,
-        qty: it.qty,
-        mat: it.mat,
-        labor: it.labor,
-        exp: it.exp,
-        total: it.total,
-      })),
-    })),
-  })
+  const pendingConfirmRef = useRef(false)
+  pendingConfirmRef.current = pendingConfirm
 
   // stale closure 방지
   const callbacksRef = useRef({ onSave, onEmailOpen, addLog, undo, getSheetMargin })
   callbacksRef.current = { onSave, onEmailOpen, addLog, undo, getSheetMargin }
 
-  // voice.playTts 참조 (순환 참조 방지용 ref)
-  const voicePlayTtsRef = useRef<(text: string) => Promise<void>>(
-    async (_text: string) => {}
-  )
+  // playTts ref (순환 참조 방지)
+  const playTtsRef = useRef<(text: string) => Promise<void>>(async () => {})
+
+  // ── voiceFlow 참조 ──
+  const voiceFlowRef = useRef<{ isActive: boolean; startFlow: () => void; processText: (text: string) => void }>({
+    isActive: false,
+    startFlow: () => {},
+    processText: () => {},
+  })
 
   // ── 음성 명령 처리 ──
   const handleVoiceCommands = useCallback(
     (commands: VoiceCommand[]) => {
-      // 시스템 명령 처리
       const sysCmd = commands.find((c) =>
         ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare', 'update_meta'].includes(c.action)
       )
@@ -150,7 +111,7 @@ export function useEstimateVoice({
                 if (data.estimates?.length > 0) {
                   router.push(`/estimate/${data.estimates[0].id}`)
                 } else {
-                  voicePlayTtsRef.current('해당 견적서를 찾을 수 없습니다.')
+                  playTtsRef.current('해당 견적서를 찾을 수 없습니다.')
                 }
               })
             return
@@ -171,22 +132,18 @@ export function useEstimateVoice({
           case 'read_summary': {
             const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
             const sheet = estimate.sheets[sheetIdx]
-            const total = sheet?.grand_total ?? 0
-            const itemCount = sheet?.items.length ?? 0
             const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-            const formatWon = (v: number) => `${Math.round(v / 10000).toLocaleString()}만원`
-            const msg = `${sheet?.type ?? ''} 면적 ${estimate.m2}제곱미터, 공종 ${itemCount}개, 총액 ${formatWon(total)}, 마진 ${Math.round(margin)}퍼센트.`
+            const msg = buildSummaryText(sheet?.type ?? '', estimate.m2, sheet?.items.length ?? 0, sheet?.grand_total ?? 0, margin)
             callbacksRef.current.addLog('assistant', msg)
-            voicePlayTtsRef.current(msg)
+            playTtsRef.current(msg)
             return
           }
           case 'read_margin': {
             const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
-            const sheetType = estimate.sheets[sheetIdx]?.type ?? ''
             const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-            const msg = `${sheetType} 마진 ${Math.round(margin)}퍼센트.`
+            const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
             callbacksRef.current.addLog('assistant', msg)
-            voicePlayTtsRef.current(msg)
+            playTtsRef.current(msg)
             return
           }
           case 'update_meta': {
@@ -195,7 +152,7 @@ export function useEstimateVoice({
               updateMeta(field, sysCmd.value)
               const msg = `${String(field)} ${sysCmd.value}으로 변경.`
               callbacksRef.current.addLog('assistant', msg)
-              voicePlayTtsRef.current(msg)
+              playTtsRef.current(msg)
             }
             return
           }
@@ -207,7 +164,6 @@ export function useEstimateVoice({
       saveSnapshot('음성 수정', 'voice')
       const result = applyVoiceCommands(commands, targetSheet)
 
-      // medium confidence: 실행 후 "맞습니까?" 확인 대기
       if (result.executed && result.routing.level === 'medium') {
         setPendingConfirm(true)
       }
@@ -215,170 +171,228 @@ export function useEstimateVoice({
     [activeSheetIndex, applyVoiceCommands, saveSnapshot, router, setActiveTab, estimate, updateMeta],
   )
 
-  // editMode ref for onSttText closure
-  const editModeRef = useRef({ isEditMode: false, exitEditMode: () => {} })
+  // ── 견적서 상태 JSON (LLM 컨텍스트) ──
+  const estimateContext = JSON.stringify({
+    m2: estimate.m2,
+    sheets: estimate.sheets.map((s) => ({
+      type: s.type,
+      grand_total: s.grand_total,
+      items: s.items.map((it) => ({
+        name: it.name, qty: it.qty, mat: it.mat,
+        labor: it.labor, exp: it.exp, total: it.total,
+      })),
+    })),
+  })
+  const estimateContextRef = useRef(estimateContext)
+  estimateContextRef.current = estimateContext
 
-  // pendingConfirm ref for onSttText closure (always-fresh read)
-  const pendingConfirmRef = useRef(false)
-  pendingConfirmRef.current = pendingConfirm
+  // ── LLM 호출 (Claude modify 모드) ──
+  const sendToLlm = useCallback(async (text: string) => {
+    try {
+      const { getModifySystem } = require('@/lib/voice/prompts')
+      const system = getModifySystem(estimateContextRef.current, '[]')
 
-  // enterEditMode ref for onSttText closure
-  const enterEditModeRef = useRef<() => void>(() => {})
+      const res = await fetch('/api/llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system, user: text }),
+      })
+      if (!res.ok) throw new Error('LLM 실패')
+      const data = await res.json()
+      console.log('[LLM] modify:', data)
 
-  // voiceClearLastCommandRef for onSttText closure
-  const voiceClearLastCommandRef = useRef<() => void>(() => {})
+      // 되묻기
+      if (data.clarification_needed) {
+        callbacksRef.current.addLog('assistant', data.clarification_needed)
+        await playTtsRef.current(data.clarification_needed)
+        return
+      }
 
-  // voiceFlow ref for onSttText closure
-  const voiceFlowRef = useRef(voiceFlow)
+      // 명령 실행
+      if (data.commands && data.commands.length > 0) {
+        handleVoiceCommands(data.commands)
+      }
+
+      // TTS 응답
+      if (data.tts_response) {
+        callbacksRef.current.addLog('assistant', data.tts_response)
+        await playTtsRef.current(data.tts_response)
+      }
+    } catch (err) {
+      console.error('[LLM] error:', err)
+    }
+  }, [handleVoiceCommands])
+
+  const sendToLlmRef = useRef(sendToLlm)
+  sendToLlmRef.current = sendToLlm
+
+  // ── Realtime 전사 콜백 ──
+  const handleTranscript = useCallback((text: string) => {
+    const normalized = normalizeText(text)
+    console.log('[Realtime] transcript:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
+
+    // Whisper 프롬프트 환각 방지
+    if (text.startsWith('방수 복합 우레탄 견적 바탕정리')) {
+      console.log('[Realtime] prompt hallucination, discarding')
+      return
+    }
+
+    callbacksRef.current.addLog('user', text)
+
+    // 1. 키워드 매칭
+    const action = matchKeyword(normalized, isEditModeRef.current, estimate.sheets.length > 0)
+
+    if (action === 'exit_edit') {
+      console.log('[Realtime] "그만" → 수정 모드 종료')
+      setIsEditMode(false)
+      setPendingConfirm(false)
+      callbacksRef.current.addLog('assistant', '종료합니다.')
+      playTtsRef.current('종료합니다.')
+      return
+    }
+    if (action === 'enter_edit') {
+      console.log('[Realtime] "수정" → 수정 모드 진입')
+      setIsEditMode(true)
+      callbacksRef.current.addLog('assistant', '수정 모드.')
+      playTtsRef.current('수정 모드.')
+      return
+    }
+    if (action === 'confirm') {
+      console.log('[Realtime] "됐어" → 확정')
+      callbacksRef.current.addLog('assistant', '확인.')
+      playTtsRef.current('확인.')
+      return
+    }
+
+    // 2. 상태 요약
+    const summaryAction = matchSummaryKeyword(normalized)
+    if (summaryAction && estimate.sheets.length > 0) {
+      const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
+      const sheet = estimate.sheets[sheetIdx]
+      if (summaryAction === 'read_summary' && sheet) {
+        const margin = callbacksRef.current.getSheetMargin(sheetIdx)
+        const msg = buildSummaryText(sheet.type, estimate.m2, sheet.items.length, sheet.grand_total ?? 0, margin)
+        callbacksRef.current.addLog('assistant', msg)
+        playTtsRef.current(msg)
+      } else if (summaryAction === 'read_margin') {
+        const margin = callbacksRef.current.getSheetMargin(sheetIdx)
+        const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
+        callbacksRef.current.addLog('assistant', msg)
+        playTtsRef.current(msg)
+      }
+      return
+    }
+
+    // 3. 시트 없을 때 → voiceFlow
+    if (estimate.sheets.length === 0) {
+      if (!voiceFlowRef.current.isActive) {
+        voiceFlowRef.current.startFlow()
+      }
+      voiceFlowRef.current.processText(text)
+      return
+    }
+
+    // 4. voiceFlow 활성 시
+    if (voiceFlowRef.current.isActive) {
+      voiceFlowRef.current.processText(text)
+      return
+    }
+
+    // 5. pendingConfirm 응답
+    if (pendingConfirmRef.current) {
+      setPendingConfirm(false)
+      if (/^(아니|아니오|아니요|틀려|틀렸|달라|다르)/.test(normalized)) {
+        callbacksRef.current.undo()
+        callbacksRef.current.addLog('assistant', '되돌렸습니다.')
+        playTtsRef.current('되돌렸습니다.')
+        return
+      }
+      // 긍정이면 그냥 유지, 새 명령이면 아래로 진행
+    }
+
+    // 6. 수정 모드 → Claude LLM
+    if (isEditModeRef.current) {
+      sendToLlmRef.current(text)
+      return
+    }
+
+    // 7. 수정 모드가 아닌데 시트 있음 → 일반 명령 (LLM)
+    sendToLlmRef.current(text)
+  }, [estimate, activeSheetIndex])
+
+  // ── Realtime Voice 훅 ──
+  const realtime = useRealtimeVoice({
+    onTranscript: handleTranscript,
+    onSpeechStart: () => {
+      console.log('[Realtime] user speaking')
+    },
+    onSpeechEnd: () => {
+      console.log('[Realtime] user stopped')
+    },
+    onError: (err) => {
+      console.error('[Realtime] error:', err)
+    },
+  })
+
+  // playTts ref 동기화
+  playTtsRef.current = realtime.playTts
+
+  // ── voiceFlow 훅 ──
+  const voiceFlow = useVoiceFlow({
+    startRecording: () => { realtime.unmute() },
+    stopRecording: () => { realtime.mute() },
+    playTts: realtime.playTts,
+    onComplete: (state: FlowState) => {
+      initFromVoiceFlow({
+        area: state.area ?? 100,
+        wallM2: state.wallM2 ?? 0,
+        complexPpp: state.complexPpp,
+        urethanePpp: state.urethanePpp,
+      })
+      setActiveTab('complex-detail')
+    },
+    addLog,
+  })
+
+  // voiceFlowRef 동기화
   voiceFlowRef.current = voiceFlow
 
-  // ── useVoice 훅 ──
-  const voice = useVoice({
-    mode: voiceMode,
-    estimateContext,
-    skipLlm: pendingConfirm || voiceFlow.isActive,
-    onSttText: (text) => {
-      // STT 텍스트 정규화 + 키워드 매칭 (순수 함수)
-      const normalized = normalizeText(text)
-      console.log('[STT] raw:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
-      console.log('[KeywordMatch]', { normalized, isEditMode: editModeRef.current.isEditMode, sheetsLen: estimate.sheets.length })
+  // ── 키보드 단축키 (Space/볼륨) ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
-      const action = matchKeyword(normalized, editModeRef.current.isEditMode, estimate.sheets.length > 0)
-      if (action === 'exit_edit') {
-        console.log('[그만] 키워드 감지 → exitEditMode 호출')
-        editModeRef.current.exitEditMode()
-        callbacksRef.current.addLog('assistant', '종료합니다.')
-        voicePlayTtsRef.current('종료합니다.')
-        return true
+      if (e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === ' ' || e.code === 'Space') {
+        e.preventDefault()
+        realtime.toggleRecording()
       }
-      if (action === 'confirm') {
-        console.log('[확정] 키워드 감지 → 수정 확정, 자동 녹음 재개 대기')
-        callbacksRef.current.addLog('assistant', '확인했습니다.')
-        voicePlayTtsRef.current('확인했습니다.')
-        return true
-      }
-      if (action === 'enter_edit') {
-        console.log('[수정] 키워드 감지 → enterEditMode 호출 (무음 진입)')
-        enterEditModeRef.current()
-        callbacksRef.current.addLog('assistant', '수정 모드 진입.')
-        return true
-      }
+    }
 
-      // 상태 요약: LLM 없이 로컬 데이터로 즉시 응답
-      const summaryAction = matchSummaryKeyword(normalized)
-      if (summaryAction && estimate.sheets.length > 0) {
-        const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
-        const sheet = estimate.sheets[sheetIdx]
-        if (summaryAction === 'read_summary' && sheet) {
-          const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-          const msg = buildSummaryText(sheet.type, estimate.m2, sheet.items.length, sheet.grand_total ?? 0, margin)
-          callbacksRef.current.addLog('assistant', msg)
-          voicePlayTtsRef.current(msg)
-        } else if (summaryAction === 'read_margin') {
-          const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-          const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
-          callbacksRef.current.addLog('assistant', msg)
-          voicePlayTtsRef.current(msg)
-        }
-        return true
-      }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [realtime.toggleRecording])
 
-      // 시트 없을 때(extract 모드): voiceFlow가 비활성이면 자동 시작 후 전달
-      if (estimate.sheets.length === 0) {
-        if (!voiceFlowRef.current.isActive) {
-          voiceFlowRef.current.startFlow()
-        }
-        voiceFlowRef.current.processText(text)
-        return true
-      }
-
-      // voiceFlow 활성 시 → voiceFlow에 전달, LLM 건너뜀
-      if (voiceFlowRef.current.isActive) {
-        voiceFlowRef.current.processText(text)
-        return true
-      }
-
-      // medium confidence 확인 응답 체크 (pendingConfirmRef: always-fresh in callback)
-      if (pendingConfirmRef.current) {
-        setPendingConfirm(false)
-        if (/^(아니|아니오|아니요|틀려|틀렸|달라|다르)/.test(normalized)) {
-          callbacksRef.current.undo()
-          voiceClearLastCommandRef.current()
-          callbacksRef.current.addLog('assistant', '되돌렸습니다.')
-          voicePlayTtsRef.current('되돌렸습니다.')
-          return true
-        }
-        // 긍정("네"/"응"/"맞아") 또는 새 명령 → LLM으로 전달
-        return false
-      }
-
-      return false
-    },
-    onCommands: handleVoiceCommands,
-    onParsed: (parsed) => {
-      if (parsed.area) updateMeta('m2', parsed.area as number)
-      if (parsed.method) {
-        const method = parsed.method as string
-        if (method.includes('복합')) addSheet('복합')
-        if (method.includes('우레탄')) addSheet('우레탄')
-        if (method === '복합' || method === '복합+우레탄') setActiveTab('complex-detail')
-        else if (method === '우레탄') setActiveTab('urethane-detail')
-      }
-    },
-  })
-
-  // ref 동기화
-  voicePlayTtsRef.current = voice.playTts
-  voiceClearLastCommandRef.current = voice.clearLastCommand
-  voiceRef.current = { startRecording: voice.startRecording, stopRecording: voice.stopRecording, playTts: voice.playTts }
-
-  // ── useVoiceEditMode: 수정 모드 상태 기계 ──
-  const editMode = useVoiceEditMode({
-    voiceStatus: voice.status,
-    onAutoResume: voice.startRecording,
-    onPlayTts: voice.playTts,
-    onStopRecording: voice.stopRecording,
-    recordingStream: voice.streamRef.current,
-  })
-
-  // ── 수정 모드 종료 래퍼: clarificationCountRef 리셋 + pendingConfirm 초기화 ──
-  const handleExitEditMode = useCallback(() => {
-    editMode.exitEditMode()
-    voice.resetClarificationCount()
-    setPendingConfirm(false)
-  }, [editMode, voice])
-
-  // editModeRef 동기화 (onSttText 클로저에서 최신 editMode 참조)
-  editModeRef.current = { isEditMode: editMode.isEditMode, exitEditMode: handleExitEditMode }
-  enterEditModeRef.current = editMode.enterEditMode
-
-  // ── useWakeWord: 하드웨어/키보드/Web Speech API ──
-  useWakeWord({
-    onToggle: voice.toggleRecording,
-    onWakeWord: () => {
-      // "견적" 웨이크워드: 시트 없으면 voiceFlow 시작, 있으면 녹음 토글
-      if (estimate.sheets.length === 0) {
-        voiceFlow.startFlow()
-      } else {
-        voice.startRecording()
-      }
-    },
-    onEditMode: () => {
-      // "수정" 웨이크워드: 수정 모드 진입
-      if (estimate.sheets.length > 0 && !editMode.isEditMode) {
-        editMode.enterEditMode()
-      }
-    },
-    enabled: voice.status === 'idle' || voice.status === 'speaking',
-  })
+  // ── VoiceBar 호환 인터페이스 ──
+  const voice = {
+    status: realtime.status as 'idle' | 'recording' | 'processing' | 'speaking',
+    seconds: realtime.seconds,
+    lastText: realtime.lastText,
+    toggleRecording: realtime.toggleRecording,
+    stopSpeaking: realtime.stopSpeaking,
+    playTts: realtime.playTts,
+    startRecording: realtime.connect,
+    stopRecording: realtime.disconnect,
+  }
 
   return {
     voice,
     voiceLogs,
     addLog,
     editMode: {
-      ...editMode,
-      exitEditMode: handleExitEditMode,
+      isEditMode,
+      enterEditMode: () => setIsEditMode(true),
+      exitEditMode: () => { setIsEditMode(false); setPendingConfirm(false) },
     },
     voiceFlow,
     pendingConfirm,

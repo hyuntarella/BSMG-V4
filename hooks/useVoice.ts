@@ -57,6 +57,7 @@ export function useVoice(options: UseVoiceOptions) {
   const setStatus = useCallback((s: VoiceStatus) => { statusRef.current = s; _setStatus(s) }, [])
   const [seconds, setSeconds] = useState(0)
   const [lastText, setLastText] = useState('')
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
 
   // processAudio ref — startRecording 클로저에서 항상 최신 processAudio 참조
   const processAudioRef = useRef<() => Promise<void>>(async () => {})
@@ -69,14 +70,27 @@ export function useVoice(options: UseVoiceOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const recentCommandsRef = useRef<VoiceCommand[]>([])
   const clarificationCountRef = useRef(0)
+  /** 녹음 시작 시각 (ms) — VAD 종료 시 최소 녹음 시간 체크용 */
+  const recordingStartTimeRef = useRef<number>(0)
+  /** TTS 종료 시각 (ms) — TTS 직후 녹음 방지용 */
+  const ttsEndTimeRef = useRef<number>(0)
+  /** VAD 또는 강제 종료에 의한 녹음 중지 — true이면 processAudio 건너뜀 */
+  const vadStopRef = useRef(false)
 
   // ── 녹음 시작 ──
   const startRecording = useCallback(async () => {
     // TTS 재생 중이거나 이미 녹음 중이면 무시
     if (!canStartRecording(statusRef.current)) return
+    // TTS 종료 후 500ms 미만이면 녹음 차단 (TTS 잔여 오디오 마이크 캡처 방지)
+    const sinceLastTts = Date.now() - ttsEndTimeRef.current
+    if (sinceLastTts < 500) {
+      console.log('[Voice] TTS cooldown — skipping startRecording', sinceLastTts, 'ms since TTS end')
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
+      setRecordingStream(stream)
       const recorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
@@ -92,11 +106,27 @@ export function useVoice(options: UseVoiceOptions) {
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
         streamRef.current = null
+        setRecordingStream(null)
+        // VAD/강제 종료 플래그 → processAudio 건너뜀
+        if (vadStopRef.current) {
+          console.log('[Voice] VAD/forced stop — discarding audio')
+          vadStopRef.current = false
+          setStatus('idle')
+          return
+        }
+        // 녹음 1초 미만이면 TTS 잔여 오디오일 가능성 높으므로 버림
+        const recordingDuration = Date.now() - recordingStartTimeRef.current
+        if (recordingDuration < 1000) {
+          console.log('[Voice] Recording too short, discarding:', recordingDuration, 'ms')
+          setStatus('idle')
+          return
+        }
         processAudioRef.current()
       }
 
       recorder.start()
       mediaRecorderRef.current = recorder
+      recordingStartTimeRef.current = Date.now()
       setStatus('recording')
       setSeconds(0)
 
@@ -119,6 +149,17 @@ export function useVoice(options: UseVoiceOptions) {
       mediaRecorderRef.current.stop()
     }
   }, [])
+
+  // ── 녹음 강제 중지 (processAudio 호출하지 않음) ──
+  const forceStopRecording = useCallback(() => {
+    vadStopRef.current = true
+    stopRecording()
+    // recorder가 없거나 이미 중지 상태면 onstop이 안 불리므로 수동 리셋
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+      vadStopRef.current = false
+      setStatus('idle')
+    }
+  }, [stopRecording])
 
   // ── 녹음 토글 ──
   const toggleRecording = useCallback(() => {
@@ -157,6 +198,13 @@ export function useVoice(options: UseVoiceOptions) {
       const { text } = await sttRes.json()
 
       if (!text || text.trim().length === 0) {
+        setStatus('idle')
+        return
+      }
+
+      // Whisper 프롬프트 환각 방지: 무음 녹음 시 프롬프트를 그대로 출력하는 현상
+      if (text.startsWith('방수 복합 우레탄 견적 바탕정리')) {
+        console.log('[Voice] STT prompt hallucination detected, discarding')
         setStatus('idle')
         return
       }
@@ -305,12 +353,14 @@ export function useVoice(options: UseVoiceOptions) {
       audio.onended = () => {
         URL.revokeObjectURL(url)
         audioRef.current = null
+        ttsEndTimeRef.current = Date.now()
         setStatus('idle')
       }
 
       audio.onerror = () => {
         URL.revokeObjectURL(url)
         audioRef.current = null
+        ttsEndTimeRef.current = Date.now()
         setStatus('idle')
       }
 
@@ -336,12 +386,14 @@ export function useVoice(options: UseVoiceOptions) {
     lastText,
     startRecording,
     stopRecording,
+    forceStopRecording,
     toggleRecording,
     stopSpeaking,
     playTts,
     clearLastCommand,
     resetClarificationCount,
     streamRef,
+    recordingStream,
   }
 }
 

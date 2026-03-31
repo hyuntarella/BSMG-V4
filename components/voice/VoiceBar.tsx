@@ -1,9 +1,9 @@
 'use client'
 
-import type { VoiceStatus } from '@/hooks/useVoice'
+type VoiceBarStatus = 'idle' | 'recording' | 'processing' | 'speaking' | 'listening'
 
 interface VoiceBarProps {
-  status: VoiceStatus
+  status: VoiceBarStatus
   seconds: number
   lastText: string
   onToggle: () => void
@@ -43,7 +43,7 @@ export default function VoiceBar({
         </div>
 
         {/* 녹음 중 시간 표시 */}
-        {status === 'recording' && (
+        {(status === 'recording' || status === 'listening') && (
           <span className="shrink-0 font-mono text-sm text-red-500">
             {formatTime(seconds)}
           </span>
@@ -53,11 +53,12 @@ export default function VoiceBar({
   )
 }
 
-function getButtonStyle(status: VoiceStatus): string {
+function getButtonStyle(status: VoiceBarStatus): string {
   switch (status) {
     case 'idle':
       return 'bg-blue-600 text-white hover:bg-blue-700'
     case 'recording':
+    case 'listening':
       return 'bg-red-500 text-white animate-pulse'
     case 'processing':
       return 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -66,11 +67,12 @@ function getButtonStyle(status: VoiceStatus): string {
   }
 }
 
-function getIcon(status: VoiceStatus): React.ReactNode {
+function getIcon(status: VoiceBarStatus): React.ReactNode {
   switch (status) {
     case 'idle':
       return <MicIcon />
     case 'recording':
+    case 'listening':
       return <StopIcon />
     case 'processing':
       return <SpinnerIcon />
@@ -79,20 +81,22 @@ function getIcon(status: VoiceStatus): React.ReactNode {
   }
 }
 
-function getAriaLabel(status: VoiceStatus): string {
+function getAriaLabel(status: VoiceBarStatus): string {
   switch (status) {
     case 'idle': return '녹음 시작'
-    case 'recording': return '녹음 중지'
+    case 'recording':
+    case 'listening': return '듣고 있습니다'
     case 'processing': return '처리 중'
     case 'speaking': return 'TTS 중지'
   }
 }
 
-function getStatusText(status: VoiceStatus, seconds: number, lastText: string): string {
+function getStatusText(status: VoiceBarStatus, seconds: number, lastText: string): string {
   switch (status) {
     case 'idle':
-      return lastText || '음성으로 견적서를 작성하세요'
+      return lastText || '탭하여 음성 연결'
     case 'recording':
+    case 'listening':
       return '듣고 있습니다...'
     case 'processing':
       return '처리 중...'

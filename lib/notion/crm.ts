@@ -49,22 +49,22 @@ export function parseNotionPage(page: NotionPage): CrmRecord {
     email: p.고객이메일?.email ?? null,
     manager: p.담당자?.select?.name ?? null,
     stage: p.단계?.select?.name ?? null,
-    pipeline: p.파이프라인?.select?.name ?? null,
+    pipeline: p['파이프라인 단계']?.select?.name ?? null,
     contractStatus: p.계약상태?.select?.name ?? null,
-    inquiryChannel: p.문의채널?.select?.name ?? null,
+    inquiryChannel: p['문의 채널']?.select?.name ?? null,
     workTypes: p.시공분야?.multi_select?.map((s) => s.name) ?? [],
-    estimateAmount: p.견적금액?.number ?? null,
+    estimateAmount: p['견적 금액']?.number ?? null,
     contractAmount: p.계약금액?.number ?? null,
     deposit: p.착수금?.number ?? null,
     balance: p.잔금?.number ?? null,
-    area: p.시공평수?.rich_text?.[0]?.plain_text ?? null,
+    area: p['시공 평수']?.rich_text?.[0]?.plain_text ?? null,
     memo: p.메모?.rich_text?.[0]?.plain_text ?? null,
-    inquiryDate: p.문의일자?.date?.start ?? null,
-    visitDate: p.견적방문일자?.date?.start ?? null,
+    inquiryDate: p['문의 일자']?.date?.start ?? null,
+    visitDate: p['견적 방문 일자']?.date?.start ?? null,
     balanceCompleteDate: p.잔금완료?.date?.start ?? null,
     estimateSentDate: p.견적서발송일?.date?.start ?? null,
     estimateViewedDate: p.견적서열람일?.date?.start ?? null,
-    driveUrl: p.구글드라이브URL?.url ?? null,
+    driveUrl: p['구글드라이브 URL']?.url ?? null,
     estimateWebUrl: p.견적서웹URL?.url ?? null,
     createdTime: page.created_time,
     lastEditedTime: page.last_edited_time,
@@ -96,19 +96,19 @@ export function buildNotionProperties(data: CrmRecordUpdate): Record<string, unk
     props['단계'] = { select: data.stage ? { name: data.stage } : null };
   }
   if (data.pipeline !== undefined) {
-    props['파이프라인'] = { select: data.pipeline ? { name: data.pipeline } : null };
+    props['파이프라인 단계'] = { select: data.pipeline ? { name: data.pipeline } : null };
   }
   if (data.contractStatus !== undefined) {
     props['계약상태'] = { select: data.contractStatus ? { name: data.contractStatus } : null };
   }
   if (data.inquiryChannel !== undefined) {
-    props['문의채널'] = { select: data.inquiryChannel ? { name: data.inquiryChannel } : null };
+    props['문의 채널'] = { select: data.inquiryChannel ? { name: data.inquiryChannel } : null };
   }
   if (data.workTypes !== undefined) {
     props['시공분야'] = { multi_select: (data.workTypes ?? []).map((name) => ({ name })) };
   }
   if (data.estimateAmount !== undefined) {
-    props['견적금액'] = { number: data.estimateAmount };
+    props['견적 금액'] = { number: data.estimateAmount };
   }
   if (data.contractAmount !== undefined) {
     props['계약금액'] = { number: data.contractAmount };
@@ -120,16 +120,16 @@ export function buildNotionProperties(data: CrmRecordUpdate): Record<string, unk
     props['잔금'] = { number: data.balance };
   }
   if (data.area !== undefined) {
-    props['시공평수'] = { rich_text: [{ text: { content: data.area ?? '' } }] };
+    props['시공 평수'] = { rich_text: [{ text: { content: data.area ?? '' } }] };
   }
   if (data.memo !== undefined) {
     props['메모'] = { rich_text: [{ text: { content: data.memo ?? '' } }] };
   }
   if (data.inquiryDate !== undefined) {
-    props['문의일자'] = data.inquiryDate ? { date: { start: data.inquiryDate } } : { date: null };
+    props['문의 일자'] = data.inquiryDate ? { date: { start: data.inquiryDate } } : { date: null };
   }
   if (data.visitDate !== undefined) {
-    props['견적방문일자'] = data.visitDate ? { date: { start: data.visitDate } } : { date: null };
+    props['견적 방문 일자'] = data.visitDate ? { date: { start: data.visitDate } } : { date: null };
   }
   if (data.balanceCompleteDate !== undefined) {
     props['잔금완료'] = data.balanceCompleteDate ? { date: { start: data.balanceCompleteDate } } : { date: null };
@@ -141,7 +141,7 @@ export function buildNotionProperties(data: CrmRecordUpdate): Record<string, unk
     props['견적서열람일'] = data.estimateViewedDate ? { date: { start: data.estimateViewedDate } } : { date: null };
   }
   if (data.driveUrl !== undefined) {
-    props['구글드라이브URL'] = { url: data.driveUrl };
+    props['구글드라이브 URL'] = { url: data.driveUrl };
   }
   if (data.estimateWebUrl !== undefined) {
     props['견적서웹URL'] = { url: data.estimateWebUrl };
@@ -156,9 +156,9 @@ export function buildNotionProperties(data: CrmRecordUpdate): Record<string, unk
  * 전체 CRM 레코드 조회 (페이지네이션 처리)
  */
 export async function getAllRecords(): Promise<CrmRecord[]> {
-  const dbId = process.env.NOTION_CRM_DB_ID;
+  const dbId = process.env.NOTION_CRM_DATA_SOURCE_ID;
   if (!dbId) {
-    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+    throw new Error('NOTION_CRM_DATA_SOURCE_ID 환경변수가 설정되지 않았습니다.');
   }
 
   const records: CrmRecord[] = [];
@@ -167,7 +167,6 @@ export async function getAllRecords(): Promise<CrmRecord[]> {
 
   while (hasMore) {
     const body: Record<string, unknown> = {
-      filter: { property: 'archived', checkbox: { equals: false } },
       sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
     };
     if (startCursor) {
@@ -175,7 +174,7 @@ export async function getAllRecords(): Promise<CrmRecord[]> {
     }
 
     const result = (await notionFetch(
-      `/databases/${dbId}/query`,
+      `/data_sources/${dbId}/query`,
       'POST',
       body
     )) as NotionQueryResult;
@@ -213,14 +212,14 @@ export async function updateRecord(id: string, data: CrmRecordUpdate): Promise<v
  * 새 레코드 생성
  */
 export async function createRecord(data: CrmRecordCreate): Promise<CrmRecord> {
-  const dbId = process.env.NOTION_CRM_DB_ID;
+  const dbId = process.env.NOTION_CRM_DATA_SOURCE_ID;
   if (!dbId) {
-    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+    throw new Error('NOTION_CRM_DATA_SOURCE_ID 환경변수가 설정되지 않았습니다.');
   }
 
   const properties = buildNotionProperties(data);
   const page = (await notionFetch(`/pages`, 'POST', {
-    parent: { database_id: dbId },
+    parent: { data_source_id: dbId },
     properties,
   })) as NotionPage;
 
@@ -255,9 +254,9 @@ export async function getPageComments(id: string): Promise<CrmComment[]> {
  * 특정 파이프라인 값으로 레코드 조회
  */
 export async function queryCrmByPipeline(pipeline: string): Promise<CrmRecord[]> {
-  const dbId = process.env.NOTION_CRM_DB_ID;
+  const dbId = process.env.NOTION_CRM_DATA_SOURCE_ID;
   if (!dbId) {
-    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+    throw new Error('NOTION_CRM_DATA_SOURCE_ID 환경변수가 설정되지 않았습니다.');
   }
 
   const records: CrmRecord[] = [];
@@ -267,17 +266,17 @@ export async function queryCrmByPipeline(pipeline: string): Promise<CrmRecord[]>
   while (hasMore) {
     const body: Record<string, unknown> = {
       filter: {
-        property: '파이프라인',
+        property: '파이프라인 단계',
         select: { equals: pipeline },
       },
-      sorts: [{ property: '문의일자', direction: 'descending' }],
+      sorts: [{ property: '문의 일자', direction: 'descending' }],
     };
     if (startCursor) {
       body.start_cursor = startCursor;
     }
 
     const result = (await notionFetch(
-      `/databases/${dbId}/query`,
+      `/data_sources/${dbId}/query`,
       'POST',
       body
     )) as NotionQueryResult;
@@ -301,7 +300,7 @@ export async function queryCrmByPipeline(pipeline: string): Promise<CrmRecord[]>
 export async function updateCrmPipeline(pageId: string, newPipeline: string): Promise<void> {
   await notionFetch(`/pages/${pageId}`, 'PATCH', {
     properties: {
-      파이프라인: { select: { name: newPipeline } },
+      '파이프라인 단계': { select: { name: newPipeline } },
     },
   });
 }
@@ -311,9 +310,9 @@ export async function updateCrmPipeline(pageId: string, newPipeline: string): Pr
  * 파이프라인 = "견적서전송" (성공확률↑/↓ 미배정)
  */
 export async function queryCrmFollowUp(): Promise<CrmRecord[]> {
-  const dbId = process.env.NOTION_CRM_DB_ID;
+  const dbId = process.env.NOTION_CRM_DATA_SOURCE_ID;
   if (!dbId) {
-    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+    throw new Error('NOTION_CRM_DATA_SOURCE_ID 환경변수가 설정되지 않았습니다.');
   }
 
   const records: CrmRecord[] = [];
@@ -323,8 +322,8 @@ export async function queryCrmFollowUp(): Promise<CrmRecord[]> {
   while (hasMore) {
     const body: Record<string, unknown> = {
       filter: {
-        property: '파이프라인',
-        select: { equals: '견적서전송' },
+        property: '파이프라인 단계',
+        select: { equals: '견적서 전송' },
       },
       sorts: [{ property: '견적서발송일', direction: 'ascending' }],
     };
@@ -333,7 +332,7 @@ export async function queryCrmFollowUp(): Promise<CrmRecord[]> {
     }
 
     const result = (await notionFetch(
-      `/databases/${dbId}/query`,
+      `/data_sources/${dbId}/query`,
       'POST',
       body
     )) as NotionQueryResult;

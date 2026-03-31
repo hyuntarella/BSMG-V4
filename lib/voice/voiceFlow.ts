@@ -35,7 +35,7 @@ export const FLOW_STEPS: Record<string, FlowStepConfig> = {
     nextStep: 'collecting_wall',
   },
   collecting_wall: {
-    ttsPrompt: '벽체 면적은요? 없으면 없다고.',
+    ttsPrompt: '벽체 면적은요? 제곱미터로 말씀해주세요. 없으면 없다고.',
     parseField: 'wallM2',
     nextStep: 'collecting_complex_ppp',
   },
@@ -92,7 +92,7 @@ export function createInitialFlowState(): FlowState {
 
 /**
  * 한 문장에서 모든 필드를 한 번에 파싱
- * "187헤베 벽체 37미터 복합 35000 우레탄 31000" → 4개 다 채움
+ * "187헤베 벽체 37헤베 복합 35000 우레탄 31000" → 4개 다 채움
  */
 export function parseAllFields(
   text: string,
@@ -115,10 +115,10 @@ export function parseAllFields(
     }
   }
 
-  // 벽체: "벽체 37미터", "벽체 37헤베", "벽체 없어"
+  // 벽체: "벽체 37헤베", "벽체 37제곱미터", "벽체 없어"  (단위는 항상 m²)
   if (currentState.wallM2 === null) {
-    const wallMatch = cleaned.match(/(?:벽체|벽)\s*(?:면적)?\s*(\d+(?:\.\d+)?)\s*(?:미터|헤베|m|㎡)?/)
-    const wallNone = /(?:벽체|벽)\s*(?:면적)?\s*없/.test(cleaned)
+    const wallMatch = cleaned.match(/(?:벽체|벽|겹치)\s*(?:면적)?\s*(\d+(?:\.\d+)?)\s*(?:헤베|㎡|제곱미터|m2|미터|m)?/i)
+    const wallNone = /(?:벽체|벽|겹치)\s*(?:면적)?\s*없/.test(cleaned)
     if (wallNone) {
       result.wallM2 = 0
     } else if (wallMatch) {
@@ -126,10 +126,10 @@ export function parseAllFields(
     }
   }
 
-  // 복합 평단가: "복합 35000", "복합 3만5천"
+  // 복합 평단가: "복합 35000", "복합 3만5천", "복합평당가 4만3천"
   if (currentState.complexPpp === null) {
-    const complexMatch = cleaned.match(/복합\s*(?:평단가\s*)?(\d+(?:\.\d+)?)/)
-    const complexKorean = cleaned.match(/복합\s*(?:평단가\s*)?(\d+만\d*천?)/)
+    const complexMatch = cleaned.match(/복합\s*(?:평[단당]가\s*)?(\d+(?:\.\d+)?)/)
+    const complexKorean = cleaned.match(/복합\s*(?:평[단당]가\s*)?(\d+만\d*천?)/)
     const complexMargin = cleaned.match(/복합\s*마진\s*(\d+)/)
 
     if (complexMargin) {
@@ -142,10 +142,10 @@ export function parseAllFields(
     }
   }
 
-  // 우레탄 평단가: "우레탄 31000", "우레탄 3만1천"
+  // 우레탄 평단가: "우레탄 31000", "우레탄 3만1천", "우레탄평당가 3만3천"
   if (currentState.urethanePpp === null) {
-    const urethaneMatch = cleaned.match(/우레탄\s*(?:평단가\s*)?(\d+(?:\.\d+)?)/)
-    const urethaneKorean = cleaned.match(/우레탄\s*(?:평단가\s*)?(\d+만\d*천?)/)
+    const urethaneMatch = cleaned.match(/우레탄\s*(?:평[단당]가\s*)?(\d+(?:\.\d+)?)/)
+    const urethaneKorean = cleaned.match(/우레탄\s*(?:평[단당]가\s*)?(\d+만\d*천?)/)
     const urethaneMargin = cleaned.match(/우레탄\s*마진\s*(\d+)/)
 
     if (urethaneMargin) {
@@ -198,8 +198,8 @@ export function parseFlowInput(
     }
   }
 
-  // 헤베
-  const hebeMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:헤베|㎡|제곱미터|m2|미터)/i)
+  // 헤베 (면적 단위는 항상 m²로 취급)
+  const hebeMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:헤베|㎡|제곱미터|m2|미터|m)/i)
   if (hebeMatch) {
     return { value: parseFloat(hebeMatch[1]), type: 'absolute' }
   }
@@ -278,7 +278,7 @@ export function getApplyFeedback(field: string, value: number): string {
     case 'area':
       return `면적 ${value}제곱미터.`
     case 'wallM2':
-      return value > 0 ? `벽체 ${value}미터.` : '벽체 없음.'
+      return value > 0 ? `벽체 ${value}제곱미터.` : '벽체 없음.'
     case 'complexPpp':
       return `복합 ${Math.round(value).toLocaleString()}원.`
     case 'urethanePpp':

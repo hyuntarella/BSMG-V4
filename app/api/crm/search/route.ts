@@ -22,13 +22,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  const dbId = process.env.NOTION_CRM_DB;
+  const dbId = process.env.NOTION_CRM_DATA_SOURCE_ID;
   if (!dbId) {
-    return NextResponse.json({ error: 'NOTION_CRM_DB 환경변수가 설정되지 않았습니다.' }, { status: 500 });
+    return NextResponse.json({ error: 'NOTION_CRM_DATA_SOURCE_ID 환경변수가 설정되지 않았습니다.' }, { status: 500 });
   }
 
   try {
-    const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', {
+    const data = (await notionFetch(`/data_sources/${dbId}/query`, 'POST', {
       filter: {
         or: [
           {

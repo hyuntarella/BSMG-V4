@@ -2,7 +2,10 @@ import type { VoiceStatus } from '@/hooks/useVoice';
 
 /** VAD 기본 상수 */
 export const VAD_SILENCE_THRESHOLD_DB = -35;
+/** 말한 적 없이 순수 무음 시 종료 대기 시간 */
 export const VAD_SILENCE_DURATION_MS = 5000;
+/** 말한 후 무음 시 종료 대기 시간 (빠른 응답) */
+export const VAD_POST_SPEECH_SILENCE_MS = 2000;
 
 /**
  * Float32Array 오디오 샘플에서 RMS를 계산하고 dB로 변환한다.

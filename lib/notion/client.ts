@@ -1,7 +1,7 @@
 // ── Notion REST API Client ──
 // Direct fetch wrapper (no SDK dependency)
 
-const NOTION_VERSION = '2022-06-28';
+const NOTION_VERSION = '2025-09-03';
 const NOTION_BASE_URL = 'https://api.notion.com/v1';
 
 /**
@@ -13,16 +13,18 @@ const NOTION_BASE_URL = 'https://api.notion.com/v1';
 export async function notionFetch(
   endpoint: string,
   method: string = 'GET',
-  body?: unknown
+  body?: unknown,
+  tokenOverride?: string,
+  versionOverride?: string
 ): Promise<unknown> {
-  const token = process.env.NOTION_CRM_TOKEN;
+  const token = tokenOverride ?? process.env.NOTION_CRM_TOKEN;
   if (!token) {
-    throw new Error('NOTION_CRM_TOKEN 환경변수가 설정되지 않았습니다.');
+    throw new Error('Notion API 토큰이 설정되지 않았습니다.');
   }
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    'Notion-Version': NOTION_VERSION,
+    'Notion-Version': versionOverride ?? NOTION_VERSION,
     'Content-Type': 'application/json',
   };
 

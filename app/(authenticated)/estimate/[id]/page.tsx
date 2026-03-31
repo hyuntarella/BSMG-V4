@@ -98,8 +98,13 @@ export default async function EstimatePage({ params }: Props) {
     sheets,
   }
 
-  // P매트릭스 로드
-  const { data: matrixRows } = await supabase
+  // P매트릭스 로드 (service role로 — RLS 우회, company_id 필터는 직접)
+  const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+  const { data: matrixRows } = await serviceClient
     .from('price_matrix')
     .select('*')
     .eq('company_id', userData.company_id)

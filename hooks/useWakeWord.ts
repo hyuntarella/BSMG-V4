@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback, useRef } from 'react'
+import { normalizeText, matchKeyword } from '@/lib/voice/keywordMatcher'
 
 interface UseWakeWordOptions {
   /** 녹음 토글 콜백 */
@@ -9,6 +10,10 @@ interface UseWakeWordOptions {
   onWakeWord?: () => void
   /** "수정" 웨이크워드 감지 시 콜백 (수정 모드 진입) */
   onEditMode?: () => void
+  /** "그만"/"종료" 감지 시 콜백 */
+  onExitEdit?: () => void
+  /** 시트가 존재하는지 여부 (수정 키워드 판단에 사용) */
+  hasSheets?: boolean
   /** 활성화 여부 */
   enabled?: boolean
 }
@@ -49,10 +54,19 @@ export function useWakeWord({
   onToggle,
   onWakeWord,
   onEditMode,
+  onExitEdit,
+  hasSheets = false,
   enabled = true,
 }: UseWakeWordOptions) {
-  const callbacksRef = useRef({ onToggle, onWakeWord, onEditMode })
-  callbacksRef.current = { onToggle, onWakeWord, onEditMode }
+  const callbacksRef = useRef({ onToggle, onWakeWord, onEditMode, onExitEdit })
+  callbacksRef.current = { onToggle, onWakeWord, onEditMode, onExitEdit }
+
+  const hasSheetsRef = useRef(hasSheets)
+  hasSheetsRef.current = hasSheets
+
+  // enabled를 ref로도 유지 — recognition 콜백 내에서 최신값 참조
+  const enabledRef = useRef(enabled)
+  enabledRef.current = enabled
 
   // ── 하드웨어/키보드 버튼 ──
   const handleKeyDown = useCallback(
@@ -84,16 +98,20 @@ export function useWakeWord({
   }, [handleKeyDown, enabled])
 
   // ── Web Speech API 웨이크워드 감지 ──
+  // 마운트 시 1회 시작, enabled 변경에 destroy/recreate 하지 않음
+  // enabled가 false면 콜백만 무시 (enabledRef로 체크)
   const recognitionRef = useRef<MinimalRecognition | null>(null)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!enabled) return
     if (typeof window === 'undefined') return
 
     const win = window as WindowWithSpeech
     const SpeechRecognitionCls = win.SpeechRecognition || win.webkitSpeechRecognition
-    if (!SpeechRecognitionCls) return
+    if (!SpeechRecognitionCls) {
+      console.warn('[WakeWord] Web Speech API 미지원')
+      return
+    }
 
     const recognition = new SpeechRecognitionCls()
     recognition.lang = 'ko-KR'
@@ -104,9 +122,26 @@ export function useWakeWord({
     recognition.onresult = (event) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript.trim()
+        console.log('[WakeWord] transcript:', transcript)
+        const normalized = normalizeText(transcript)
+        const result = matchKeyword(normalized, false, hasSheetsRef.current)
+        console.log('[WakeWord] matchResult:', result, 'hasSheets:', hasSheetsRef.current)
 
-        // "수정" 키워드 — 수정 모드 우선
-        if (/수정/.test(transcript)) {
+        // "그만/종료" — 녹음 중에도 항상 감지 (enabled 무관)
+        if (result === 'exit_edit') {
+          recognition.stop()
+          callbacksRef.current.onExitEdit?.()
+          restartTimerRef.current = setTimeout(() => {
+            restartTimerRef.current = null
+            try { recognition.start() } catch { /* 이미 실행 중 */ }
+          }, 3000)
+          return
+        }
+
+        // 나머지 키워드는 enabled일 때만
+        if (!enabledRef.current) return
+
+        if (result === 'enter_edit') {
           recognition.stop()
           callbacksRef.current.onEditMode?.()
           restartTimerRef.current = setTimeout(() => {
@@ -116,8 +151,8 @@ export function useWakeWord({
           return
         }
 
-        // "견적" / "시작" 키워드
-        if (/견적|시작/.test(transcript)) {
+        // "견적" / "시작" 웨이크워드
+        if (/견적|시작/.test(normalized)) {
           recognition.stop()
           callbacksRef.current.onWakeWord?.()
           restartTimerRef.current = setTimeout(() => {
@@ -145,9 +180,13 @@ export function useWakeWord({
       }
     }
 
-    try { recognition.start() } catch { /* 권한 없음 */ }
-
-    recognitionRef.current = recognition
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+      console.log('[WakeWord] started listening')
+    } catch (err) {
+      console.warn('[WakeWord] start fail:', err)
+    }
 
     return () => {
       if (restartTimerRef.current) {
@@ -157,5 +196,32 @@ export function useWakeWord({
       try { recognition.stop() } catch { /* 이미 중지됨 */ }
       recognitionRef.current = null
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // 마운트 1회만
+
+  // ── 녹음 후 recognition 재시작 ──
+  // enabled가 false→true 전환 시 (recording/processing 끝나고 idle 복귀)
+  // MediaRecorder가 마이크를 점유하면 Web Speech API가 죽으므로 강제 재시작
+  const prevEnabledRef = useRef(enabled)
+  useEffect(() => {
+    if (enabled && !prevEnabledRef.current && recognitionRef.current) {
+      console.log('[WakeWord] re-enabling — restarting recognition')
+      try {
+        recognitionRef.current.start()
+        console.log('[WakeWord] restart success')
+      } catch (err) {
+        console.warn('[WakeWord] restart failed:', err)
+        // 실패 시 1초 후 재시도
+        setTimeout(() => {
+          try {
+            recognitionRef.current?.start()
+            console.log('[WakeWord] retry success')
+          } catch (e2) {
+            console.warn('[WakeWord] retry also failed:', e2)
+          }
+        }, 1000)
+      }
+    }
+    prevEnabledRef.current = enabled
   }, [enabled])
 }

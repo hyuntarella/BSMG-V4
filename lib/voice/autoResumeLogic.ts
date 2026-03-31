@@ -12,9 +12,9 @@ export function shouldAutoResume(
   currentStatus: VoiceStatus,
   isEditMode: boolean,
 ): boolean {
-  const wasActiveStatus = prevStatus === 'speaking' || prevStatus === 'processing'
+  const wasActive = prevStatus === 'speaking' || prevStatus === 'processing'
   const isNowIdle = currentStatus === 'idle'
-  return wasActiveStatus && isNowIdle && isEditMode
+  return wasActive && isNowIdle && isEditMode
 }
 
 /**
