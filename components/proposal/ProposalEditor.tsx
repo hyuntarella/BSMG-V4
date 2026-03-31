@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import './proposal.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -726,6 +727,7 @@ function CatListEditor({ data, onSave }: CatListEditorProps) {
 // ── Main ProposalEditor ────────────────────────────────────────────────────
 
 export default function ProposalEditor() {
+  const searchParams = useSearchParams();
   const [cfg, setCfg] = useState<ProposalConfig>(DEF_CFG);
   const [showCfg, setShowCfg] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
@@ -741,6 +743,20 @@ export default function ProposalEditor() {
   const [expertVals, setExpertVals] = useState<Record<string, string>>({});
   const [showP4, setShowP4] = useState(true);
   const pgRef = useRef<HTMLDivElement>(null);
+
+  // ── 견적서→제안서 URL params 자동 채움 ──
+  useEffect(() => {
+    const address = searchParams.get('address');
+    const manager = searchParams.get('manager');
+    if (address) setV(p => ({ ...p, 주소: address }));
+    if (manager) {
+      const mgrName = manager.includes('팀장') ? manager : manager + ' 팀장';
+      setV(p => ({ ...p, 담당자: mgrName }));
+      const m = DEF_MGR.find(x => x.name === mgrName);
+      if (m) setV(p => ({ ...p, 연락처: m.phone }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── 견적서→제안서 localStorage 자동 채움 ──
   useEffect(() => {
