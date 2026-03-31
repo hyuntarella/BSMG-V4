@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 08-manual-edit/21-PLAN.md
-last_updated: "2026-03-31T10:28:03.469Z"
+status: executing
+stopped_at: Completed 09-crm/23-PLAN.md
+last_updated: "2026-03-31T10:35:30.175Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 6
   total_plans: 53
-  completed_plans: 31
+  completed_plans: 32
   percent: 80
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** 음성 한마디로 견적서가 완성된다. 터치 0회가 목표.
-**Current focus:** Phase 08 — manual-edit
+**Current focus:** Phase 09 — crm
 
 ## Current Position
 
-Phase: 09
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 09 (crm) — EXECUTING
+Plan: 2 of 6
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [████████░░] 80%
@@ -78,6 +78,7 @@ Progress: [████████░░] 80%
 | Phase 08-manual-edit P20 | 4 | 2 tasks | 3 files |
 | Phase 08-manual-edit P22 | 10 | 1 tasks | 1 files |
 | Phase 08-manual-edit P21 | 10 | 2 tasks | 3 files |
+| Phase 09-crm P23 | 350 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Recent decisions affecting current work:
 - [Phase 08-manual-edit]: updateSheetPpp is new function; updateSheet left untouched. window.confirm chosen for ppp rebuild gate (consistent with existing removeItem pattern). onPppChange prop is optional for backward compat.
 - [Phase 08-manual-edit]: AddItemModal 장비 탭: EQUIPMENT_PRESETS as const tuple + EquipKey Record state for type-safe per-equipment day/price editing
 - [Phase 08-manual-edit]: removeSheet saves snapshot before sheet removal; moveItem uses splice with sort_order reassignment
+- [Phase 09-crm]: Notion REST API 직접 fetch (no SDK): 패키지 설치 없이 환경변수 토큰으로 Bearer auth
 
 ### Pending Todos
 
@@ -137,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T10:19:28.001Z
-Stopped at: Completed 08-manual-edit/21-PLAN.md
+Last session: 2026-03-31T10:35:30.160Z
+Stopped at: Completed 09-crm/23-PLAN.md
 Resume file: None

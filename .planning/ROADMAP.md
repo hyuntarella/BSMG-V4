@@ -45,7 +45,7 @@ Phase 1~4 완료 (음성 파이프라인 + 편집 루프 + 저장 + 목록). Pha
 **Plans:** 6 plans in 4 waves
 
 Plans:
-- [ ] 09-23-PLAN.md — Notion API 클라이언트 + CRM CRUD + 댓글 API routes
+- [x] 09-23-PLAN.md — Notion API 클라이언트 + CRM CRUD + 댓글 API routes
 - [ ] 09-24-PLAN.md — CRM 칸반보드 UI (5탭 + 파이프라인 컬럼 + 카드)
 - [ ] 09-25-PLAN.md — CRM 상세 모달 (인라인 편집 + 댓글 + 타임라인 + 액션)
 - [ ] 09-26-PLAN.md — 레코드 생성 모달 + 드래그&드롭 파이프라인 이동 + Undo
