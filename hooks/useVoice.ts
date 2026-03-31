@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import type { VoiceCommand } from '@/lib/voice/commands'
+import { canStartRecording } from '@/lib/voice/autoResumeLogic'
 
 export type VoiceStatus = 'idle' | 'recording' | 'processing' | 'speaking'
 export type VoiceMode = 'extract' | 'supplement' | 'modify' | 'command'
@@ -29,7 +30,7 @@ interface UseVoiceOptions {
 }
 
 const MAX_CLARIFICATION_COUNT = 2
-const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평'
+const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평. 150헤베, 50평, 3만5천, 35000원, 면적 200, 벽체 30미터, 평단가 4만원, 재료비 500원, 마진 50퍼센트'
 
 export function useVoice(options: UseVoiceOptions) {
   const {
@@ -45,13 +46,20 @@ export function useVoice(options: UseVoiceOptions) {
     onError,
   } = options
 
-  // skipLlm ref — always-fresh value read inside processAudio callback
+  // 콜백 refs — processAudio 클로저에서 항상 최신 콜백 참조
   const skipLlmRef = useRef(skipLlm ?? false)
   skipLlmRef.current = skipLlm ?? false
+  const callbacksRef = useRef({ onCommands, onParsed, onTtsText, onSttText, onClarification, onError })
+  callbacksRef.current = { onCommands, onParsed, onTtsText, onSttText, onClarification, onError }
 
-  const [status, setStatus] = useState<VoiceStatus>('idle')
+  const [status, _setStatus] = useState<VoiceStatus>('idle')
+  const statusRef = useRef<VoiceStatus>('idle')
+  const setStatus = useCallback((s: VoiceStatus) => { statusRef.current = s; _setStatus(s) }, [])
   const [seconds, setSeconds] = useState(0)
   const [lastText, setLastText] = useState('')
+
+  // processAudio ref — startRecording 클로저에서 항상 최신 processAudio 참조
+  const processAudioRef = useRef<() => Promise<void>>(async () => {})
 
   // 내부 상태 refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -63,6 +71,8 @@ export function useVoice(options: UseVoiceOptions) {
 
   // ── 녹음 시작 ──
   const startRecording = useCallback(async () => {
+    // TTS 재생 중이거나 이미 녹음 중이면 무시
+    if (!canStartRecording(statusRef.current)) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream, {
@@ -79,7 +89,7 @@ export function useVoice(options: UseVoiceOptions) {
 
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
-        processAudio()
+        processAudioRef.current()
       }
 
       recorder.start()
@@ -91,10 +101,10 @@ export function useVoice(options: UseVoiceOptions) {
         setSeconds(s => s + 1)
       }, 1000)
     } catch (err) {
-      onError?.('마이크 접근 실패')
+      callbacksRef.current.onError?.('마이크 접근 실패')
       console.error(err)
     }
-  }, [onError])
+  }, [])
 
   // ── 녹음 중지 ──
   const stopRecording = useCallback(() => {
@@ -151,7 +161,7 @@ export function useVoice(options: UseVoiceOptions) {
       setLastText(text)
 
       // onSttText 콜백 — true 반환 시 LLM 건너뜀
-      if (onSttText?.(text)) {
+      if (callbacksRef.current.onSttText?.(text)) {
         setStatus('idle')
         return
       }
@@ -178,14 +188,16 @@ export function useVoice(options: UseVoiceOptions) {
       if (!llmRes.ok) throw new Error('LLM 실패')
       const llmData = await llmRes.json()
 
+      console.log('[LLM]', mode, llmData)
+
       // 4. 모드별 처리
       if (mode === 'extract' || mode === 'supplement') {
-        onParsed?.(llmData)
+        callbacksRef.current.onParsed?.(llmData)
         // 빠진 필드 안내 TTS
         const missing = getMissingFields(llmData)
         if (missing) {
           await playTts(missing)
-          onTtsText?.(missing)
+          callbacksRef.current.onTtsText?.(missing)
         }
       } else if (mode === 'modify') {
         handleModifyResponse(llmData)
@@ -194,11 +206,14 @@ export function useVoice(options: UseVoiceOptions) {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '처리 중 오류'
-      onError?.(msg)
+      callbacksRef.current.onError?.(msg)
       setStatus('idle')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, estimateContext, sttPrompt])
+
+  // processAudioRef 동기화
+  useEffect(() => { processAudioRef.current = processAudio }, [processAudio])
 
   // ── modify 응답 처리 (확신도 분기) ──
   const handleModifyResponse = useCallback(
@@ -217,7 +232,7 @@ export function useVoice(options: UseVoiceOptions) {
           clarificationCountRef.current = 0
           return
         }
-        onClarification?.(clarification_needed)
+        callbacksRef.current.onClarification?.(clarification_needed)
         await playTts(clarification_needed)
         return
       }
@@ -231,15 +246,15 @@ export function useVoice(options: UseVoiceOptions) {
           ...commands,
         ].slice(-3)
 
-        onCommands?.(commands)
+        callbacksRef.current.onCommands?.(commands)
       }
 
       if (tts_response) {
-        onTtsText?.(tts_response)
+        callbacksRef.current.onTtsText?.(tts_response)
         await playTts(tts_response)
       }
     },
-    [onCommands, onClarification, onTtsText],
+    [],
   )
 
   // ── command 응답 처리 ──
@@ -250,19 +265,24 @@ export function useVoice(options: UseVoiceOptions) {
       tts_response?: string
     }) => {
       if (data.tts_response) {
-        onTtsText?.(data.tts_response)
+        callbacksRef.current.onTtsText?.(data.tts_response)
         await playTts(data.tts_response)
       }
       if (data.action && data.action !== 'none') {
-        onCommands?.([{ action: data.action, ...data.params, confidence: 1 } as VoiceCommand])
+        callbacksRef.current.onCommands?.([{ action: data.action, ...data.params, confidence: 1 } as VoiceCommand])
       }
     },
-    [onCommands, onTtsText],
+    [],
   )
 
   // ── TTS 재생 ──
   const playTts = useCallback(async (text: string) => {
     try {
+      // 이전 오디오 중지
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
       setStatus('speaking')
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -280,6 +300,12 @@ export function useVoice(options: UseVoiceOptions) {
       audioRef.current = audio
 
       audio.onended = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        setStatus('idle')
+      }
+
+      audio.onerror = () => {
         URL.revokeObjectURL(url)
         audioRef.current = null
         setStatus('idle')
@@ -365,8 +391,6 @@ function getMissingFields(parsed: Record<string, unknown>): string | null {
   const labels: Record<string, string> = {
     method: '공법',
     area: '면적',
-    leak: '누수 유무',
-    rooftop: '옥탑 포함 여부',
   }
 
   const missing = Object.entries(labels)

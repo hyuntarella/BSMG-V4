@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { VoiceStatus } from '@/hooks/useVoice'
+import { shouldAutoResume } from '@/lib/voice/autoResumeLogic'
 
 // ── 상수 ──
 const AUTO_RESUME_DELAY = 2000  // D-03: TTS 완료 후 2초 뒤 자동 재개
@@ -66,6 +67,7 @@ export function useVoiceEditMode({
 
   // ── 수정 모드 종료 (VAD에서도 호출 가능하도록 useCallback) ──
   const exitEditMode = useCallback(() => {
+    console.log('[EditMode] exitEditMode 호출 → isEditMode=false 설정')
     setIsEditMode(false)
     if (resumeTimerRef.current) {
       clearTimeout(resumeTimerRef.current)
@@ -77,11 +79,8 @@ export function useVoiceEditMode({
 
   // ── 자동 재개 useEffect ──
   useEffect(() => {
-    const wasActiveStatus =
-      prevStatusRef.current === 'speaking' || prevStatusRef.current === 'processing'
-    const isNowIdle = voiceStatus === 'idle'
-
-    if (wasActiveStatus && isNowIdle && isEditModeRef.current) {
+    if (shouldAutoResume(prevStatusRef.current, voiceStatus, isEditModeRef.current)) {
+      console.log('[AutoResume]', { prev: prevStatusRef.current, current: voiceStatus, isEditMode: isEditModeRef.current })
       // TTS/처리 완료 → 2초 후 자동 녹음 재개
       resumeTimerRef.current = setTimeout(() => {
         if (isEditModeRef.current) {
@@ -170,11 +169,11 @@ export function useVoiceEditMode({
     }
   }, [isEditMode, voiceStatus, enableVad, exitEditMode])
 
-  // ── 수정 모드 진입 ──
-  const enterEditMode = async () => {
+  // ── 수정 모드 진입 (TTS 없이 상태만 전환 → auto-resume이 녹음 시작) ──
+  const enterEditMode = useCallback(() => {
+    console.log('[EditMode] enterEditMode → isEditMode=true')
     setIsEditMode(true)
-    await callbacksRef.current.onPlayTts('수정 모드입니다. 말씀하세요.')
-  }
+  }, [])
 
   return {
     isEditMode,
