@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWorkbook, workbookToBuffer } from '@/lib/excel/generateWorkbook'
-import { generateEstimateHtml } from '@/lib/pdf/generatePdf'
+import { generateEstimateHtml, generatePdfBuffer } from '@/lib/pdf/generatePdf'
 import { uploadToDrive, getEstimateFolderId } from '@/lib/gdrive/client'
 import { exportToJson } from '@/lib/estimate/jsonIO'
 import type { Estimate, EstimateSheet, EstimateItem } from '@/lib/estimate/types'
+
+export const maxDuration = 60
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -142,9 +144,19 @@ export async function POST(
         upsert: true,
       })
 
-    const { data: htmlUrl } = supabase.storage
+    // PDF 생성 & Supabase Storage 업로드
+    const pdfBuffer = await generatePdfBuffer(html)
+    const pdfPath = `${folderPath}/견적서_${mgmtNo}.pdf`
+    await supabase.storage
       .from('estimates')
-      .getPublicUrl(htmlPath)
+      .upload(pdfPath, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: true,
+      })
+
+    const { data: pdfUrl } = supabase.storage
+      .from('estimates')
+      .getPublicUrl(pdfPath)
 
     // JSON 생성 & 업로드
     const jsonStr = exportToJson(estimate)
@@ -157,21 +169,31 @@ export async function POST(
         upsert: true,
       })
 
-    // Google Drive 업로드 (환경변수 있을 때만, 10초 타임아웃)
+    // Google Drive 업로드 (환경변수 있을 때만, 20초 타임아웃)
     let driveUrl = ''
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
       try {
         const driveFolderId = getEstimateFolderId()
-        const drivePromise = uploadToDrive(
+        // 엑셀 + PDF 동시 업로드
+        const excelDrivePromise = uploadToDrive(
           driveFolderId,
           `견적서_${mgmtNo}.xlsx`,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           excelBuffer,
         )
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Drive 업로드 타임아웃')), 10000)
+        const pdfDrivePromise = uploadToDrive(
+          driveFolderId,
+          `견적서_${mgmtNo}.pdf`,
+          'application/pdf',
+          pdfBuffer,
         )
-        const driveResult = await Promise.race([drivePromise, timeoutPromise])
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Drive 업로드 타임아웃')), 20000)
+        )
+        const [driveResult] = await Promise.race([
+          Promise.all([excelDrivePromise, pdfDrivePromise]),
+          timeoutPromise,
+        ])
         driveUrl = driveResult.url
       } catch (driveErr) {
         console.error('Google Drive 업로드 실패 (무시):', driveErr)
@@ -184,7 +206,7 @@ export async function POST(
       .update({
         status: 'saved',
         excel_url: excelUrl.publicUrl,
-        pdf_url: htmlUrl.publicUrl,
+        pdf_url: pdfUrl.publicUrl,
         folder_path: folderPath,
         updated_at: new Date().toISOString(),
       })
@@ -194,7 +216,7 @@ export async function POST(
       success: true,
       mgmt_no: mgmtNo,
       excel_url: excelUrl.publicUrl,
-      pdf_url: htmlUrl.publicUrl,
+      pdf_url: pdfUrl.publicUrl,
       drive_url: driveUrl || undefined,
     })
   } catch (err) {
