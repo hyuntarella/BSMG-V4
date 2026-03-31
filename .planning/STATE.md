@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-crm/23-PLAN.md
-last_updated: "2026-03-31T10:35:30.175Z"
+stopped_at: Completed 09-crm/24-PLAN.md
+last_updated: "2026-03-31T10:40:52.028Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 6
   total_plans: 53
-  completed_plans: 32
+  completed_plans: 33
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 09 (crm) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -79,6 +79,7 @@ Progress: [████████░░] 80%
 | Phase 08-manual-edit P22 | 10 | 1 tasks | 1 files |
 | Phase 08-manual-edit P21 | 10 | 2 tasks | 3 files |
 | Phase 09-crm P23 | 350 | 2 tasks | 6 files |
+| Phase 09-crm P24 | 206 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,8 @@ Recent decisions affecting current work:
 - [Phase 08-manual-edit]: AddItemModal 장비 탭: EQUIPMENT_PRESETS as const tuple + EquipKey Record state for type-safe per-equipment day/price editing
 - [Phase 08-manual-edit]: removeSheet saves snapshot before sheet removal; moveItem uses splice with sort_order reassignment
 - [Phase 09-crm]: Notion REST API 직접 fetch (no SDK): 패키지 설치 없이 환경변수 토큰으로 Bearer auth
+- [Phase 09-crm]: getAllRecords() 직접 import (server component에서 API route 우회) — 서버사이드 호출 효율적
+- [Phase 09-crm]: CrmPageClient 별도 파일 — CRM page.tsx 순수 서버 컴포넌트 유지
 
 ### Pending Todos
 
@@ -139,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T10:35:30.160Z
-Stopped at: Completed 09-crm/23-PLAN.md
+Last session: 2026-03-31T10:40:52.013Z
+Stopped at: Completed 09-crm/24-PLAN.md
 Resume file: None
