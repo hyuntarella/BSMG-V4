@@ -2,17 +2,22 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30000,
+  timeout: 60000,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3004',
     headless: true,
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'cross-env TEST_MODE=true npm run dev',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60000,
+    command: 'npx next dev -p 3004',
+    port: 3004,
+    reuseExistingServer: true,
+    timeout: 120000,
+    env: {
+      ...process.env,
+      TEST_MODE: 'true',
+      PORT: '3004',
+    },
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },

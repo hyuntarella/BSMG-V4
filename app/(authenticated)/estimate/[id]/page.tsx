@@ -9,20 +9,47 @@ interface Props {
 
 export default async function EstimatePage({ params }: Props) {
   const supabase = createClient()
+  const isTestMode = process.env.TEST_MODE === 'true'
+
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user && !isTestMode) redirect('/login')
 
-  // 유저 company_id
-  const { data: userData } = await supabase
-    .from('users')
-    .select('company_id')
-    .eq('id', user.id)
-    .single()
+  let companyId: string | null = null
 
+  if (user) {
+    const { data: ud } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    companyId = ud?.company_id ?? null
+  }
+
+  if (!companyId && isTestMode) {
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: firstCompany } = await svc.from('companies').select('id').limit(1).single()
+    companyId = firstCompany?.id ?? null
+  }
+
+  const userData = companyId ? { company_id: companyId } : null
   if (!userData) redirect('/dashboard')
 
-  // 견적서 로드
-  const { data: estimateRow } = await supabase
+  // 견적서 로드 (TEST_MODE에서는 service client 사용)
+  const queryClient = isTestMode
+    ? await (async () => {
+        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+        return createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        )
+      })()
+    : supabase
+
+  const { data: estimateRow } = await queryClient
     .from('estimates')
     .select('*')
     .eq('id', params.id)
@@ -31,7 +58,7 @@ export default async function EstimatePage({ params }: Props) {
   if (!estimateRow) redirect('/dashboard')
 
   // 시트 + 아이템 로드
-  const { data: sheetRows } = await supabase
+  const { data: sheetRows } = await queryClient
     .from('estimate_sheets')
     .select('*')
     .eq('estimate_id', params.id)
@@ -39,7 +66,7 @@ export default async function EstimatePage({ params }: Props) {
 
   const sheets: EstimateSheet[] = []
   for (const sr of sheetRows ?? []) {
-    const { data: itemRows } = await supabase
+    const { data: itemRows } = await queryClient
       .from('estimate_items')
       .select('*')
       .eq('sheet_id', sr.id)

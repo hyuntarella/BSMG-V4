@@ -6,11 +6,12 @@ import { test, expect } from '@playwright/test'
 test.describe('설정 페이지', () => {
   test('설정 페이지 로드', async ({ page }) => {
     await page.goto('/settings')
-    await expect(page.locator('h1')).toContainText('설정')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('h1').filter({ hasText: '설정' })).toBeVisible()
 
-    // 기본 탭 "단가표"가 활성화
-    const activeTab = page.locator('button.bg-brand')
-    await expect(activeTab).toContainText('단가표')
+    // 기본 탭 "단가표"가 활성화 — bg-brand text-white 클래스를 가진 버튼
+    const activeTab = page.locator('button.bg-brand.text-white')
+    await expect(activeTab.first()).toContainText('단가표')
   })
 
   test('탭 전환 — 7개 탭 순회', async ({ page }) => {
@@ -19,8 +20,10 @@ test.describe('설정 페이지', () => {
     const tabs = ['단가표', '기본공종', '프리셋', '원가', '계산규칙', '장비단가', '보증']
     for (const tab of tabs) {
       await page.getByRole('button', { name: tab }).click()
+      await page.waitForTimeout(300)
       // 탭 클릭 후 해당 탭이 활성 상태
-      await expect(page.locator('button.bg-brand')).toContainText(tab)
+      const activeBtn = page.locator('button.bg-brand.text-white').first()
+      await expect(activeBtn).toContainText(tab)
     }
   })
 
@@ -39,11 +42,11 @@ test.describe('설정 페이지', () => {
     await page.getByRole('button', { name: '계산규칙' }).click()
 
     // 공과잡비 input 존재
-    await expect(page.getByText('공과잡비')).toBeVisible()
+    await expect(page.getByText('공과잡비').first()).toBeVisible()
     // 기업이윤 input 존재
-    await expect(page.getByText('기업이윤')).toBeVisible()
+    await expect(page.getByText('기업이윤').first()).toBeVisible()
     // 절사 단위 select 존재
-    await expect(page.getByText('절사 단위')).toBeVisible()
+    await expect(page.getByText('절사 단위').first()).toBeVisible()
     // 저장 버튼 존재
     await expect(page.getByRole('button', { name: '저장' })).toBeVisible()
   })
@@ -52,9 +55,9 @@ test.describe('설정 페이지', () => {
     await page.goto('/settings')
     await page.getByRole('button', { name: '장비단가' }).click()
 
-    await expect(page.getByText('사다리차')).toBeVisible()
-    await expect(page.getByText('스카이차')).toBeVisible()
-    await expect(page.getByText('폐기물처리')).toBeVisible()
+    await expect(page.getByText('사다리차', { exact: true })).toBeVisible()
+    await expect(page.getByText('스카이차', { exact: true })).toBeVisible()
+    await expect(page.getByText('폐기물처리', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: '저장' })).toBeVisible()
   })
 
