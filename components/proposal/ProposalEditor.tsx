@@ -905,7 +905,23 @@ export default function ProposalEditor() {
       setRA(false);
 
       const fn = '방수명가_제안서_' + addr + '_' + (v['제출일'] || '').replace(/[\.\-]/g, '');
-      // TODO: Plan 12에서 API route로 교체 (pdf.output('datauristring').split(',')[1] → /api/proposals/save)
+      const pdfBase64 = pdf.output('datauristring');
+
+      // API route로 Storage + Drive에 저장
+      try {
+        const res = await fetch('/api/proposal/pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pdfBase64, fileName: fn + '.pdf' }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error('PDF 저장 실패:', errData);
+        }
+      } catch (saveErr) {
+        console.error('PDF 저장 오류 (무시):', saveErr);
+      }
+
       pdf.save(fn + '.pdf');
       setGenLoading(false);
       localStorage.removeItem('proposal_autosave');
