@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 12-settings/38-PLAN.md
-last_updated: "2026-03-31T12:21:13.487Z"
+status: verifying
+stopped_at: Completed 12-settings/39-PLAN.md
+last_updated: "2026-03-31T12:27:46.774Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 53
-  completed_plans: 47
+  completed_plans: 48
   percent: 80
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 12 (settings) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [████████░░] 80%
@@ -93,6 +93,7 @@ Progress: [████████░░] 80%
 | Phase 11-calendar P36 | 480 | 2 tasks | 8 files |
 | Phase 12-settings P37 | 4 | 2 tasks | 4 files |
 | Phase 12-settings P38 | 8 | 2 tasks | 6 files |
+| Phase 12-settings P39 | 5 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -163,6 +164,8 @@ Recent decisions affecting current work:
 - [Phase 12-settings]: Service role client at module level in price-matrix API route (not per-request) — safe for server-side only
 - [Phase 12-settings]: BaseItemsEditor stores edits in cost_config JSONB (base_items key) — no new table needed
 - [Phase 12-settings]: cost-config PUT supports section/value partial update so BaseItemsEditor and CostEditor can save independently
+- [Phase 12-settings]: CalcRulesEditor preview uses example 1,000,000원 base — shows real-time effect of rate changes
+- [Phase 12-settings]: SettingsSummary uses Promise.all for concurrent cost-config + presets fetch
 
 ### Pending Todos
 
@@ -176,6 +179,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T12:21:13.473Z
-Stopped at: Completed 12-settings/38-PLAN.md
+Last session: 2026-03-31T12:27:46.759Z
+Stopped at: Completed 12-settings/39-PLAN.md
 Resume file: None
