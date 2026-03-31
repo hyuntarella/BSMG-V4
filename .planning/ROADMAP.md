@@ -56,7 +56,7 @@ Plans:
 **Plans:** 5 plans in 3 waves
 
 Plans:
-- [ ] 29-PLAN.md — CS 현황 섹션 (Notion CRM 클라이언트 + 카드 리스트 + 파이프라인 변경)
+- [x] 29-PLAN.md — CS 현황 섹션 (Notion CRM 클라이언트 + 카드 리스트 + 파이프라인 변경)
 - [ ] 30-PLAN.md — 미발송 카드 (경과일수 + 더보기 + UI 숨김)
 - [ ] 31-PLAN.md — 견적서 열람 고객 카드 (상대시간 + 추적 픽셀)
 - [ ] 32-PLAN.md — 연락해야 할 곳 카드 (성공확률 미배정 건)
