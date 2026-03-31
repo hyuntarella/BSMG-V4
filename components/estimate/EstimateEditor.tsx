@@ -39,6 +39,7 @@ export default function EstimateEditor({
     updateMeta,
     updateSheet,
     updateItem,
+    updateItemText,
     addItem,
     removeItem,
     applyVoiceCommands,
@@ -220,6 +221,7 @@ export default function EstimateEditor({
             m2={estimate.m2}
             margin={getSheetMargin(activeSheetIndex)}
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
+            onItemTextChange={(i, f, v) => updateItemText(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
             onAddItem={(item) => addItem(activeSheetIndex, item)}
             onRemoveItem={(idx) => removeItem(activeSheetIndex, idx)}

@@ -16,6 +16,7 @@ interface WorkSheetProps {
   margin: number
   modifiedCells?: ModifiedCells
   onItemChange: (itemIndex: number, field: string, value: number) => void
+  onItemTextChange?: (itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => void
   onSheetChange: (field: string, value: number) => void
   onAddItem?: (item: Partial<EstimateItem>) => void
   onRemoveItem?: (itemIndex: number) => void
@@ -27,6 +28,7 @@ export default function WorkSheet({
   margin,
   modifiedCells,
   onItemChange,
+  onItemTextChange,
   onSheetChange,
   onAddItem,
   onRemoveItem,
@@ -125,9 +127,36 @@ export default function WorkSheet({
                 } ${hasChange ? 'bg-yellow-50' : ''}`}
               >
                 <td className="px-2 py-1 text-center text-gray-400">{item.sort_order}</td>
-                <td className="px-2 py-1 font-medium">{item.name}</td>
-                <td className="px-2 py-1 text-gray-500">{item.spec}</td>
-                <td className="px-2 py-1 text-center text-gray-500">{item.unit}</td>
+                <td className="px-2 py-1 font-medium">
+                  <InlineCell
+                    value={item.name}
+                    type="text"
+                    formatted={false}
+                    onSave={(v) => onItemTextChange?.(idx, 'name', v as string)}
+                    readOnly={!onItemTextChange}
+                    className="text-left font-medium"
+                  />
+                </td>
+                <td className="px-2 py-1 text-gray-500">
+                  <InlineCell
+                    value={item.spec}
+                    type="text"
+                    formatted={false}
+                    onSave={(v) => onItemTextChange?.(idx, 'spec', v as string)}
+                    readOnly={!onItemTextChange}
+                    className="text-left text-gray-500"
+                  />
+                </td>
+                <td className="px-2 py-1 text-center text-gray-500">
+                  <InlineCell
+                    value={item.unit}
+                    type="text"
+                    formatted={false}
+                    onSave={(v) => onItemTextChange?.(idx, 'unit', v as string)}
+                    readOnly={!onItemTextChange}
+                    className="text-center text-gray-500"
+                  />
+                </td>
                 <td className="px-1 py-1 text-right">
                   <InlineCell value={item.qty} onSave={v => onItemChange(idx, 'qty', v as number)} />
                 </td>
