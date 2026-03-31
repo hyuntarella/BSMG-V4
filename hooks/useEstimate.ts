@@ -118,6 +118,23 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate.sheets, saveSnapshot, markCell],
   )
 
+  // ── 아이템 텍스트 필드 업데이트 (name/spec/unit) ──
+  const updateItemText = useCallback(
+    (sheetIndex: number, itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => {
+      saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} ${field} 변경`, 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        const items = [...sheets[sheetIndex].items]
+        items[itemIndex] = { ...items[itemIndex], [field]: value }
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+      markCell(`item:${sheetIndex}:${itemIndex}:${field}`)
+    },
+    [estimate.sheets, saveSnapshot, markCell],
+  )
+
   // ── 음성 명령 적용 ──
   const applyVoiceCommands = useCallback(
     (commands: VoiceCommand[], sheetIndex: number = 0) => {
@@ -324,6 +341,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateMeta,
     updateSheet,
     updateItem,
+    updateItemText,
     addItem,
     removeItem,
     applyVoiceCommands,
