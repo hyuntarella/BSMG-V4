@@ -93,6 +93,28 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [priceMatrix, saveSnapshot, markCell],
   )
 
+  // ── 평단가 변경 (재생성 여부 분기) ──
+  const updateSheetPpp = useCallback(
+    (sheetIndex: number, ppp: number, rebuild: boolean) => {
+      saveSnapshot(`시트${sheetIndex} 평단가 변경`, 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        const sheet = { ...sheets[sheetIndex], price_per_pyeong: ppp }
+        if (rebuild) {
+          sheets[sheetIndex] = rebuildSheet(sheet, prev.m2, prev.wall_m2, priceMatrix)
+        } else {
+          // 평단가만 변경, 기존 items 유지, grand_total은 items 기준으로 재계산
+          const calcResult = calc(sheet.items)
+          sheets[sheetIndex] = { ...sheet, grand_total: calcResult.grandTotal }
+        }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+      markCell(`sheet:${sheetIndex}:price_per_pyeong`)
+    },
+    [priceMatrix, saveSnapshot, markCell],
+  )
+
   // ── 아이템 필드 업데이트 ──
   const updateItem = useCallback(
     (sheetIndex: number, itemIndex: number, field: string, value: number) => {
@@ -340,6 +362,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     markClean,
     updateMeta,
     updateSheet,
+    updateSheetPpp,
     updateItem,
     updateItemText,
     addItem,
