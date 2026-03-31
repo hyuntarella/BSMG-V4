@@ -66,7 +66,7 @@ Plans:
 **Plans:** 3 plans in 3 waves
 
 Plans:
-- [ ] 34-PLAN.md — Notion 캘린더 CRUD API + 월간 그리드 뷰
+- [x] 34-PLAN.md — Notion 캘린더 CRUD API + 월간 그리드 뷰
 - [ ] 35-PLAN.md — 주간/일간 뷰 + TimeGrid 공통 컴포넌트
 - [ ] 36-PLAN.md — 이벤트 CRUD 모달 + 팀원 관리 + E2E 테스트
 
