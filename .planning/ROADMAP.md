@@ -74,7 +74,7 @@ Plans:
 **Plans:** 3 plans in 3 waves
 
 Plans:
-- [ ] 37-PLAN.md — 설정 탭 쉘 + P매트릭스 뷰어/편집 + API
+- [x] 37-PLAN.md — 설정 탭 쉘 + P매트릭스 뷰어/편집 + API
 - [ ] 38-PLAN.md — 기본공종/프리셋/원가 편집 UI + API
 - [ ] 39-PLAN.md — 계산규칙 + 장비단가 + 보증 + 요약 + E2E 테스트
 
