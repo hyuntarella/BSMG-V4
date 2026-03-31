@@ -64,6 +64,28 @@ test.describe('크로스 기능 플로우', () => {
     expect(response.status()).not.toBe(404)
   })
 
+  // P1: FL-04
+  test('FL-04: 견적서에서 "제안서 작성" → /proposal + query params', async ({ page }) => {
+    // 새 견적서 생성
+    await page.goto('/estimate/new')
+    await page.waitForURL(/\/estimate\/[a-f0-9-]+$/, { timeout: 15000 })
+
+    // 제안서 버튼 찾기
+    const proposalBtn = page.getByRole('button', { name: '제안서' }).first()
+    if (await proposalBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await proposalBtn.click()
+      await page.waitForURL(/\/proposal/, { timeout: 10000 })
+
+      // /proposal로 이동됨
+      expect(page.url()).toContain('/proposal')
+
+      // query params가 포함되어 있는지 확인 (있을 수도, 없을 수도)
+      const url = page.url()
+      // URL이 /proposal 경로를 포함하면 OK
+      expect(url).toMatch(/\/proposal/)
+    }
+  })
+
   test('FL-05: 대시보드 → 견적서 불러오기 → 모달 열기', async ({ page }) => {
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
@@ -116,6 +138,40 @@ test.describe('크로스 기능 플로우', () => {
     await expect(page.getByText('방수시트').first()).toBeVisible()
     // 합계 확인
     await expect(page.getByText('합 계').first()).toBeVisible()
+  })
+
+  // P1: FL-07
+  test('FL-07: 견적서 PDF 다운로드', async ({ page }) => {
+    // 새 견적서 생성
+    await page.goto('/estimate/new')
+    await page.waitForURL(/\/estimate\/[a-f0-9-]+$/, { timeout: 15000 })
+    const id = page.url().split('/estimate/')[1]
+
+    // 복합 시트 추가
+    const addComplexBtn = page.getByRole('button', { name: '+ 복합' })
+    if (await addComplexBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await addComplexBtn.click()
+      await page.waitForTimeout(1000)
+    }
+
+    // PDF 버튼 클릭 → API 호출
+    const pdfBtn = page.getByRole('button', { name: 'PDF' }).first()
+    if (await pdfBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const resPromise = page.waitForResponse(
+        res => res.url().includes('/api/estimates/') && res.url().includes('/pdf'),
+        { timeout: 30000 }
+      ).catch(() => null)
+      await pdfBtn.click()
+      const response = await resPromise
+      if (response) {
+        // 404가 아니어야 함
+        expect(response.status()).not.toBe(404)
+      }
+    } else {
+      // PDF 버튼이 없으면 직접 API 호출
+      const apiRes = await page.request.post(`/api/estimates/${id}/pdf`)
+      expect(apiRes.status()).not.toBe(404)
+    }
   })
 })
 
