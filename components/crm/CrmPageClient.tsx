@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useCrm } from '@/hooks/useCrm';
 import type { CrmRecord } from '@/lib/notion/types';
 import KanbanBoard from './KanbanBoard';
+import DetailModal from './DetailModal';
 
 // ── CrmPageClient ──
 
@@ -19,12 +21,21 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
     setActiveStage,
     setSearchQuery,
     setManagerFilter,
+    updateRecordLocal,
     loading,
     error,
   } = useCrm({ initialRecords });
 
-  const handleCardClick = (_record: CrmRecord) => {
-    // 추후: 카드 상세 모달 또는 페이지 이동
+  const [selectedRecord, setSelectedRecord] = useState<CrmRecord | null>(null);
+
+  const handleCardClick = (record: CrmRecord) => {
+    setSelectedRecord(record);
+  };
+
+  const handleUpdate = (id: string, partial: Partial<CrmRecord>) => {
+    updateRecordLocal(id, partial);
+    // Keep modal in sync with updated data
+    setSelectedRecord((prev) => (prev && prev.id === id ? { ...prev, ...partial } : prev));
   };
 
   return (
@@ -57,6 +68,14 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
         activeStage={activeStage}
         onStageChange={setActiveStage}
         onCardClick={handleCardClick}
+      />
+
+      {/* 상세 모달 */}
+      <DetailModal
+        record={selectedRecord}
+        isOpen={!!selectedRecord}
+        onClose={() => setSelectedRecord(null)}
+        onUpdate={handleUpdate}
       />
     </div>
   );
