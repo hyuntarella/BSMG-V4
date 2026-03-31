@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { EstimateItem } from '@/lib/estimate/types'
-import type { PresetRow } from '@/lib/estimate/types'
+import type { EstimateItem, PresetRow } from '@/lib/estimate/types'
 
 interface AddItemModalProps {
   open: boolean
@@ -33,40 +32,24 @@ export default function AddItemModal({ open, onClose, onAdd }: AddItemModalProps
   const [unit, setUnit] = useState('m²')
   const [qty, setQty] = useState(1)
 
-  // ESC 키로 닫기
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  // 모달 열릴 때 프리셋 로드
   useEffect(() => {
     if (!open) return
     fetch('/api/presets')
       .then((r) => r.json())
-      .then((data: PresetRow[]) => {
-        if (Array.isArray(data) && data.length > 0) setPresets(data)
-      })
-      .catch(() => {
-        // API 없으면 기본 프리셋 유지
-      })
+      .then((data: PresetRow[]) => { if (Array.isArray(data) && data.length > 0) setPresets(data) })
+      .catch(() => undefined)
   }, [open])
 
   const handlePresetAdd = useCallback(
-    (preset: PresetRow) => {
-      onAdd({
-        name: preset.name,
-        spec: preset.spec,
-        unit: preset.unit,
-        qty: 1,
-        mat: preset.mat,
-        labor: preset.labor,
-        exp: preset.exp,
-      })
+    (p: PresetRow) => {
+      onAdd({ name: p.name, spec: p.spec, unit: p.unit, qty: 1, mat: p.mat, labor: p.labor, exp: p.exp })
       onClose()
     },
     [onAdd, onClose],
@@ -75,12 +58,8 @@ export default function AddItemModal({ open, onClose, onAdd }: AddItemModalProps
   const handleCustomAdd = useCallback(() => {
     if (!name.trim()) return
     onAdd({ name: name.trim(), spec, unit, qty, mat: 0, labor: 0, exp: 0 })
+    setName(''); setSpec(''); setUnit('m²'); setQty(1)
     onClose()
-    // 폼 초기화
-    setName('')
-    setSpec('')
-    setUnit('m²')
-    setQty(1)
   }, [name, spec, unit, qty, onAdd, onClose])
 
   if (!open) return null
@@ -102,13 +81,10 @@ export default function AddItemModal({ open, onClose, onAdd }: AddItemModalProps
         className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="text-sm font-bold text-gray-800">공종 추가</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
         </div>
-
-        {/* 탭 */}
         <div className="flex border-b">
           <button
             onClick={() => setTab('preset')}
@@ -132,7 +108,6 @@ export default function AddItemModal({ open, onClose, onAdd }: AddItemModalProps
           </button>
         </div>
 
-        {/* 콘텐츠 */}
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 110px)' }}>
           {tab === 'preset' && (
             <div className="py-1">
