@@ -1,16 +1,22 @@
-import Header from '@/components/layout/Header'
+import Header from '@/components/layout/Header';
+import CrmPageClient from '@/components/crm/CrmPageClient';
+import { getAllRecords } from '@/lib/notion/crm';
+import type { CrmRecord } from '@/lib/notion/types';
 
-export default function CrmPage() {
+export default async function CrmPage() {
+  let records: CrmRecord[] = [];
+
+  try {
+    records = await getAllRecords();
+  } catch {
+    // Notion 환경변수 미설정 또는 API 오류 시 빈 배열로 폴백
+    records = [];
+  }
+
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="mb-4 text-xl font-bold">CRM</h1>
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white py-16 text-center">
-          <p className="text-gray-500">Notion CRM 연동 준비 중</p>
-          <p className="mt-2 text-sm text-gray-400">칸반보드 + 고객 관리 기능이 추가될 예정입니다</p>
-        </div>
-      </div>
+      <CrmPageClient initialRecords={records} />
     </div>
-  )
+  );
 }
