@@ -18,28 +18,57 @@ const THIN_BORDER: Partial<ExcelJS.Borders> = {
 }
 
 // ── 템플릿 기반 상수 ──
-// Sheet2 item rows 7~17 (11행), summary rows 18~22
+// Sheet2 item rows 7~N, summary starts at row 18 (both complex and urethane)
 const TEMPLATE_ITEM_START_ROW = 7
-const TEMPLATE_ITEM_END_ROW = 17 // 11 items max in template
-const TEMPLATE_SUBTOTAL_ROW = 18
-const TEMPLATE_OVERHEAD_ROW = 19
-const TEMPLATE_PROFIT_ROW = 20
-const TEMPLATE_TOTAL_ROW = 21
-const TEMPLATE_GRANDTOTAL_ROW = 22
+const TEMPLATE_SUMMARY_START_ROW = 18 // 소계 행 위치 (복합/우레탄 공통)
+
+// 복합 템플릿: 11개 공종 (rows 7-17)
+const COMPLEX_TEMPLATE_ITEM_COUNT = 11
+// 우레탄 템플릿: 10개 공종 (rows 7-16), row 17은 빈 행
+const URETHANE_TEMPLATE_ITEM_COUNT = 10
+
+interface TemplateConfig {
+  templatePath: string
+  templateItemCount: number
+}
+
+function getTemplateConfig(sheetType: string): TemplateConfig {
+  if (sheetType === '우레탄') {
+    return {
+      templatePath: path.join(process.cwd(), 'public/templates/urethane-template.xlsx'),
+      templateItemCount: URETHANE_TEMPLATE_ITEM_COUNT,
+    }
+  }
+  return {
+    templatePath: path.join(process.cwd(), 'public/templates/complex-template.xlsx'),
+    templateItemCount: COMPLEX_TEMPLATE_ITEM_COUNT,
+  }
+}
 
 /**
  * 견적서 엑셀 워크북 생성
- * 템플릿 파일이 존재하면 generateFromTemplate()를 사용하고,
- * 없으면 기존 빈 워크북 방식으로 폴백한다.
+ *
+ * estimate.sheets[0] 의 공법에 맞는 템플릿을 로드한다.
+ * - 복합: complex-template.xlsx (Sheet2 아이템 11행)
+ * - 우레탄: urethane-template.xlsx (Sheet2 아이템 10행)
+ *
+ * 두 번째 시트가 있는 경우(복합+우레탄 동시) 두 번째 시트는
+ * 스크래치 방식으로 워크북에 추가한다.
+ *
+ * 템플릿 파일이 존재하지 않으면 전체 스크래치 방식으로 폴백한다.
  */
 export async function generateWorkbook(estimate: Estimate): Promise<ExcelJS.Workbook> {
-  const templatePath = path.join(process.cwd(), 'public/templates/complex-template.xlsx')
+  const firstSheet = estimate.sheets[0]
+  if (!firstSheet) {
+    return generateFromScratch(estimate)
+  }
+
+  const config = getTemplateConfig(firstSheet.type)
 
   try {
-    // 템플릿 로드 시도
     const wb = new ExcelJS.Workbook()
-    await wb.xlsx.readFile(templatePath)
-    return generateFromTemplate(wb, estimate)
+    await wb.xlsx.readFile(config.templatePath)
+    return generateFromTemplate(wb, estimate, config)
   } catch {
     // 템플릿 없으면 기존 방식 폴백
     return generateFromScratch(estimate)
@@ -57,24 +86,34 @@ export async function workbookToBuffer(wb: ExcelJS.Workbook): Promise<Buffer> {
 // ── 템플릿 기반 생성 ──
 
 /**
- * 복합 템플릿(complex-template.xlsx)을 기반으로 견적 데이터를 채운다.
+ * 템플릿 기반으로 견적 데이터를 채운다.
  *
  * Sheet1 (표지): 관리번호·견적일·공사명·고객명 업데이트
- * Sheet2 (상세): 아이템 데이터 + 합계 영역 채움
+ * Sheet2 (상세): 첫 번째 시트 데이터 + 합계 영역 채움
+ *
+ * 두 번째 시트(복합+우레탄 동시)는 기존 addWorkSheet 방식으로 추가한다.
  */
-function generateFromTemplate(wb: ExcelJS.Workbook, estimate: Estimate): ExcelJS.Workbook {
+function generateFromTemplate(
+  wb: ExcelJS.Workbook,
+  estimate: Estimate,
+  config: TemplateConfig,
+): ExcelJS.Workbook {
   // ── Sheet1 (표지) 업데이트 ──
   const coverWs = wb.getWorksheet(1)
   if (coverWs) {
     fillCoverFromTemplate(coverWs, estimate)
   }
 
-  // ── Sheet2 (상세) 업데이트 ──
+  // ── Sheet2 (상세) 업데이트 — 첫 번째 시트 ──
   const detailWs = wb.getWorksheet(2)
-  if (detailWs) {
-    const complexSheet = estimate.sheets.find(s => s.type === '복합')
-    if (complexSheet) {
-      fillDetailFromTemplate(detailWs, estimate, complexSheet)
+  if (detailWs && estimate.sheets[0]) {
+    fillDetailFromTemplate(detailWs, estimate, estimate.sheets[0], config.templateItemCount)
+  }
+
+  // ── 두 번째 시트가 있으면 스크래치 방식으로 추가 ──
+  if (estimate.sheets.length >= 2) {
+    for (let i = 1; i < estimate.sheets.length; i++) {
+      addWorkSheet(wb, estimate, estimate.sheets[i])
     }
   }
 
@@ -108,27 +147,30 @@ function fillCoverFromTemplate(ws: ExcelJS.Worksheet, estimate: Estimate): void 
 /**
  * Sheet2 (상세) 아이템 + 합계 채움.
  *
- * 템플릿 구조:
- *   Row 3 col C: 공사명 (merged C3:N3)
+ * 템플릿 구조 (복합/우레탄 공통):
+ *   Row 3 col C: 공사명
  *   Rows 5-6: 헤더 (건드리지 않음)
- *   Rows 7-17: 아이템 11행 (템플릿 고정)
- *   Row 18: 소계 — M열 formula SUM(M7:M17)
- *   Row 19: 공과잡비 3% — M열 formula M18*0.03
- *   Row 20: 기업이윤 6% — M열 formula M18*0.06
- *   Row 21: 계 — M열 formula SUM(M18:M20)
- *   Row 22: 합계 — M열 formula FLOOR(M21,100000)
+ *   Rows 7~(7+templateItemCount-1): 아이템 행
+ *   Row 18: 소계 — M열 formula SUM(M7:M1x)
+ *   Row 19: 공과잡비 3%
+ *   Row 20: 기업이윤 6%
+ *   Row 21: 계
+ *   Row 22: 합계 (10만원 절사)
  *
  * 채움 전략:
- *   - 아이템 수가 11개 이하이면 rows 7-17을 직접 채우고, 빈 행은 클리어한다.
- *   - 아이템 수가 11개 초과이면 row 17 이후에 행을 삽입하고 합계 행을 아래로 밀어낸다.
- *   - 숫자 0은 빈 문자열로 넣어 셀이 비어 보이게 한다.
- *   - 단가(F,H,J) 및 수량(E)만 직접 넣고, 금액(G,I,K,L,M)은 템플릿 수식이 계산한다.
- *     단, 11개 초과 추가 행은 수식이 없으므로 금액도 직접 채운다.
+ *   - 아이템 수 <= templateItemCount: 아이템 행 직접 채움, 남는 행은 숨김+클리어
+ *   - 아이템 수 > templateItemCount: 합계 행 위에 행 삽입 후 추가 행 직접 값 입력
+ *   - 0 값은 빈 문자열로 처리하여 셀이 비어 보이게 함
+ *   - 단가(F,H,J)/수량(E)만 직접 입력, 금액(G,I,K,M)은 수식이 계산
+ *     단, 삽입된 추가 행은 수식 없으므로 금액도 직접 입력
+ *
+ * @param templateItemCount - 복합=11, 우레탄=10
  */
 function fillDetailFromTemplate(
   ws: ExcelJS.Worksheet,
   estimate: Estimate,
   sheet: EstimateSheet,
+  templateItemCount: number,
 ): void {
   const items = sheet.items
 
@@ -137,41 +179,49 @@ function fillDetailFromTemplate(
   const methodTitle = sheet.title ?? sheet.type
   ws.getCell(3, 3).value = `${siteTitle} — ${methodTitle}`
 
-  const templateItemCount = TEMPLATE_ITEM_END_ROW - TEMPLATE_ITEM_START_ROW + 1 // 11
   const actualItemCount = items.length
 
   if (actualItemCount <= templateItemCount) {
-    // ── 케이스 A: 11개 이하 — 템플릿 행에 직접 채움 ──
+    // ── 케이스 A: 템플릿 행 이하 — 직접 채움 + 남는 행 숨김 ──
     for (let i = 0; i < templateItemCount; i++) {
       const rowNum = TEMPLATE_ITEM_START_ROW + i
       const item = items[i]
 
       if (item) {
         setItemRowValues(ws, rowNum, item)
+        // 혹시 이전에 숨겨졌을 행 복원
+        ws.getRow(rowNum).hidden = false
       } else {
-        // 사용하지 않는 행 비움
+        // 사용하지 않는 행: 클리어 + 숨김
         clearItemRow(ws, rowNum)
+        ws.getRow(rowNum).hidden = true
       }
     }
     // 합계 행은 기존 수식이 자동 계산 — 건드리지 않음
+    // (우레탄 템플릿 row 17은 빈 행이므로 항상 숨김)
+    if (templateItemCount === URETHANE_TEMPLATE_ITEM_COUNT) {
+      // row 17은 빈 행으로 유지 (이미 비어있음)
+      ws.getRow(TEMPLATE_ITEM_START_ROW + URETHANE_TEMPLATE_ITEM_COUNT).hidden = true
+    }
   } else {
-    // ── 케이스 B: 11개 초과 — 추가 행 삽입 후 합계 행 이동 ──
+    // ── 케이스 B: 템플릿 행 초과 — 행 삽입 후 합계 행 이동 ──
     const extraRows = actualItemCount - templateItemCount
 
     // 합계 영역을 아래로 밀기: row 18(소계) 위치에 행 삽입
-    ws.spliceRows(TEMPLATE_SUBTOTAL_ROW, 0, ...Array(extraRows).fill([]))
+    ws.spliceRows(TEMPLATE_SUMMARY_START_ROW, 0, ...Array(extraRows).fill([]))
 
     // 이제 합계 행 위치가 밀려남
-    const newSubtotalRow = TEMPLATE_SUBTOTAL_ROW + extraRows
-    const newOverheadRow = TEMPLATE_OVERHEAD_ROW + extraRows
-    const newProfitRow = TEMPLATE_PROFIT_ROW + extraRows
-    const newTotalRow = TEMPLATE_TOTAL_ROW + extraRows
-    const newGrandTotalRow = TEMPLATE_GRANDTOTAL_ROW + extraRows
+    const newSubtotalRow = TEMPLATE_SUMMARY_START_ROW + extraRows
+    const newOverheadRow = newSubtotalRow + 1
+    const newProfitRow = newSubtotalRow + 2
+    const newTotalRow = newSubtotalRow + 3
+    const newGrandTotalRow = newSubtotalRow + 4
 
-    // 기존 11행 채움
+    // 기존 템플릿 행 채움 (수식 있음)
     for (let i = 0; i < templateItemCount; i++) {
       const rowNum = TEMPLATE_ITEM_START_ROW + i
       setItemRowValues(ws, rowNum, items[i])
+      ws.getRow(rowNum).hidden = false
     }
 
     // 추가 행 채움 (수식 없음 — 직접 값 입력)
@@ -179,6 +229,7 @@ function fillDetailFromTemplate(
       const rowNum = TEMPLATE_ITEM_START_ROW + i
       const item = items[i]
       setItemRowValues(ws, rowNum, item)
+      ws.getRow(rowNum).hidden = false
       // 추가 행 금액도 직접 채움 (템플릿 수식이 없으므로)
       ws.getCell(rowNum, 7).value = item.mat_amount > 0 ? item.mat_amount : ''
       ws.getCell(rowNum, 9).value = item.labor_amount > 0 ? item.labor_amount : ''
@@ -186,7 +237,7 @@ function fillDetailFromTemplate(
       ws.getCell(rowNum, 13).value = item.total > 0 ? item.total : ''
     }
 
-    // 합계 수식 재설정 (행 번호가 바뀌었으므로)
+    // 합계 수식 재설정 (행 번호가 바뀌었으므로 직접 값 입력)
     const calcResult: CalcResult = calc(items)
     setTemplateSummaryValues(ws, newSubtotalRow, newOverheadRow, newProfitRow, newTotalRow, newGrandTotalRow, calcResult)
   }
