@@ -5,8 +5,12 @@ type CalendarView = 'month' | 'week' | 'day';
 interface CalendarHeaderProps {
   currentDate: Date;
   view: CalendarView;
+  title?: string;        // 뷰에 따른 커스텀 타이틀 (없으면 "YYYY년 M월" 기본값)
   onDateChange: (d: Date) => void;
   onViewChange: (v: CalendarView) => void;
+  onPrev?: () => void;   // 뷰 인식 이전 이동 (없으면 -1개월)
+  onNext?: () => void;   // 뷰 인식 다음 이동 (없으면 +1개월)
+  onToday?: () => void;  // 오늘 이동 커스텀 핸들러
 }
 
 const VIEW_LABELS: Record<CalendarView, string> = {
@@ -34,48 +38,67 @@ function ChevronRight() {
 export default function CalendarHeader({
   currentDate,
   view,
+  title,
   onDateChange,
   onViewChange,
+  onPrev,
+  onNext,
+  onToday,
 }: CalendarHeaderProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
 
+  // 기본 이동 (월 단위) — onPrev/onNext가 없을 때 fallback
   function goPrev() {
+    if (onPrev) {
+      onPrev();
+      return;
+    }
     const d = new Date(currentDate);
     d.setMonth(d.getMonth() - 1);
     onDateChange(d);
   }
 
   function goNext() {
+    if (onNext) {
+      onNext();
+      return;
+    }
     const d = new Date(currentDate);
     d.setMonth(d.getMonth() + 1);
     onDateChange(d);
   }
 
   function goToday() {
+    if (onToday) {
+      onToday();
+      return;
+    }
     onDateChange(new Date());
   }
 
+  const displayTitle = title ?? `${year}년 ${month}월`;
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-      {/* 월 네비게이션 */}
+      {/* 네비게이션 */}
       <div className="flex items-center gap-2">
         <button
           onClick={goPrev}
           className="p-1.5 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="이전 달"
+          aria-label="이전"
         >
           <ChevronLeft />
         </button>
 
-        <h2 className="text-base font-semibold text-gray-900 min-w-[100px] text-center">
-          {year}년 {month}월
+        <h2 className="text-base font-semibold text-gray-900 min-w-[140px] text-center">
+          {displayTitle}
         </h2>
 
         <button
           onClick={goNext}
           className="p-1.5 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="다음 달"
+          aria-label="다음"
         >
           <ChevronRight />
         </button>
