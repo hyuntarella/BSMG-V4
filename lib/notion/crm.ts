@@ -307,6 +307,51 @@ export async function updateCrmPipeline(pageId: string, newPipeline: string): Pr
 }
 
 /**
+ * 견적서 전송 후 성공확률 미배정 건 조회
+ * 파이프라인 = "견적서전송" (성공확률↑/↓ 미배정)
+ */
+export async function queryCrmFollowUp(): Promise<CrmRecord[]> {
+  const dbId = process.env.NOTION_CRM_DB_ID;
+  if (!dbId) {
+    throw new Error('NOTION_CRM_DB_ID 환경변수가 설정되지 않았습니다.');
+  }
+
+  const records: CrmRecord[] = [];
+  let hasMore = true;
+  let startCursor: string | undefined = undefined;
+
+  while (hasMore) {
+    const body: Record<string, unknown> = {
+      filter: {
+        property: '파이프라인',
+        select: { equals: '견적서전송' },
+      },
+      sorts: [{ property: '견적서발송일', direction: 'ascending' }],
+    };
+    if (startCursor) {
+      body.start_cursor = startCursor;
+    }
+
+    const result = (await notionFetch(
+      `/databases/${dbId}/query`,
+      'POST',
+      body
+    )) as NotionQueryResult;
+
+    for (const page of result.results) {
+      if (!page.archived) {
+        records.push(parseNotionPage(page));
+      }
+    }
+
+    hasMore = result.has_more;
+    startCursor = result.next_cursor ?? undefined;
+  }
+
+  return records;
+}
+
+/**
  * 댓글 추가
  */
 export async function addComment(pageId: string, content: string): Promise<CrmComment> {

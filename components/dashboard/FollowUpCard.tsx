@@ -1,43 +1,82 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { getDismissed, addDismissed } from '@/lib/utils/dismissed'
+import { fm } from '@/lib/utils/format'
 
-interface SentEstimate {
+// ── Types ──
+
+interface FollowUpRecord {
   id: string
-  customer_name: string
-  email_sent_at: string
-  daysSinceSent: number
+  address: string
+  customerName: string | null
+  daysSince: number
+  estimateAmount: number | null
+  manager: string | null
 }
 
-interface FollowUpCardProps {
-  estimates: SentEstimate[]
-}
+const DISMISSED_KEY = 'dismissed_followup'
+const DEFAULT_VISIBLE = 3
 
-const MILESTONES = [3, 7, 14, 31]
+// ── Component ──
 
-export default function FollowUpCard({ estimates }: FollowUpCardProps) {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+export default function FollowUpCard() {
+  const [records, setRecords] = useState<FollowUpRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState<string[]>([])
+  const [expanded, setExpanded] = useState(false)
 
-  const dismiss = (id: string) => {
-    setDismissed(prev => { const next = new Set(Array.from(prev)); next.add(id); return next })
+  useEffect(() => {
+    setDismissed(getDismissed(DISMISSED_KEY))
+
+    fetch('/api/dashboard/follow-up')
+      .then((res) => {
+        if (!res.ok) throw new Error('연락해야 할 곳 조회 실패')
+        return res.json() as Promise<{ records: FollowUpRecord[] }>
+      })
+      .then((data) => setRecords(data.records))
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : '연락해야 할 곳 조회 실패'
+        setError(msg)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleDismiss = (id: string) => {
+    addDismissed(DISMISSED_KEY, id)
+    setDismissed((prev) => [...prev, id])
+    setRecords((prev) => prev.filter((r) => r.id !== id))
   }
 
-  // 마일스톤별 그룹핑
-  const groups = MILESTONES.map(days => ({
-    days,
-    label: `${days}일 경과`,
-    items: estimates.filter(e =>
-      !dismissed.has(`${e.id}-${days}`) && e.daysSinceSent >= days
-    ),
-  })).filter(g => g.items.length > 0)
+  const visible = records.filter((r) => !dismissed.includes(r.id))
+  const shown = expanded ? visible : visible.slice(0, DEFAULT_VISIBLE)
+  const hasMore = visible.length > DEFAULT_VISIBLE
 
-  if (groups.length === 0) {
+  if (loading) {
     return (
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">후속 관리</h3>
-        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
-          후속 관리 대상이 없습니다
+        <h2 className="mb-3 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
+        <p className="text-sm text-gray-400">불러오는 중...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div>
+        <h2 className="mb-3 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
+        <p className="text-sm text-red-500">{error}</p>
+      </div>
+    )
+  }
+
+  if (visible.length === 0) {
+    return (
+      <div>
+        <h2 className="mb-3 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
+        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
+          팔로업 대상이 없습니다
         </p>
       </div>
     )
@@ -45,31 +84,83 @@ export default function FollowUpCard({ estimates }: FollowUpCardProps) {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-semibold text-gray-700">후속 관리</h3>
-      <div className="space-y-3">
-        {groups.map(group => (
-          <div key={group.days}>
-            <p className="mb-1 text-xs font-medium text-amber-600">{group.label}</p>
-            <div className="space-y-1">
-              {group.items.map(est => (
-                <div key={`${est.id}-${group.days}`} className="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-                  <Link href={`/estimate/${est.id}`} className="text-sm font-semibold text-gray-800 hover:underline">
-                    {est.customer_name || '(고객명 없음)'}
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-amber-600">{est.daysSinceSent}일</span>
-                    <button
-                      onClick={() => dismiss(`${est.id}-${group.days}`)}
-                      className="text-gray-300 hover:text-gray-500 text-lg leading-none"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <h2 className="mb-3 text-base font-semibold text-gray-800">
+        연락해야 할 곳{' '}
+        <span className="ml-1 text-sm font-normal text-gray-500">({visible.length}건)</span>
+      </h2>
+
+      <div className="space-y-2">
+        {shown.map((record) => (
+          <FollowUpItem key={record.id} record={record} onDismiss={handleDismiss} />
         ))}
+      </div>
+
+      {hasMore && (
+        <button
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mt-2 w-full rounded-lg border border-dashed border-gray-200 py-2 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700"
+        >
+          {expanded ? '접기' : `더보기 (${visible.length - DEFAULT_VISIBLE}건)`}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Sub-component ──
+
+interface FollowUpItemProps {
+  record: FollowUpRecord
+  onDismiss: (id: string) => void
+}
+
+function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
+  const isUrgent = record.daysSince >= 7
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {/* 주소 */}
+          <p className="font-medium text-gray-900 truncate">{record.address || '(주소 없음)'}</p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* 경과일수 칩 */}
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                isUrgent
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-orange-100 text-orange-600'
+              }`}
+            >
+              -{record.daysSince}일
+            </span>
+
+            {/* 견적금액 */}
+            {record.estimateAmount != null && (
+              <span className="text-xs font-medium text-brand">
+                {fm(record.estimateAmount)}원
+              </span>
+            )}
+
+            {/* 담당자 칩 */}
+            {record.manager && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
+                {record.manager}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* x 버튼 */}
+        <button
+          onClick={() => onDismiss(record.id)}
+          className="shrink-0 text-gray-300 hover:text-gray-500 text-xl leading-none"
+          aria-label="숨기기"
+          title="숨기기"
+        >
+          &times;
+        </button>
       </div>
     </div>
   )
