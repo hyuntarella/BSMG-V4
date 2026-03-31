@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { CrmRecord } from '@/lib/notion/types';
 import { STAGE_MAP } from '@/lib/notion/types';
 import DetailField from './DetailField';
@@ -23,9 +24,23 @@ interface DetailModalProps {
 }
 
 export default function DetailModal({ record, isOpen, onClose, onUpdate }: DetailModalProps) {
+  const router = useRouter();
+
   if (!isOpen || !record) return null;
 
   const pipelineOptions = record.stage ? (STAGE_MAP[record.stage] ?? []) : [];
+
+  const handleGoToEstimate = () => {
+    router.push(
+      `/estimate/new?crmId=${record.id}&address=${encodeURIComponent(record.address)}&customerName=${encodeURIComponent(record.customerName ?? '')}&manager=${encodeURIComponent(record.manager ?? '')}`
+    );
+  };
+
+  const handleGoToProposal = () => {
+    router.push(
+      `/proposal?address=${encodeURIComponent(record.address)}&manager=${encodeURIComponent(record.manager ?? '')}`
+    );
+  };
 
   const handleSave = async (field: keyof CrmRecord, rawValue: string | null) => {
     let value: string | number | string[] | null = rawValue;
@@ -68,6 +83,7 @@ export default function DetailModal({ record, isOpen, onClose, onUpdate }: Detai
       onClick={onClose}
     >
       <div
+        data-testid="detail-modal"
         className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -85,6 +101,28 @@ export default function DetailModal({ record, isOpen, onClose, onUpdate }: Detai
         </div>
 
         <div className="flex flex-col gap-4 px-4 py-4">
+          {/* 견적서/제안서 연결 버튼 */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleGoToEstimate}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+              </svg>
+              견적서 작성
+            </button>
+            <button
+              onClick={handleGoToProposal}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2zm-6 4h3v2H7v-2z" clipRule="evenodd" />
+              </svg>
+              제안서 작성
+            </button>
+          </div>
+
           {/* 액션 버튼 */}
           <ActionButtons record={record} />
 

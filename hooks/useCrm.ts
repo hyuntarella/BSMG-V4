@@ -79,6 +79,11 @@ export function useCrm({ initialRecords = [] }: UseCrmOptions = {}) {
 
   // ── 필터링된 레코드 ──
   const filteredRecords = useMemo(() => {
+    // 실적 탭: 전체 레코드 반환 (PerformanceTab 내부에서 필터링)
+    if (activeStage === '실적') {
+      return records;
+    }
+
     let result = records.filter(
       (r) => PIPELINE_TO_STAGE[r.pipeline ?? ''] === activeStage
     );

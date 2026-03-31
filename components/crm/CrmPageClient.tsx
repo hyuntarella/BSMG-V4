@@ -59,7 +59,7 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
       <div className="flex flex-wrap items-center gap-2 border-b bg-white px-4 py-2">
         <input
           type="text"
-          placeholder="주소, 고객명, 전화번호 검색..."
+          placeholder="주소, 고객명, 전화번호 검색"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/20"

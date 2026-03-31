@@ -42,6 +42,7 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
 
   return (
     <div
+      data-testid="kanban-card"
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
