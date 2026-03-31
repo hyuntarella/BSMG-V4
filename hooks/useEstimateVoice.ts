@@ -12,6 +12,7 @@ import { useWakeWord } from '@/hooks/useWakeWord'
 import type { FlowState } from '@/lib/voice/voiceFlow'
 import type { TabId } from '@/components/estimate/TabBar'
 import { normalizeText, matchKeyword } from '@/lib/voice/keywordMatcher'
+import { matchSummaryKeyword, buildSummaryText, buildMarginText } from '@/lib/voice/summaryBuilder'
 
 // ── 인터페이스 ──
 
@@ -260,6 +261,25 @@ export function useEstimateVoice({
         console.log('[수정] 키워드 감지 → enterEditMode 호출 (무음 진입)')
         enterEditModeRef.current()
         callbacksRef.current.addLog('assistant', '수정 모드 진입.')
+        return true
+      }
+
+      // 상태 요약: LLM 없이 로컬 데이터로 즉시 응답
+      const summaryAction = matchSummaryKeyword(normalized)
+      if (summaryAction && estimate.sheets.length > 0) {
+        const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
+        const sheet = estimate.sheets[sheetIdx]
+        if (summaryAction === 'read_summary' && sheet) {
+          const margin = callbacksRef.current.getSheetMargin(sheetIdx)
+          const msg = buildSummaryText(sheet.type, estimate.m2, sheet.items.length, sheet.grand_total ?? 0, margin)
+          callbacksRef.current.addLog('assistant', msg)
+          voicePlayTtsRef.current(msg)
+        } else if (summaryAction === 'read_margin') {
+          const margin = callbacksRef.current.getSheetMargin(sheetIdx)
+          const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
+          callbacksRef.current.addLog('assistant', msg)
+          voicePlayTtsRef.current(msg)
+        }
         return true
       }
 
