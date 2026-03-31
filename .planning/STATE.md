@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 06-pdf-output/06-09-PLAN.md
-last_updated: "2026-03-31T08:49:13.974Z"
+status: verifying
+stopped_at: Completed 06-pdf-output/06-10-PLAN.md
+last_updated: "2026-03-31T08:55:35.421Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 53
-  completed_plans: 18
+  completed_plans: 19
   percent: 80
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 06 (pdf-output) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [████████░░] 80%
@@ -65,6 +65,7 @@ Progress: [████████░░] 80%
 | Phase 05-excel-output P03 | 8 | 2 tasks | 2 files |
 | Phase 05-excel-output P04 | 8 | 2 tasks | 3 files |
 | Phase 06-pdf-output P09 | 6 | 2 tasks | 4 files |
+| Phase 06-pdf-output P10 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 05-excel-output]: downloadBlobResponse utility extracted to lib/utils/downloadBlob.ts to keep EstimateEditor under 200 lines
 - [Phase 06-pdf-output]: chromium-min has no defaultViewport — use hardcoded A4 dimensions for serverless PDF
 - [Phase 06-pdf-output]: Buffer wrapped in Uint8Array for BodyInit compatibility in NextResponse (PDF route)
+- [Phase 06-pdf-output]: PDF uploaded to Storage+Drive on save; pdf_url now points to real PDF not HTML
 
 ### Pending Todos
 
@@ -110,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T08:49:13.959Z
-Stopped at: Completed 06-pdf-output/06-09-PLAN.md
+Last session: 2026-03-31T08:55:35.406Z
+Stopped at: Completed 06-pdf-output/06-10-PLAN.md
 Resume file: None
