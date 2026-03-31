@@ -2,94 +2,83 @@
 
 ## Overview
 
-이 로드맵은 부분 구현된 시스템의 end-to-end 연결 복구 순서를 따른다. 신규 기능 추가가 아닌 파이프라인 단절 지점을 순서대로 연결한다. Phase 1에서 음성-to-견적서 루프를 완성하고, Phase 2에서 편집 루프를 닫고, Phase 3에서 데이터를 저장하고, Phase 4에서 워크플로우를 완성하고, Phase 5에서 외부 시스템을 연동한다.
+Phase 1~4 완료 (음성 파이프라인 + 편집 루프 + 저장 + 목록). Phase 5부터 견적서 완성 → 제안서 → CRM → 대시보드 → 캘린더 → 규칙서 순서로 전체 시스템을 구축한다.
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+**완료된 Phase (1~4)**
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] **Phase 1: 음성 파이프라인 연결** (completed 2026-03-30)
+- [x] **Phase 2: 음성 편집 루프** (completed 2026-03-31)
+- [x] **Phase 3: 인라인 편집 + 저장** (completed 2026-03-31)
+- [x] **Phase 4: 견적서 UI 완성** (completed 2026-03-31)
 
-- [x] **Phase 1: 음성 파이프라인 연결** - 음성 발화 → 파싱 → 견적서 테이블 반영 → TTS 피드백 end-to-end 동작 (completed 2026-03-30)
-- [ ] **Phase 2: 음성 편집 루프** - modify 모드로 단가/공종을 음성으로 수정, 확신도 분기 + 컨텍스트 유지
-- [ ] **Phase 3: 인라인 편집 + 저장** - 셀 탭 편집 동작, Supabase 저장 + 자동저장 완성
-- [ ] **Phase 4: 견적서 UI 완성** - 견적서 목록 + 불러오기 워크플로우 완성
-- [ ] **Phase 5: 외부 연동** - Notion CRM 고객 정보 자동 채움 + 엑셀 출력
+**진행 예정 Phase (5~39)**
 
-## Phase Details
+### 견적서 엑셀 출력 (Phase 5-8)
+- [ ] **Phase 5**: 복합 템플릿 로드 + 데이터 채우기
+- [ ] **Phase 6**: 우레탄 템플릿 + 동적 행 삽입
+- [ ] **Phase 7**: 표지(Sheet1) — 관리번호, 고객명, 금액 한글변환, 보증조건
+- [ ] **Phase 8**: 엑셀 다운로드 버튼 + Supabase Storage 업로드
 
-### Phase 1: 음성 파이프라인 연결
-**Goal**: 음성 한마디가 견적서 테이블에 반영되고 TTS로 확인받을 수 있다
-**Depends on**: Nothing (existing code to be wired)
-**Requirements**: VOICE-01, VOICE-02, VUX-01
-**Success Criteria** (what must be TRUE):
-  1. 음성으로 면적/공법/평단가를 말하면 견적서 공종 테이블에 항목과 금액이 정확히 채워진다
-  2. 시작/마디 넘기기/종료 명령이 정확히 동작하여 extract 모드와 supplement 모드가 순서대로 진행된다
-  3. 모든 음성 입력 후 TTS가 결과와 총액 변화를 한국어로 읽어준다
-**Plans**: 2 plans
+### 견적서 PDF 출력 (Phase 9-10)
+- [ ] **Phase 9**: 견적서 PDF 생성 (서버사이드 렌더링)
+- [ ] **Phase 10**: PDF 다운로드 + Google Drive 업로드
+
+### 제안서 (Phase 11-14)
+- [ ] **Phase 11**: 제안서.html → Next.js 페이지 포팅
+- [ ] **Phase 12**: GAS 호출 → API route 대체
+- [ ] **Phase 13**: 견적서/CRM → 제안서 연결 (주소 + 담당자)
+- [ ] **Phase 14**: 제안서 PDF → Google Drive 저장
+
+### 견적서 수동편집 UI (Phase 15-22)
+- [ ] **Phase 15**: 공종 추가 — 프리셋 선택 모달 + 자유입력
+- [ ] **Phase 16**: 공종 삭제 × 버튼
+- [ ] **Phase 17**: 공종명/규격/단위 인라인 편집
+- [ ] **Phase 18**: 면적(m²)/벽체면적 수동 입력
+- [ ] **Phase 19**: 고객명/담당자/연락처/메모 수동 입력
+- [ ] **Phase 20**: 평단가 변경 시 공종 재생성 확인 UX
+- [ ] **Phase 21**: 시트 삭제 + 공종 순서 변경 (↑↓)
+- [ ] **Phase 22**: 장비 아이템 추가 (사다리차/스카이차/폐기물)
+
+### CRM (Phase 23-28)
+**Plans:** 6 plans in 4 waves
+
 Plans:
-- [x] 01-01-PLAN.md — voiceFlow stateRef 동기화 안정화 + skipLlm 반응성 보장
-- [x] 01-02-PLAN.md — 총액 TTS 피드백 추가 + E2E 검증
-**UI hint**: yes
+- [ ] 09-23-PLAN.md — Notion API 클라이언트 + CRM CRUD + 댓글 API routes
+- [ ] 09-24-PLAN.md — CRM 칸반보드 UI (5탭 + 파이프라인 컬럼 + 카드)
+- [ ] 09-25-PLAN.md — CRM 상세 모달 (인라인 편집 + 댓글 + 타임라인 + 액션)
+- [ ] 09-26-PLAN.md — 레코드 생성 모달 + 드래그&드롭 파이프라인 이동 + Undo
+- [ ] 09-27-PLAN.md — 실적 탭 (카드 갤러리, 연도/월 그룹, 성공 파란/실패 붉은)
+- [ ] 09-28-PLAN.md — 견적서/제안서 연결 + 검색 + 담당자 필터 + E2E 테스트
 
-### Phase 2: 음성 편집 루프
-**Goal**: 이미 만든 견적서를 음성으로 자유롭게 수정할 수 있다
-**Depends on**: Phase 1
-**Requirements**: VOICE-03, VOICE-04, VOICE-05, VOICE-06, VOICE-07, VOICE-08, VUX-02, VUX-03, VUX-04, VUX-05
-**Success Criteria** (what must be TRUE):
-  1. "바탕정리 재료비 400원으로"처럼 단가를 절대값/증감으로 음성 수정하면 테이블에 즉시 반영된다
-  2. "크랙보수 20미터 추가" / "바탕정리 빼줘"로 공종을 추가하거나 삭제할 수 있다
-  3. 확신도 95% 이상 명령은 즉시 실행되고, 70-95%는 실행 후 TTS로 확인을 묻고, 70% 미만은 되묻는다
-  4. "그거 올려" 처럼 직전 명령의 대상을 참조하는 발화가 정확히 처리된다
-  5. "취소"를 말하면 직전 음성 명령이 undo된다
-**Plans**: 3 plans
-Plans:
-- [x] 02-01-PLAN.md — 수정 모드 상태 기계 + 웨이크워드 + modify 파이프라인 배선
-- [x] 02-02-PLAN.md — 확신도 확인 UX + 시스템 명령 + VAD 무음 감지
-- [ ] 02-03-PLAN.md — 빌드 검증 + E2E 음성 테스트 체크포인트
-**UI hint**: yes
+### 대시보드 (Phase 29-33)
+- [ ] **Phase 29**: CS 현황 섹션 — 정보입력 완료 건 목록 + UI 삭제 + 파이프라인 변경
+- [ ] **Phase 30**: 미발송 카드 — 견적 방문 완료인데 견적서 미작성 건
+- [ ] **Phase 31**: 견적서 열람 고객 카드 — 추적 픽셀 + 시간/일 단위 표시
+- [ ] **Phase 32**: 연락해야 할 곳 카드 — 발송 후 미배정 건 + UI 삭제
+- [ ] **Phase 33**: 오늘 일정 + 견적서 불러오기 모달
 
-### Phase 3: 인라인 편집 + 저장
-**Goal**: 터치로 셀을 직접 편집할 수 있고, 모든 변경사항이 Supabase에 안전하게 저장된다
-**Depends on**: Phase 2
-**Requirements**: UI-01, OUT-01, OUT-02
-**Success Criteria** (what must be TRUE):
-  1. 공종 테이블에서 숫자 셀을 탭하면 숫자 키패드가 뜨고, 입력 완료 시 해당 행과 총액이 즉시 재계산된다
-  2. 저장 버튼을 누르면 견적서 전체가 Supabase에 upsert되고 TTS로 저장 완료를 알려준다
-  3. 편집 중 1초간 변경이 없으면 자동저장이 실행되고, 다음에 같은 URL로 접근하면 이전 상태가 복원된다
-**Plans**: TBD
-**UI hint**: yes
+### 캘린더 (Phase 34-36)
+- [ ] **Phase 34**: Notion 캘린더 API + 월간 뷰
+- [ ] **Phase 35**: 주간/일간 뷰 + 이벤트 블록
+- [ ] **Phase 36**: 이벤트 CRUD 모달 + 팀원 관리
 
-### Phase 4: 견적서 UI 완성
-**Goal**: 저장된 견적서를 검색하고 불러올 수 있어 반복 견적 업무가 가능하다
-**Depends on**: Phase 3
-**Requirements**: UI-02, UI-03
-**Success Criteria** (what must be TRUE):
-  1. 견적서 목록 페이지에서 고객명 또는 현장명으로 과거 견적서를 검색하고 조회할 수 있다
-  2. 목록에서 견적서를 선택하면 해당 공종 테이블과 금액이 에디터에 그대로 불러와진다
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 5: 외부 연동
-**Goal**: Notion CRM에서 고객 정보를 가져와 견적서를 자동 채우고, 완성된 견적서를 엑셀로 출력할 수 있다
-**Depends on**: Phase 4
-**Requirements**: CRM-01, OUT-03
-**Success Criteria** (what must be TRUE):
-  1. 견적서 시작 시 Notion CRM에서 고객 이름으로 검색하면 주소와 담당자가 견적서 표지에 자동으로 채워진다
-  2. 엑셀 출력 버튼을 누르면 기존 GAS 출력물과 동일한 레이아웃의 .xlsx 파일이 다운로드된다
-**Plans**: TBD
+### 견적서 규칙서 (Phase 37-39)
+- [ ] **Phase 37**: P매트릭스 뷰어 + 인라인 편집
+- [ ] **Phase 38**: 기본공종/프리셋/원가 편집 UI
+- [ ] **Phase 39**: 계산규칙 + 장비단가 + 보증 기본값 편집
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. 음성 파이프라인 연결 | 2/2 | Complete   | 2026-03-30 |
-| 2. 음성 편집 루프 | 1/3 | In Progress|  |
-| 3. 인라인 편집 + 저장 | 0/TBD | Not started | - |
-| 4. 견적서 UI 완성 | 0/TBD | Not started | - |
-| 5. 외부 연동 | 0/TBD | Not started | - |
+| Group | Phases | Status |
+|-------|--------|--------|
+| 음성 파이프라인 | 1-4 | Complete |
+| 엑셀 출력 | 5-8 | Not started |
+| PDF 출력 | 9-10 | Not started |
+| 제안서 | 11-14 | Not started |
+| 수동편집 | 15-22 | Not started |
+| CRM | 23-28 | Planned (6 plans) |
+| 대시보드 | 29-33 | Not started |
+| 캘린더 | 34-36 | Not started |
+| 규칙서 | 37-39 | Not started |
