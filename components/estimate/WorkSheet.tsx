@@ -23,6 +23,7 @@ interface WorkSheetProps {
   onMetaChange?: (field: 'm2' | 'wall_m2', value: number) => void
   onAddItem?: (item: Partial<EstimateItem>) => void
   onRemoveItem?: (itemIndex: number) => void
+  onMoveItem?: (fromIndex: number, toIndex: number) => void
 }
 
 export default function WorkSheet({
@@ -38,6 +39,7 @@ export default function WorkSheet({
   onMetaChange,
   onAddItem,
   onRemoveItem,
+  onMoveItem,
 }: WorkSheetProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const calcResult: CalcResult = calc(sheet.items)
@@ -209,19 +211,35 @@ export default function WorkSheet({
                 {/* 합계 금액 */}
                 <td className="px-1 py-1 text-right font-semibold tabular-nums">{fm(item.total)}</td>
                 <td className="px-1 py-1 text-center">
-                  {onRemoveItem && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`${item.name} 항목을 삭제하시겠습니까?`)) {
-                          onRemoveItem(idx)
-                        }
-                      }}
-                      className="text-gray-300 hover:text-red-500 text-xs cursor-pointer"
-                      title="삭제"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <div className="flex items-center justify-center gap-0.5">
+                    {onMoveItem && idx > 0 && (
+                      <button
+                        onClick={() => onMoveItem(idx, idx - 1)}
+                        className="text-gray-300 hover:text-gray-600 text-[10px] cursor-pointer"
+                        title="위로"
+                      >↑</button>
+                    )}
+                    {onMoveItem && idx < sheet.items.length - 1 && (
+                      <button
+                        onClick={() => onMoveItem(idx, idx + 1)}
+                        className="text-gray-300 hover:text-gray-600 text-[10px] cursor-pointer"
+                        title="아래로"
+                      >↓</button>
+                    )}
+                    {onRemoveItem && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`${item.name} 항목을 삭제하시겠습니까?`)) {
+                            onRemoveItem(idx)
+                          }
+                        }}
+                        className="text-gray-300 hover:text-red-500 text-xs cursor-pointer ml-0.5"
+                        title="삭제"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
               )

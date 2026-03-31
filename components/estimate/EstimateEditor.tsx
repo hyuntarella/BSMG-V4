@@ -43,6 +43,8 @@ export default function EstimateEditor({
     updateItemText,
     addItem,
     removeItem,
+    removeSheet,
+    moveItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
@@ -200,6 +202,18 @@ export default function EstimateEditor({
           {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
           {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200">+ 복합</button>}
           {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }} className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-700 hover:bg-purple-200">+ 우레탄</button>}
+          {activeSheetIndex >= 0 && (
+            <button
+              onClick={() => {
+                const type = estimate.sheets[activeSheetIndex]?.type
+                if (window.confirm(`${type} 시트를 삭제하시겠습니까?`)) {
+                  removeSheet(activeSheetIndex)
+                  setActiveTab('compare')
+                }
+              }}
+              className="rounded border border-red-300 px-2 py-1 text-xs text-red-500 hover:bg-red-50"
+            >시트 삭제</button>
+          )}
         </div>
       </header>
 
@@ -229,6 +243,7 @@ export default function EstimateEditor({
             onMetaChange={(field, value) => updateMeta(field, value)}
             onAddItem={(item) => addItem(activeSheetIndex, item)}
             onRemoveItem={(idx) => removeItem(activeSheetIndex, idx)}
+            onMoveItem={(from, to) => moveItem(activeSheetIndex, from, to)}
           />
         )}
         {activeTab === 'compare' && (
