@@ -47,3 +47,15 @@ export function n2k(n: number): string {
 
   return parts.join('') || '영'
 }
+
+/**
+ * 견적서 표지용 한글 금액 변환
+ * toKoreanAmount(8250000) → "일금 팔백이십오만원 정(₩8,250,000)"
+ * toKoreanAmount(3900000) → "일금 삼백구십만원 정(₩3,900,000)"
+ * toKoreanAmount(0) → "일금 영원 정(₩0)"
+ */
+export function toKoreanAmount(n: number): string {
+  const korean = n2k(Math.round(n))
+  const formatted = Math.round(n).toLocaleString('ko-KR')
+  return `일금 ${korean}원 정(₩${formatted})`
+}
