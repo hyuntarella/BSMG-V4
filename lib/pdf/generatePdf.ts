@@ -3,6 +3,40 @@ import { calc } from '@/lib/estimate/calc'
 import { fm } from '@/lib/utils/format'
 
 /**
+ * Chromium remote binary URL for @sparticuz/chromium-min on Vercel serverless.
+ * 버전은 @sparticuz/chromium-min 패키지 버전과 일치해야 함.
+ */
+const CHROMIUM_REMOTE_URL =
+  'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar'
+
+/**
+ * HTML 문자열을 받아 Puppeteer + 서버리스 Chromium으로 PDF Buffer 생성
+ *
+ * Vercel 서버리스 환경에서 @sparticuz/chromium-min + puppeteer-core 조합 사용.
+ */
+export async function generatePdfBuffer(html: string): Promise<Buffer> {
+  const chromium = await import('@sparticuz/chromium-min')
+  const puppeteer = await import('puppeteer-core')
+
+  const browser = await puppeteer.default.launch({
+    args: chromium.default.args,
+    defaultViewport: { width: 1240, height: 1754 }, // A4 at 150dpi
+    executablePath: await chromium.default.executablePath(CHROMIUM_REMOTE_URL),
+    headless: true,
+  })
+
+  const page = await browser.newPage()
+  await page.setContent(html, { waitUntil: 'networkidle0' })
+  const pdf = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+  })
+  await browser.close()
+  return Buffer.from(pdf)
+}
+
+/**
  * 견적서 HTML → PDF 변환
  *
  * Vercel 서버리스에서는 puppeteer가 무겁기 때문에

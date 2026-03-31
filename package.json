@@ -4,12 +4,13 @@
   "description": "방수명가 견적서 v4",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "rimraf .next && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:clean": "rm -rf .next && next dev"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "homepage": "https://github.com/hyuntarella/BSMG-V4#readme",
   "dependencies": {
+    "@sparticuz/chromium-min": "^143.0.4",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.100.0",
     "@types/node": "^25.5.0",
@@ -34,6 +36,7 @@
     "googleapis": "^171.4.0",
     "next": "^14.2.35",
     "postcss": "^8.5.8",
+    "puppeteer-core": "^24.40.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "resend": "^6.9.4",
@@ -41,7 +44,11 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "rimraf": "^6.1.3",
     "tsx": "^4.21.0",
     "vitest": "^4.1.2"
   }
