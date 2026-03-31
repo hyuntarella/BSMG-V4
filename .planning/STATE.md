@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-calendar/34-PLAN.md
-last_updated: "2026-03-31T11:47:14.219Z"
+stopped_at: Completed 11-calendar/35-PLAN.md
+last_updated: "2026-03-31T11:55:07.029Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 53
-  completed_plans: 43
+  completed_plans: 44
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 11 (calendar) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -89,6 +89,7 @@ Progress: [████████░░] 80%
 | Phase 10-dashboard P31 | 10 | 2 tasks | 4 files |
 | Phase 10-dashboard P33 | 12 | 2 tasks | 7 files |
 | Phase 11-calendar P34 | 432 | 2 tasks | 6 files |
+| Phase 11-calendar P35 | 358 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Recent decisions affecting current work:
 - [Phase 10-dashboard]: dashboard/page.tsx converted to client component — LoadEstimateModal requires useState; SSR user name removed
 - [Phase 10-dashboard]: getEventsForDate() single-date only in Phase 33 — Phase 34 will extend to range query
 - [Phase 11-calendar]: getEventsForDate() preserved as getEvents(date, date) wrapper for dashboard backward compatibility
+- [Phase 11-calendar]: TimeGrid 공통 컴포넌트: WeekView/DayView 재사용, HOUR_HEIGHT=64px 기준 absolute positioning
+- [Phase 11-calendar]: CalendarHeader에 title/onPrev/onNext/onToday optional props 추가 — 기존 onDateChange fallback으로 하위 호환 유지
 
 ### Pending Todos
 
@@ -164,6 +167,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T11:47:14.201Z
-Stopped at: Completed 11-calendar/34-PLAN.md
+Last session: 2026-03-31T11:55:07.015Z
+Stopped at: Completed 11-calendar/35-PLAN.md
 Resume file: None

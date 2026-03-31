@@ -67,7 +67,7 @@ Plans:
 
 Plans:
 - [x] 34-PLAN.md — Notion 캘린더 CRUD API + 월간 그리드 뷰
-- [ ] 35-PLAN.md — 주간/일간 뷰 + TimeGrid 공통 컴포넌트
+- [x] 35-PLAN.md — 주간/일간 뷰 + TimeGrid 공통 컴포넌트
 - [ ] 36-PLAN.md — 이벤트 CRUD 모달 + 팀원 관리 + E2E 테스트
 
 ### 견적서 규칙서 (Phase 37-39)
