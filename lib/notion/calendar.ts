@@ -1,24 +1,42 @@
 // ── Notion Calendar Functions ──
-// 캘린더 DB 조회 함수 (기초 — Phase 34에서 getEvents(start, end)로 확장 예정)
+// 캘린더 DB 조회/생성/수정/삭제 (Phase 34에서 전체 CRUD로 확장)
 
 import { notionFetch } from './client';
 
 export interface CalendarEvent {
   id: string;
   title: string;
-  start: string;
+  start: string;        // ISO datetime or YYYY-MM-DD
   end: string | null;
-  type: string;
-  color: string;
+  allDay: boolean;
+  type: string;         // 방문, 시공, 미팅, 기타
+  color: string;        // type별 매핑 색상
   memberName: string | null;
+  memberId: string | null;
+  crmCustomerId: string | null;
+  crmCustomerName: string | null;
+  memo: string | null;
+  action: string | null; // 방문, 견적, 시공, 하자점검 등
+}
+
+export interface CreateEventInput {
+  title: string;
+  start: string;
+  end?: string;
+  allDay?: boolean;
+  type?: string;
+  memberId?: string;
+  crmCustomerId?: string;
+  memo?: string;
+  action?: string;
 }
 
 // 타입별 색상 매핑
 const TYPE_COLOR_MAP: Record<string, string> = {
-  방문: '#3b82f6',   // blue
-  시공: '#22c55e',   // green
-  미팅: '#a855f7',   // purple
-  기타: '#9ca3af',   // gray
+  방문: '#3B82F6',   // blue
+  시공: '#10B981',   // green
+  미팅: '#8B5CF6',   // purple
+  기타: '#6B7280',   // gray
 };
 
 function getColorByType(type: string | null): string {
@@ -33,13 +51,102 @@ interface NotionCalendarPage {
 
 interface NotionQueryResult {
   results: NotionCalendarPage[];
+  has_more?: boolean;
+  next_cursor?: string | null;
+}
+
+/** Notion 페이지 속성에서 CalendarEvent 매핑 */
+function mapPageToEvent(page: NotionCalendarPage): CalendarEvent {
+  const p = page.properties as Record<string, Record<string, unknown>>;
+
+  // 제목: "이벤트" 또는 "제목" title 속성
+  const titleProp = (p['이벤트'] ?? p['제목']) as
+    | { title?: Array<{ plain_text?: string }> }
+    | undefined;
+  const title = titleProp?.title?.[0]?.plain_text ?? '(제목 없음)';
+
+  // 날짜
+  const dateProp = p['날짜'] as { date?: { start?: string; end?: string | null } } | undefined;
+  const start = dateProp?.date?.start ?? '';
+  const end = dateProp?.date?.end ?? null;
+
+  // 하루 종일 여부: 날짜만 있으면 allDay=true
+  const allDay = Boolean(start && !start.includes('T'));
+
+  // 타입
+  const typeProp = p['타입'] as { select?: { name?: string } } | undefined;
+  const type = typeProp?.select?.name ?? '기타';
+
+  // 액션
+  const actionProp = p['액션'] as { select?: { name?: string } } | undefined;
+  const action = actionProp?.select?.name ?? null;
+
+  // 담당자
+  let memberName: string | null = null;
+  let memberId: string | null = null;
+
+  const memberRelProp = p['담당자'] as
+    | { people?: Array<{ id?: string; name?: string }> }
+    | { relation?: Array<{ id?: string }> }
+    | undefined;
+
+  if (memberRelProp) {
+    const peopleProp = memberRelProp as { people?: Array<{ id?: string; name?: string }> };
+    const relProp = memberRelProp as { relation?: Array<{ id?: string }> };
+    if (peopleProp.people && peopleProp.people.length > 0) {
+      memberName = peopleProp.people[0]?.name ?? null;
+      memberId = peopleProp.people[0]?.id ?? null;
+    } else if (relProp.relation && relProp.relation.length > 0) {
+      memberId = relProp.relation[0]?.id ?? null;
+    }
+  }
+
+  // CRM 고객 (relation)
+  let crmCustomerId: string | null = null;
+  let crmCustomerName: string | null = null;
+  const crmProp = p['고객'] as
+    | { relation?: Array<{ id?: string }> }
+    | undefined;
+  if (crmProp?.relation && crmProp.relation.length > 0) {
+    crmCustomerId = crmProp.relation[0]?.id ?? null;
+  }
+  // CRM 고객 이름 (formula or rollup — 있으면 추출, 없으면 null)
+  const crmNameProp = p['고객명'] as
+    | { formula?: { string?: string }; rollup?: { array?: Array<{ title?: Array<{ plain_text?: string }> }> } }
+    | undefined;
+  if (crmNameProp?.formula?.string) {
+    crmCustomerName = crmNameProp.formula.string;
+  } else if (crmNameProp?.rollup?.array?.[0]?.title?.[0]?.plain_text) {
+    crmCustomerName = crmNameProp.rollup.array[0].title[0].plain_text;
+  }
+
+  // 메모
+  const memoProp = p['메모'] as { rich_text?: Array<{ plain_text?: string }> } | undefined;
+  const memo = memoProp?.rich_text?.[0]?.plain_text ?? null;
+
+  return {
+    id: page.id,
+    title,
+    start,
+    end,
+    allDay,
+    type,
+    color: getColorByType(type),
+    memberName,
+    memberId,
+    crmCustomerId,
+    crmCustomerName,
+    memo,
+    action,
+  };
 }
 
 /**
- * 특정 날짜의 캘린더 이벤트 조회 (단일 날짜용)
- * Phase 34에서 getEvents(start, end) 범위 조회로 확장 예정
+ * 날짜 범위 이벤트 조회
+ * @param start - 시작 날짜 (YYYY-MM-DD)
+ * @param end   - 종료 날짜 (YYYY-MM-DD)
  */
-export async function getEventsForDate(date: string): Promise<CalendarEvent[]> {
+export async function getEvents(start: string, end: string): Promise<CalendarEvent[]> {
   const dbId = process.env.NOTION_CALENDAR_SCHED_DB;
   if (!dbId) {
     throw new Error('NOTION_CALENDAR_SCHED_DB 환경변수가 설정되지 않았습니다.');
@@ -47,63 +154,112 @@ export async function getEventsForDate(date: string): Promise<CalendarEvent[]> {
 
   const body = {
     filter: {
-      property: '날짜',
-      date: {
-        equals: date,
-      },
+      and: [
+        {
+          property: '날짜',
+          date: { on_or_after: start },
+        },
+        {
+          property: '날짜',
+          date: { on_or_before: end },
+        },
+      ],
     },
-    sorts: [
-      {
-        property: '날짜',
-        direction: 'ascending',
-      },
-    ],
+    sorts: [{ property: '날짜', direction: 'ascending' }],
+    page_size: 100,
   };
 
   const data = (await notionFetch(`/databases/${dbId}/query`, 'POST', body)) as NotionQueryResult;
   const results = data?.results ?? [];
+  return results.map(mapPageToEvent);
+}
 
-  const events: CalendarEvent[] = results.map((page) => {
-    const p = page.properties as Record<string, Record<string, unknown>>;
+/**
+ * 특정 날짜의 캘린더 이벤트 조회 (단일 날짜용 — 하위 호환)
+ */
+export async function getEventsForDate(date: string): Promise<CalendarEvent[]> {
+  return getEvents(date, date);
+}
 
-    // 제목: "이벤트" 또는 "제목" title 속성
-    const titleProp = (p['이벤트'] ?? p['제목']) as
-      | { title?: Array<{ plain_text?: string }> }
-      | undefined;
-    const title = titleProp?.title?.[0]?.plain_text ?? '(제목 없음)';
+/**
+ * 새 이벤트 생성
+ */
+export async function createEvent(input: CreateEventInput): Promise<CalendarEvent> {
+  const dbId = process.env.NOTION_CALENDAR_SCHED_DB;
+  if (!dbId) {
+    throw new Error('NOTION_CALENDAR_SCHED_DB 환경변수가 설정되지 않았습니다.');
+  }
 
-    // 날짜
-    const dateProp = p['날짜'] as { date?: { start?: string; end?: string | null } } | undefined;
-    const start = dateProp?.date?.start ?? date;
-    const end = dateProp?.date?.end ?? null;
+  const dateValue: { start: string; end?: string } = { start: input.start };
+  if (input.end) dateValue.end = input.end;
 
-    // 타입
-    const typeProp = p['타입'] as { select?: { name?: string } } | undefined;
-    const type = typeProp?.select?.name ?? '기타';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const properties: Record<string, any> = {
+    이벤트: { title: [{ text: { content: input.title } }] },
+    날짜: { date: dateValue },
+  };
 
-    // 담당자: people 배열 또는 relation
-    let memberName: string | null = null;
-    const memberProp = p['담당자'] as
-      | { people?: Array<{ name?: string }> }
-      | { relation?: Array<{ id?: string }> }
-      | undefined;
-    if (memberProp) {
-      const peopleProp = memberProp as { people?: Array<{ name?: string }> };
-      if (peopleProp.people && peopleProp.people.length > 0) {
-        memberName = peopleProp.people[0]?.name ?? null;
-      }
-    }
+  if (input.type) {
+    properties.타입 = { select: { name: input.type } };
+  }
+  if (input.action) {
+    properties.액션 = { select: { name: input.action } };
+  }
+  if (input.memo) {
+    properties.메모 = { rich_text: [{ text: { content: input.memo } }] };
+  }
+  if (input.memberId) {
+    properties.담당자 = { relation: [{ id: input.memberId }] };
+  }
+  if (input.crmCustomerId) {
+    properties.고객 = { relation: [{ id: input.crmCustomerId }] };
+  }
 
-    return {
-      id: page.id,
-      title,
-      start,
-      end,
-      type,
-      color: getColorByType(type),
-      memberName,
-    };
-  });
+  const newPage = (await notionFetch('/pages', 'POST', {
+    parent: { database_id: dbId },
+    properties,
+  })) as NotionCalendarPage;
 
-  return events;
+  return mapPageToEvent(newPage);
+}
+
+/**
+ * 이벤트 수정
+ */
+export async function updateEvent(id: string, input: Partial<CreateEventInput>): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const properties: Record<string, any> = {};
+
+  if (input.title !== undefined) {
+    properties.이벤트 = { title: [{ text: { content: input.title } }] };
+  }
+  if (input.start !== undefined) {
+    const dateValue: { start: string; end?: string } = { start: input.start };
+    if (input.end) dateValue.end = input.end;
+    properties.날짜 = { date: dateValue };
+  }
+  if (input.type !== undefined) {
+    properties.타입 = { select: { name: input.type } };
+  }
+  if (input.action !== undefined) {
+    properties.액션 = { select: { name: input.action } };
+  }
+  if (input.memo !== undefined) {
+    properties.메모 = { rich_text: [{ text: { content: input.memo } }] };
+  }
+  if (input.memberId !== undefined) {
+    properties.담당자 = { relation: [{ id: input.memberId }] };
+  }
+  if (input.crmCustomerId !== undefined) {
+    properties.고객 = { relation: [{ id: input.crmCustomerId }] };
+  }
+
+  await notionFetch(`/pages/${id}`, 'PATCH', { properties });
+}
+
+/**
+ * 이벤트 삭제 (archive)
+ */
+export async function deleteEvent(id: string): Promise<void> {
+  await notionFetch(`/pages/${id}`, 'PATCH', { archived: true });
 }
