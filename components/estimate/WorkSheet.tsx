@@ -13,11 +13,13 @@ import AddItemModal from './AddItemModal'
 interface WorkSheetProps {
   sheet: EstimateSheet
   m2: number
+  wallM2?: number
   margin: number
   modifiedCells?: ModifiedCells
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onItemTextChange?: (itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => void
   onSheetChange: (field: string, value: number) => void
+  onMetaChange?: (field: 'm2' | 'wall_m2', value: number) => void
   onAddItem?: (item: Partial<EstimateItem>) => void
   onRemoveItem?: (itemIndex: number) => void
 }
@@ -25,11 +27,13 @@ interface WorkSheetProps {
 export default function WorkSheet({
   sheet,
   m2,
+  wallM2,
   margin,
   modifiedCells,
   onItemChange,
   onItemTextChange,
   onSheetChange,
+  onMetaChange,
   onAddItem,
   onRemoveItem,
 }: WorkSheetProps) {
@@ -64,10 +68,26 @@ export default function WorkSheet({
 
       {/* 상단 정보 바 */}
       <div className="mb-2 flex flex-wrap items-center gap-4 text-xs">
-        <div>
+        <div className="flex items-center gap-1">
           <span className="text-gray-500">면적</span>{' '}
-          <span className="font-semibold">{fm(m2)}m²</span>
+          <InlineCell
+            value={m2}
+            onSave={(v) => onMetaChange?.('m2', v as number)}
+            className="inline-block w-16 text-right font-semibold"
+            readOnly={!onMetaChange}
+          />
+          <span className="text-gray-400">m²</span>
           <span className="ml-1 text-gray-400">({pyeong.toFixed(1)}평)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">벽체</span>{' '}
+          <InlineCell
+            value={wallM2 ?? 0}
+            onSave={(v) => onMetaChange?.('wall_m2', v as number)}
+            className="inline-block w-14 text-right"
+            readOnly={!onMetaChange}
+          />
+          <span className="text-gray-400">m²</span>
         </div>
         <div>
           <span className="text-gray-500">내부단가</span>{' '}
