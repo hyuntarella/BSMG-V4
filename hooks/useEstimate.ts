@@ -234,6 +234,25 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [],
   )
 
+  // ── 공종 삭제 ──
+  const removeItem = useCallback(
+    (sheetIndex: number, itemIndex: number) => {
+      saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} 삭제`, 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const items = sheets[sheetIndex].items
+          .filter((_, i) => i !== itemIndex)
+          .map((item, i) => ({ ...item, sort_order: i + 1 }))
+        const calcResult = calc(items)
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [estimate.sheets, saveSnapshot],
+  )
+
   // ── undo (직전 스냅샷 복원) ──
   const undo = useCallback(() => {
     if (snapshots.length === 0) return
@@ -306,6 +325,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateSheet,
     updateItem,
     addItem,
+    removeItem,
     applyVoiceCommands,
     addSheet,
     initFromVoiceFlow,
