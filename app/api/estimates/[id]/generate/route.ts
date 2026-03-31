@@ -14,12 +14,16 @@ const supabase = createClient(
 /**
  * POST /api/estimates/[id]/generate
  * 엑셀 + HTML(PDF용) 생성 → Supabase Storage 업로드
+ * body: { download?: boolean }
+ *   download: true  → 엑셀 바이너리 직접 응답 (Storage 업로드 없음)
+ *   download: false → Storage 업로드 + JSON 응답 (기본)
  */
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   const estimateId = params.id
+  const body = await request.json().catch(() => ({}))
 
   // 견적서 + 시트 + 아이템 로드
   const { data: estimateRow, error: estErr } = await supabase
@@ -104,6 +108,16 @@ export async function POST(
     const wb = await generateWorkbook(estimate)
     const excelBuffer = await workbookToBuffer(wb)
 
+    // 다운로드 모드: Storage 업로드 없이 바이너리 직접 응답
+    if (body?.download) {
+      return new Response(new Uint8Array(excelBuffer), {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="견적서_${mgmtNo}.xlsx"`,
+        },
+      })
+    }
+
     // Storage 업로드: 엑셀
     const excelPath = `${folderPath}/견적서_${mgmtNo}.xlsx`
     await supabase.storage
@@ -143,17 +157,21 @@ export async function POST(
         upsert: true,
       })
 
-    // Google Drive 업로드 (환경변수 있을 때만)
+    // Google Drive 업로드 (환경변수 있을 때만, 10초 타임아웃)
     let driveUrl = ''
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
       try {
         const driveFolderId = getEstimateFolderId()
-        const driveResult = await uploadToDrive(
+        const drivePromise = uploadToDrive(
           driveFolderId,
           `견적서_${mgmtNo}.xlsx`,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           excelBuffer,
         )
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Drive 업로드 타임아웃')), 10000)
+        )
+        const driveResult = await Promise.race([drivePromise, timeoutPromise])
         driveUrl = driveResult.url
       } catch (driveErr) {
         console.error('Google Drive 업로드 실패 (무시):', driveErr)
