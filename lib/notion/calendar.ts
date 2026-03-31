@@ -193,8 +193,7 @@ export async function createEvent(input: CreateEventInput): Promise<CalendarEven
   const dateValue: { start: string; end?: string } = { start: input.start };
   if (input.end) dateValue.end = input.end;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const properties: Record<string, any> = {
+  const properties: Record<string, unknown> = {
     이벤트: { title: [{ text: { content: input.title } }] },
     날짜: { date: dateValue },
   };
@@ -227,8 +226,7 @@ export async function createEvent(input: CreateEventInput): Promise<CalendarEven
  * 이벤트 수정
  */
 export async function updateEvent(id: string, input: Partial<CreateEventInput>): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const properties: Record<string, any> = {};
+  const properties: Record<string, unknown> = {};
 
   if (input.title !== undefined) {
     properties.이벤트 = { title: [{ text: { content: input.title } }] };
