@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-manual-edit/17-PLAN.md
-last_updated: "2026-03-31T10:01:43.574Z"
+stopped_at: Completed 08-manual-edit/18-PLAN.md
+last_updated: "2026-03-31T10:05:08.056Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 12
   completed_phases: 5
   total_plans: 53
-  completed_plans: 27
+  completed_plans: 28
   percent: 80
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 08 (manual-edit) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -74,6 +74,7 @@ Progress: [████████░░] 80%
 | Phase 08-manual-edit P15 | 15 | 3 tasks | 4 files |
 | Phase 08-manual-edit P16 | 5 | 2 tasks | 3 files |
 | Phase 08-manual-edit P17 | 5 | 2 tasks | 3 files |
+| Phase 08-manual-edit P18 | 3 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,7 @@ Recent decisions affecting current work:
 - [Phase 08-manual-edit]: AddItemModal uses DEFAULT_PRESETS fallback when /api/presets not available
 - [Phase 08-manual-edit]: x button reuses existing 비고 td for delete — no new column, keeps table width unchanged
 - [Phase 08-manual-edit]: updateItemText skips amount recalculation — name/spec/unit have no effect on monetary totals
+- [Phase 08-manual-edit]: WorkSheet m2 display replaced with InlineCell; readOnly when onMetaChange not provided (backward compatible)
 
 ### Pending Todos
 
@@ -129,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T10:01:43.560Z
-Stopped at: Completed 08-manual-edit/17-PLAN.md
+Last session: 2026-03-31T10:05:08.041Z
+Stopped at: Completed 08-manual-edit/18-PLAN.md
 Resume file: None
