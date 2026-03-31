@@ -37,6 +37,7 @@ export default function EstimateEditor({
     updateMeta,
     updateSheet,
     updateItem,
+    addItem,
     applyVoiceCommands,
     addSheet,
     getSheetMargin,
@@ -285,6 +286,7 @@ export default function EstimateEditor({
             onSheetChange={(field, value) =>
               updateSheet(activeSheetIndex, field, value)
             }
+            onAddItem={(item) => addItem(activeSheetIndex, item)}
           />
         )}
 
@@ -299,6 +301,7 @@ export default function EstimateEditor({
             onSheetChange={(field, value) =>
               updateSheet(activeSheetIndex, field, value)
             }
+            onAddItem={(item) => addItem(activeSheetIndex, item)}
           />
         )}
 
