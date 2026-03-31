@@ -62,6 +62,7 @@ export function useVoice(options: UseVoiceOptions) {
   const processAudioRef = useRef<() => Promise<void>>(async () => {})
 
   // 내부 상태 refs
+  const streamRef = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -75,6 +76,7 @@ export function useVoice(options: UseVoiceOptions) {
     if (!canStartRecording(statusRef.current)) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
       const recorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
@@ -89,6 +91,7 @@ export function useVoice(options: UseVoiceOptions) {
 
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
+        streamRef.current = null
         processAudioRef.current()
       }
 
@@ -338,6 +341,7 @@ export function useVoice(options: UseVoiceOptions) {
     playTts,
     clearLastCommand,
     resetClarificationCount,
+    streamRef,
   }
 }
 
