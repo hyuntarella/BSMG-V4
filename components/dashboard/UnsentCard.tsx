@@ -42,7 +42,7 @@ export default function UnsentCard() {
   if (loading) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">미발송</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
         <p className="text-sm text-gray-400">불러오는 중...</p>
       </div>
     )
@@ -51,7 +51,7 @@ export default function UnsentCard() {
   if (error) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">미발송</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     )
@@ -60,7 +60,7 @@ export default function UnsentCard() {
   if (records.length === 0) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">미발송</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
         <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
           미발송 건이 없습니다
         </p>
@@ -70,7 +70,7 @@ export default function UnsentCard() {
 
   return (
     <div>
-      <h2 className="mb-3 text-base font-semibold text-gray-800">
+      <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">
         미발송{' '}
         <span className="ml-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-normal text-red-600">
           {records.length}건

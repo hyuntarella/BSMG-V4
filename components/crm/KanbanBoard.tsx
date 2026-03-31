@@ -216,7 +216,7 @@ export default function KanbanBoard({
                 {/* 카드 목록 */}
                 <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto p-2">
                   {pipelineCards.length === 0 ? (
-                    <p className="py-4 text-center text-xs text-gray-400">레코드 없음</p>
+                    <p className="rounded-md border border-dashed border-gray-300 py-6 text-center text-xs text-gray-400">레코드 없음</p>
                   ) : (
                     pipelineCards.map((record) => (
                       <KanbanCard

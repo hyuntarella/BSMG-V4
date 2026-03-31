@@ -44,7 +44,7 @@ export default function ViewedCard() {
   if (loading) {
     return (
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">견적서 열람 고객</h3>
+        <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">견적서 열람 고객</h3>
         <p className="text-xs text-gray-400">불러오는 중...</p>
       </div>
     )
@@ -53,7 +53,7 @@ export default function ViewedCard() {
   if (records.length === 0) {
     return (
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">견적서 열람 고객</h3>
+        <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">견적서 열람 고객</h3>
         <p className="rounded-lg border border-dashed border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
           열람 기록이 없습니다
         </p>
@@ -63,7 +63,7 @@ export default function ViewedCard() {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-semibold text-gray-700">
+      <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">
         견적서 열람 고객{' '}
         <span className="ml-1 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
           {records.length}

@@ -72,7 +72,7 @@ export default function InlineCell({
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`w-full rounded border border-blue-400 bg-white px-1 py-0.5 text-right text-xs outline-none ${className}`}
+        className={`min-h-[36px] w-full rounded border border-blue-400 bg-white px-1 py-0.5 text-right text-xs outline-none ${className}`}
       />
     )
   }
@@ -80,7 +80,7 @@ export default function InlineCell({
   return (
     <span
       onClick={handleClick}
-      className={`block cursor-pointer rounded px-1 py-0.5 text-right text-xs tabular-nums hover:bg-blue-50 ${readOnly ? 'cursor-default' : ''} ${className}`}
+      className={`block min-h-[36px] cursor-pointer rounded px-1 py-0.5 text-right text-xs tabular-nums leading-[36px] hover:bg-blue-50 ${readOnly ? 'cursor-default' : ''} ${className}`}
     >
       {displayValue || '\u00A0'}
     </span>

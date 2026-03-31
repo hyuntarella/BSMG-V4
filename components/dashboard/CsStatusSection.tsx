@@ -64,7 +64,7 @@ export default function CsStatusSection() {
   if (loading) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">CS 현황</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
         <p className="text-sm text-gray-400">불러오는 중...</p>
       </div>
     )
@@ -73,7 +73,7 @@ export default function CsStatusSection() {
   if (error) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">CS 현황</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     )
@@ -82,7 +82,7 @@ export default function CsStatusSection() {
   if (visible.length === 0) {
     return (
       <div>
-        <h2 className="mb-3 text-base font-semibold text-gray-800">CS 현황</h2>
+        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
         <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
           정보 입력 완료 건이 없습니다
         </p>

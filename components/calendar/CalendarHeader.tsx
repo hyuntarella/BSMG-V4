@@ -85,7 +85,7 @@ export default function CalendarHeader({
       <div className="flex items-center gap-2">
         <button
           onClick={goPrev}
-          className="p-1.5 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
+          className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
           aria-label="이전"
         >
           <ChevronLeft />
@@ -97,7 +97,7 @@ export default function CalendarHeader({
 
         <button
           onClick={goNext}
-          className="p-1.5 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
+          className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
           aria-label="다음"
         >
           <ChevronRight />
@@ -105,7 +105,7 @@ export default function CalendarHeader({
 
         <button
           onClick={goToday}
-          className="ml-2 px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
+          className="ml-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
         >
           오늘
         </button>
@@ -117,7 +117,7 @@ export default function CalendarHeader({
           <button
             key={v}
             onClick={() => onViewChange(v)}
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               view === v
                 ? 'bg-white shadow-sm font-medium text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'

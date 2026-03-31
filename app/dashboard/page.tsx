@@ -39,10 +39,10 @@ export default function DashboardPage() {
           </div>
 
           {/* 견적서 불러오기 버튼 */}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4">
             <button
               onClick={() => setShowLoadModal(true)}
-              className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition"
+              className="w-full rounded-lg bg-brand py-3 text-base font-semibold text-white shadow-sm hover:bg-brand-dark transition"
               data-testid="load-estimate-btn"
             >
               견적서 불러오기
