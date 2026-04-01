@@ -1,6 +1,6 @@
 'use client'
 
-type VoiceBarStatus = 'idle' | 'recording' | 'processing' | 'speaking' | 'listening'
+type VoiceBarStatus = 'idle' | 'recording' | 'processing' | 'speaking'
 
 interface VoiceBarProps {
   status: VoiceBarStatus
@@ -17,7 +17,7 @@ export default function VoiceBar({
   onToggle,
   onStop,
 }: VoiceBarProps) {
-  const isActive = status === 'recording' || status === 'listening'
+  const isActive = status === 'recording'
 
   return (
     <div className={`fixed bottom-0 left-0 right-0 z-50 border-t px-4 py-3 transition-all ${
@@ -64,7 +64,6 @@ function getButtonStyle(status: VoiceBarStatus): string {
     case 'idle':
       return 'bg-accent text-white hover:bg-accent-dark shadow-card hover:shadow-card-hover hover:scale-105'
     case 'recording':
-    case 'listening':
       return 'bg-red-500 text-white animate-pulse shadow-lg'
     case 'processing':
       return 'bg-ink-faint text-ink-muted cursor-not-allowed'
@@ -78,7 +77,6 @@ function getIcon(status: VoiceBarStatus): React.ReactNode {
     case 'idle':
       return <MicIcon />
     case 'recording':
-    case 'listening':
       return <StopIcon />
     case 'processing':
       return <SpinnerIcon />
@@ -90,8 +88,7 @@ function getIcon(status: VoiceBarStatus): React.ReactNode {
 function getAriaLabel(status: VoiceBarStatus): string {
   switch (status) {
     case 'idle': return '녹음 시작'
-    case 'recording':
-    case 'listening': return '듣고 있습니다'
+    case 'recording': return '녹음 중'
     case 'processing': return '처리 중'
     case 'speaking': return 'TTS 중지'
   }
@@ -102,8 +99,7 @@ function getStatusText(status: VoiceBarStatus, seconds: number, lastText: string
     case 'idle':
       return lastText || '탭하여 음성 연결'
     case 'recording':
-    case 'listening':
-      return '듣고 있습니다...'
+      return '녹음 중...'
     case 'processing':
       return '처리 중...'
     case 'speaking':

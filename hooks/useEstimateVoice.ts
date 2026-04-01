@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Estimate } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
 import type { ConfidenceResult } from '@/lib/voice/confidenceRouter'
-import { useRealtimeVoice } from '@/hooks/useRealtimeVoice'
+import { useVoice } from '@/hooks/useVoice'
 import { useVoiceFlow } from '@/hooks/useVoiceFlow'
 import type { FlowState } from '@/lib/voice/voiceFlow'
 import type { TabId } from '@/components/estimate/TabBar'
@@ -30,13 +30,14 @@ interface UseEstimateVoiceOptions {
 }
 
 /**
- * EstimateEditor 음성 통합 훅 (Realtime API 버전).
+ * EstimateEditor 음성 통합 훅.
  *
- * - useRealtimeVoice: OpenAI Realtime WebRTC — STT + 서버 VAD 통합
+ * - useVoice: MediaRecorder → GPT-4o-transcribe (STT) 파이프라인
  * - useVoiceFlow: 면적/벽체/평단가 순서 수집 상태 기계
- * - 키워드 감지: "수정", "그만", "됐어" 등 실시간 감지
+ * - 키워드 감지: "수정", "그만", "됐어" 등 감지
  * - LLM: Claude Sonnet (modify 모드 명령 파싱)
  * - TTS: OpenAI gpt-4o-mini-tts
+ * - 트리거: 스페이스바/볼륨 버튼 push-to-talk (keydown=시작, keyup=종료)
  */
 export function useEstimateVoice({
   estimate,
@@ -226,14 +227,14 @@ export function useEstimateVoice({
   const sendToLlmRef = useRef(sendToLlm)
   sendToLlmRef.current = sendToLlm
 
-  // ── Realtime 전사 콜백 ──
+  // ── STT 전사 콜백 ──
   const handleTranscript = useCallback((text: string) => {
     const normalized = normalizeText(text)
-    console.log('[Realtime] transcript:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
+    console.log('[Voice] transcript:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
 
     // Whisper 프롬프트 환각 방지
     if (text.startsWith('방수 복합 우레탄 견적 바탕정리')) {
-      console.log('[Realtime] prompt hallucination, discarding')
+      console.log('[Voice] prompt hallucination, discarding')
       return
     }
 
@@ -243,7 +244,7 @@ export function useEstimateVoice({
     const action = matchKeyword(normalized, isEditModeRef.current, estimate.sheets.length > 0)
 
     if (action === 'exit_edit') {
-      console.log('[Realtime] "그만" → 수정 모드 종료')
+      console.log('[Voice] "그만" → 수정 모드 종료')
       setIsEditMode(false)
       setPendingConfirm(false)
       callbacksRef.current.addLog('assistant', '종료합니다.')
@@ -251,14 +252,14 @@ export function useEstimateVoice({
       return
     }
     if (action === 'enter_edit') {
-      console.log('[Realtime] "수정" → 수정 모드 진입')
+      console.log('[Voice] "수정" → 수정 모드 진입')
       setIsEditMode(true)
       callbacksRef.current.addLog('assistant', '수정 모드.')
       playTtsRef.current('수정 모드.')
       return
     }
     if (action === 'confirm') {
-      console.log('[Realtime] "됐어" → 확정')
+      console.log('[Voice] "됐어" → 확정')
       callbacksRef.current.addLog('assistant', '확인.')
       playTtsRef.current('확인.')
       return
@@ -320,28 +321,27 @@ export function useEstimateVoice({
     sendToLlmRef.current(text)
   }, [estimate, activeSheetIndex])
 
-  // ── Realtime Voice 훅 ──
-  const realtime = useRealtimeVoice({
-    onTranscript: handleTranscript,
-    onSpeechStart: () => {
-      console.log('[Realtime] user speaking')
-    },
-    onSpeechEnd: () => {
-      console.log('[Realtime] user stopped')
+  // ── useVoice 훅 (MediaRecorder → Whisper STT) ──
+  const voiceHook = useVoice({
+    mode: 'modify',
+    skipLlm: true,
+    onSttText: (text: string) => {
+      handleTranscript(text)
+      return true // LLM 건너뜀 — handleTranscript 내부에서 sendToLlm 호출
     },
     onError: (err) => {
-      console.error('[Realtime] error:', err)
+      console.error('[Voice] error:', err)
     },
   })
 
   // playTts ref 동기화
-  playTtsRef.current = realtime.playTts
+  playTtsRef.current = voiceHook.playTts
 
   // ── voiceFlow 훅 ──
   const voiceFlow = useVoiceFlow({
-    startRecording: () => { realtime.unmute() },
-    stopRecording: () => { realtime.mute() },
-    playTts: realtime.playTts,
+    startRecording: voiceHook.startRecording,
+    stopRecording: voiceHook.stopRecording,
+    playTts: voiceHook.playTts,
     onComplete: (state: FlowState) => {
       initFromVoiceFlow({
         area: state.area ?? 100,
@@ -357,32 +357,49 @@ export function useEstimateVoice({
   // voiceFlowRef 동기화
   voiceFlowRef.current = voiceFlow
 
-  // ── 키보드 단축키 (Space/볼륨) ──
+  // ── 키보드 단축키: push-to-talk (keydown=시작, keyup=종료) ──
+  const isKeyDownRef = useRef(false)
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const isVoiceKey = (e: KeyboardEvent) =>
+      e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === ' ' || e.code === 'Space'
+
+    const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (!isVoiceKey(e)) return
 
-      if (e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === ' ' || e.code === 'Space') {
-        e.preventDefault()
-        realtime.toggleRecording()
-      }
+      e.preventDefault()
+      if (isKeyDownRef.current) return // 키 반복 무시
+      isKeyDownRef.current = true
+      voiceHook.startRecording()
     }
 
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [realtime.toggleRecording])
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (!isVoiceKey(e)) return
+      if (!isKeyDownRef.current) return
+      isKeyDownRef.current = false
+      voiceHook.stopRecording()
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('keyup', onKeyUp)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keyup', onKeyUp)
+    }
+  }, [voiceHook.startRecording, voiceHook.stopRecording])
 
   // ── VoiceBar 호환 인터페이스 ──
   const voice = {
-    status: realtime.status as 'idle' | 'recording' | 'processing' | 'speaking',
-    seconds: realtime.seconds,
-    lastText: realtime.lastText,
-    toggleRecording: realtime.toggleRecording,
-    stopSpeaking: realtime.stopSpeaking,
-    playTts: realtime.playTts,
-    startRecording: realtime.connect,
-    stopRecording: realtime.disconnect,
+    status: voiceHook.status,
+    seconds: voiceHook.seconds,
+    lastText: voiceHook.lastText,
+    toggleRecording: voiceHook.toggleRecording,
+    stopSpeaking: voiceHook.stopSpeaking,
+    playTts: voiceHook.playTts,
+    startRecording: voiceHook.startRecording,
+    stopRecording: voiceHook.stopRecording,
   }
 
   return {
