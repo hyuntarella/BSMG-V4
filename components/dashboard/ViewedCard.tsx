@@ -43,18 +43,18 @@ export default function ViewedCard() {
 
   if (loading) {
     return (
-      <div>
-        <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">견적서 열람 고객</h3>
-        <p className="text-xs text-gray-400">불러오는 중...</p>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h3 className="mb-2 text-sm font-semibold text-ink">견적서 열람 고객</h3>
+        <p className="text-xs text-ink-muted">불러오는 중...</p>
       </div>
     )
   }
 
   if (records.length === 0) {
     return (
-      <div>
-        <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">견적서 열람 고객</h3>
-        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h3 className="mb-2 text-sm font-semibold text-ink">견적서 열람 고객</h3>
+        <p className="rounded-lg border border-dashed border-ink-faint py-4 text-center text-xs text-ink-muted">
           열람 기록이 없습니다
         </p>
       </div>
@@ -62,34 +62,34 @@ export default function ViewedCard() {
   }
 
   return (
-    <div>
-      <h3 className="mb-2 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">
+    <div className="rounded-xl bg-white p-5 shadow-card">
+      <h3 className="mb-2 text-sm font-semibold text-ink">
         견적서 열람 고객{' '}
-        <span className="ml-1 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+        <span className="ml-1 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
           {records.length}
         </span>
       </h3>
 
       <div className="space-y-1.5">
         {records.map((record) => (
-          <div key={record.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+          <div key={record.id} className="flex items-center justify-between rounded-lg border-l-4 border-l-emerald-200 bg-surface-muted px-3 py-2.5 transition-shadow hover:shadow-card">
             <Link
               href={`/estimate/${record.id}`}
               className="min-w-0 flex-1"
             >
-              <p className="truncate font-medium text-gray-800">
+              <p className="truncate text-sm font-medium text-ink">
                 {record.customerName || record.siteName || '(고객명 없음)'}
               </p>
               <div className="flex items-center gap-2">
                 <span
                   className={`text-xs ${
-                    isWithin24h(record.viewedAt) ? 'text-orange-600' : 'text-gray-500'
+                    isWithin24h(record.viewedAt) ? 'font-semibold text-accent-dark' : 'text-ink-secondary'
                   }`}
                 >
                   {formatRelativeTime(record.viewedAt)} 열람
                 </span>
                 {record.totalAmount > 0 && (
-                  <span className="text-xs text-brand">
+                  <span className="text-xs font-semibold text-ink">
                     {fm(record.totalAmount)}원
                   </span>
                 )}
@@ -98,7 +98,7 @@ export default function ViewedCard() {
 
             <button
               onClick={() => handleDismiss(record.id)}
-              className="ml-2 shrink-0 text-lg leading-none text-gray-300 hover:text-gray-500"
+              className="ml-2 shrink-0 text-lg leading-none text-ink-faint hover:text-ink-secondary"
               aria-label="숨기기"
             >
               &times;

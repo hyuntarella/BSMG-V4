@@ -55,17 +55,17 @@ export default function FollowUpCard() {
 
   if (loading) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
-        <p className="text-sm text-gray-400">불러오는 중...</p>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">연락해야 할 곳</h2>
+        <p className="text-sm text-ink-muted">불러오는 중...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">연락해야 할 곳</h2>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     )
@@ -73,9 +73,9 @@ export default function FollowUpCard() {
 
   if (visible.length === 0) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">연락해야 할 곳</h2>
-        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">연락해야 할 곳</h2>
+        <p className="rounded-lg border border-dashed border-ink-faint py-6 text-center text-sm text-ink-muted">
           팔로업 대상이 없습니다
         </p>
       </div>
@@ -83,10 +83,10 @@ export default function FollowUpCard() {
   }
 
   return (
-    <div>
-      <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">
+    <div className="rounded-xl bg-white p-5 shadow-card">
+      <h2 className="mb-3 text-sm font-semibold text-ink">
         연락해야 할 곳{' '}
-        <span className="ml-1 text-sm font-normal text-gray-500">({visible.length}건)</span>
+        <span className="ml-1 text-sm font-normal text-ink-secondary">({visible.length}건)</span>
       </h2>
 
       <div className="space-y-2">
@@ -98,7 +98,7 @@ export default function FollowUpCard() {
       {hasMore && (
         <button
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-2 w-full rounded-lg border border-dashed border-gray-200 py-2 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700"
+          className="mt-3 w-full rounded-lg border border-dashed border-ink-faint py-2 text-xs text-ink-secondary hover:border-ink-muted hover:text-ink transition-colors"
         >
           {expanded ? '접기' : `더보기 (${visible.length - DEFAULT_VISIBLE}건)`}
         </button>
@@ -118,11 +118,13 @@ function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
   const isUrgent = record.daysSince >= 7
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow">
+    <div className={`rounded-lg border-l-4 bg-surface-muted p-3 transition-shadow hover:shadow-card ${
+      isUrgent ? 'border-l-red-400' : 'border-l-accent-200'
+    }`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-0 flex-1 space-y-1">
           {/* 주소 */}
-          <p className="font-medium text-gray-900 truncate">{record.address || '(주소 없음)'}</p>
+          <p className="text-sm font-medium text-ink truncate">{record.address || '(주소 없음)'}</p>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* 경과일수 칩 */}
@@ -130,7 +132,7 @@ function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                 isUrgent
                   ? 'bg-red-100 text-red-600'
-                  : 'bg-orange-100 text-orange-600'
+                  : 'bg-accent-100 text-accent-dark'
               }`}
             >
               -{record.daysSince}일
@@ -138,7 +140,7 @@ function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
 
             {/* 견적금액 */}
             {record.estimateAmount != null && (
-              <span className="text-xs font-medium text-brand">
+              <span className="text-xs font-semibold text-ink">
                 {fm(record.estimateAmount)}원
               </span>
             )}
@@ -155,7 +157,7 @@ function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
         {/* x 버튼 */}
         <button
           onClick={() => onDismiss(record.id)}
-          className="shrink-0 text-gray-300 hover:text-gray-500 text-xl leading-none"
+          className="shrink-0 text-ink-faint hover:text-ink-secondary text-xl leading-none"
           aria-label="숨기기"
           title="숨기기"
         >

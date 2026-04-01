@@ -7,47 +7,59 @@ import CsStatusSection from '@/components/dashboard/CsStatusSection'
 import UnsentCard from '@/components/dashboard/UnsentCard'
 import ViewedCard from '@/components/dashboard/ViewedCard'
 import TodaySchedule from '@/components/dashboard/TodaySchedule'
+import DashboardKpi from '@/components/dashboard/DashboardKpi'
 import LoadEstimateModal from '@/components/estimate/LoadEstimateModal'
 
 export default function DashboardPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-surface">
       <Header />
 
-      <div className="mx-auto max-w-4xl px-4 py-6">
-        {/* 인사 */}
-        <h1 className="mb-6 text-lg font-bold">안녕하세요</h1>
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        {/* 인사 + 날짜 */}
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-ink">안녕하세요</h1>
+          <p className="text-sm text-ink-secondary mt-0.5">{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p>
+        </div>
 
-        <div className="space-y-5">
-          {/* 0. CS 현황 */}
-          <CsStatusSection />
+        {/* KPI 카드 */}
+        <DashboardKpi />
 
-          {/* 1. 미발송 */}
-          <UnsentCard />
+        {/* 2-컬럼 그리드 (데스크탑) */}
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          {/* 좌측 컬럼 */}
+          <div className="space-y-5">
+            {/* 0. CS 현황 */}
+            <CsStatusSection />
 
-          {/* 2. 견적서 열람 고객 */}
-          <ViewedCard />
+            {/* 1. 미발송 */}
+            <UnsentCard />
 
-          {/* 3. 연락해야 할 곳 */}
-          <FollowUpCard />
+            {/* 2. 견적서 열람 고객 */}
+            <ViewedCard />
+          </div>
 
-          {/* 4. 오늘 일정 — Phase 33 */}
-          <div className="mt-6">
+          {/* 우측 컬럼 */}
+          <div className="space-y-5">
+            {/* 3. 연락해야 할 곳 */}
+            <FollowUpCard />
+
+            {/* 4. 오늘 일정 */}
             <TodaySchedule />
           </div>
+        </div>
 
-          {/* 견적서 불러오기 버튼 */}
-          <div className="mt-4">
-            <button
-              onClick={() => setShowLoadModal(true)}
-              className="w-full rounded-lg bg-brand py-3 text-base font-semibold text-white shadow-sm hover:bg-brand-dark transition"
-              data-testid="load-estimate-btn"
-            >
-              견적서 불러오기
-            </button>
-          </div>
+        {/* 견적서 불러오기 버튼 */}
+        <div className="mt-6">
+          <button
+            onClick={() => setShowLoadModal(true)}
+            className="w-full rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-card hover:bg-brand-dark hover:shadow-card-hover transition-all"
+            data-testid="load-estimate-btn"
+          >
+            견적서 불러오기
+          </button>
         </div>
       </div>
 

@@ -63,17 +63,17 @@ export default function CsStatusSection() {
 
   if (loading) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
-        <p className="text-sm text-gray-400">불러오는 중...</p>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">CS 현황</h2>
+        <p className="text-sm text-ink-muted">불러오는 중...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">CS 현황</h2>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     )
@@ -81,9 +81,9 @@ export default function CsStatusSection() {
 
   if (visible.length === 0) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">CS 현황</h2>
-        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">CS 현황</h2>
+        <p className="rounded-lg border border-dashed border-ink-faint py-6 text-center text-sm text-ink-muted">
           정보 입력 완료 건이 없습니다
         </p>
       </div>
@@ -91,9 +91,9 @@ export default function CsStatusSection() {
   }
 
   return (
-    <div>
-      <h2 className="mb-3 text-base font-semibold text-gray-800">
-        CS 현황 <span className="ml-1 text-sm font-normal text-gray-500">({visible.length}건)</span>
+    <div className="rounded-xl bg-white p-5 shadow-card">
+      <h2 className="mb-3 text-sm font-semibold text-ink">
+        CS 현황 <span className="ml-1 text-sm font-normal text-ink-secondary">({visible.length}건)</span>
       </h2>
       <div className="space-y-2">
         {visible.map((record) => (

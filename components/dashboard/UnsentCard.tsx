@@ -41,17 +41,17 @@ export default function UnsentCard() {
 
   if (loading) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
-        <p className="text-sm text-gray-400">불러오는 중...</p>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">미발송</h2>
+        <p className="text-sm text-ink-muted">불러오는 중...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">미발송</h2>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     )
@@ -59,9 +59,9 @@ export default function UnsentCard() {
 
   if (records.length === 0) {
     return (
-      <div>
-        <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">미발송</h2>
-        <p className="rounded-lg border border-dashed border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">미발송</h2>
+        <p className="rounded-lg border border-dashed border-ink-faint py-6 text-center text-sm text-ink-muted">
           미발송 건이 없습니다
         </p>
       </div>
@@ -69,8 +69,8 @@ export default function UnsentCard() {
   }
 
   return (
-    <div>
-      <h2 className="mb-3 border-l-4 border-brand pl-2 text-base font-semibold text-gray-800">
+    <div className="rounded-xl bg-white p-5 shadow-card">
+      <h2 className="mb-3 text-sm font-semibold text-ink">
         미발송{' '}
         <span className="ml-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-normal text-red-600">
           {records.length}건
@@ -86,7 +86,7 @@ export default function UnsentCard() {
       {hasMore && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs text-blue-500 hover:underline"
+          className="mt-3 w-full rounded-lg border border-dashed border-ink-faint py-2 text-xs text-ink-secondary hover:border-ink-muted hover:text-ink transition-colors"
         >
           {expanded ? '접기' : `더보기 (${records.length - DEFAULT_VISIBLE}건 더)`}
         </button>
@@ -104,15 +104,15 @@ interface UnsentItemProps {
 
 function UnsentItem({ record, onDismiss }: UnsentItemProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm">
+    <div className="rounded-lg border-l-4 border-l-red-300 bg-surface-muted p-3 transition-shadow hover:shadow-card">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <p className="text-sm font-medium text-gray-900 truncate">{record.address}</p>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-sm font-medium text-ink truncate">{record.address}</p>
           {record.name && (
-            <p className="text-xs text-gray-500 truncate">{record.name}</p>
+            <p className="text-xs text-ink-secondary truncate">{record.name}</p>
           )}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-600">
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
               -{record.daysSince}일
             </span>
             {record.manager && (
@@ -124,7 +124,7 @@ function UnsentItem({ record, onDismiss }: UnsentItemProps) {
         </div>
         <button
           onClick={() => onDismiss(record.id)}
-          className="shrink-0 text-xl leading-none text-gray-300 hover:text-gray-500"
+          className="shrink-0 text-xl leading-none text-ink-faint hover:text-ink-secondary"
           aria-label="숨기기"
           title="숨기기"
         >

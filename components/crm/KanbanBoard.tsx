@@ -139,8 +139,8 @@ export default function KanbanBoard({
   return (
     <div className="relative flex flex-col">
       {/* 탭 바 */}
-      <div className="overflow-x-auto border-b bg-white">
-        <div className="flex min-w-max px-2 pt-2">
+      <div className="overflow-x-auto border-b border-ink-faint/30 bg-white">
+        <div className="flex min-w-max px-2 pt-1">
           {STAGE_TABS.map((stage) => {
             const isActive = stage === activeStage;
             const stageCount =
@@ -161,20 +161,23 @@ export default function KanbanBoard({
               <button
                 key={stage}
                 onClick={() => onStageChange(stage)}
-                className={`flex items-center gap-1.5 rounded-t-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors relative ${
                   isActive
-                    ? 'border-b-2 border-brand bg-brand text-white'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    ? 'text-brand'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
               >
+                {isActive && (
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-brand" />
+                )}
                 {STAGE_LABELS[stage]}
                 <span
                   className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-xs font-semibold ${
                     isActive
-                      ? 'bg-white/25 text-white'
+                      ? 'bg-brand/10 text-brand'
                       : stageCount > 0
-                        ? 'bg-brand/10 text-brand'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'bg-surface-muted text-ink-secondary'
+                        : 'bg-surface-muted text-ink-muted'
                   }`}
                 >
                   {stageCount}
@@ -192,7 +195,7 @@ export default function KanbanBoard({
 
       {/* 파이프라인 컬럼들 */}
       {!isPerformanceTab && (
-        <div className="flex gap-3 overflow-x-auto p-3">
+        <div className="flex gap-3 overflow-x-auto p-4">
           {pipelines.map((pipeline) => {
             const pipelineCards = records.filter((r) => r.pipeline === pipeline);
             const isDragOver = dragOverPipeline === pipeline;
@@ -200,31 +203,36 @@ export default function KanbanBoard({
             return (
               <div
                 key={pipeline}
-                className={`flex min-w-[260px] max-w-[300px] flex-shrink-0 flex-col rounded-lg transition-colors ${
+                className={`flex min-w-[280px] max-w-[320px] flex-shrink-0 flex-col rounded-xl transition-colors ${
                   isDragOver
-                    ? 'border-2 border-dashed border-blue-200 bg-blue-50'
-                    : 'bg-gray-50'
+                    ? 'border-2 border-dashed border-brand-200 bg-brand-50'
+                    : 'bg-surface-muted'
                 }`}
                 onDragOver={(e) => handleDragOver(e, pipeline)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, pipeline)}
               >
                 {/* 컬럼 헤더 */}
-                <div className="flex items-center justify-between rounded-t-lg border-b bg-white px-3 py-2">
-                  <span className="text-xs font-semibold text-gray-700">
+                <div className="flex items-center justify-between px-3 py-3">
+                  <span className="text-xs font-bold text-ink tracking-wide uppercase">
                     {pipeline}
-                    <span className={`ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${
-                      pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-gray-100 text-gray-400'
-                    }`}>
-                      {pipelineCards.length}
-                    </span>
+                  </span>
+                  <span className={`min-w-[1.5rem] rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
+                    pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-ink-faint/30 text-ink-muted'
+                  }`}>
+                    {pipelineCards.length}
                   </span>
                 </div>
 
                 {/* 카드 목록 */}
-                <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto p-2">
+                <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto px-2 pb-3">
                   {pipelineCards.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-gray-300 py-6 text-center text-xs text-gray-400">레코드 없음</p>
+                    <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-ink-faint/40 py-8 text-center">
+                      <svg className="h-8 w-8 text-ink-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="text-xs text-ink-muted">카드를 여기로 드래그</p>
+                    </div>
                   ) : (
                     pipelineCards.map((record) => (
                       <KanbanCard
@@ -244,7 +252,7 @@ export default function KanbanBoard({
       {/* FAB 버튼 */}
       <button
         onClick={() => setCreateModalOpen(true)}
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand shadow-lg transition-transform hover:scale-105 hover:shadow-xl"
+        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand shadow-elevated transition-all hover:scale-110 hover:bg-brand-dark active:scale-95"
         aria-label="신규 레코드 생성"
       >
         <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -254,16 +262,15 @@ export default function KanbanBoard({
 
       {/* Undo 토스트 */}
       {undoInfo && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg bg-gray-800 px-4 py-3 text-white shadow-xl">
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-xl bg-brand-900 px-5 py-3.5 text-white shadow-elevated">
           <span className="text-sm">
-            <span className="font-medium">{undoInfo.address}</span>
+            <span className="font-semibold">{undoInfo.address}</span>
             {' → '}
-            <span className="font-medium">{undoInfo.newPipeline}</span>
-            {'으로 이동'}
+            <span className="font-semibold">{undoInfo.newPipeline}</span>
           </span>
           <button
             onClick={handleUndo}
-            className="rounded-md bg-white/20 px-3 py-1 text-xs font-medium hover:bg-white/30"
+            className="rounded-lg bg-white/20 px-3.5 py-1.5 text-xs font-semibold hover:bg-white/30 transition-colors"
           >
             되돌리기
           </button>
