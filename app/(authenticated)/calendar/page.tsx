@@ -238,11 +238,11 @@ export default function CalendarPage() {
   const title = getTitle(currentDate, view);
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       <Header />
 
       <div className="flex-1 flex flex-col mx-auto w-full max-w-6xl px-4 py-4">
-        <div className="bg-white rounded-lg border border-gray-200 flex flex-col overflow-hidden shadow-sm" style={{ minHeight: '600px' }}>
+        <div className="bg-white rounded-xl flex flex-col overflow-hidden shadow-card" style={{ minHeight: '600px' }}>
           {/* 캘린더 헤더 */}
           <CalendarHeader
             currentDate={currentDate}
@@ -256,10 +256,10 @@ export default function CalendarPage() {
           />
 
           {/* 헤더 액션 바 */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50">
+          <div className="flex items-center justify-between px-4 py-2">
             <button
               onClick={() => openCreateModal(toDateStr(currentDate))}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:opacity-90 transition-opacity"
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-brand text-white rounded-full font-medium hover:bg-brand-dark transition-colors shadow-card"
             >
               <span className="text-base leading-none">+</span>
               <span>새 일정</span>

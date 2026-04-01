@@ -80,24 +80,24 @@ export default function CalendarHeader({
   const displayTitle = title ?? `${year}년 ${month}월`;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+    <div className="flex items-center justify-between px-4 py-3">
       {/* 네비게이션 */}
       <div className="flex items-center gap-2">
         <button
           onClick={goPrev}
-          className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
+          className="p-2 rounded-lg hover:bg-surface-muted transition-colors text-ink-secondary"
           aria-label="이전"
         >
           <ChevronLeft />
         </button>
 
-        <h2 className="text-base font-semibold text-gray-900 min-w-[140px] text-center">
+        <h2 className="text-base font-bold text-ink min-w-[140px] text-center">
           {displayTitle}
         </h2>
 
         <button
           onClick={goNext}
-          className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-600"
+          className="p-2 rounded-lg hover:bg-surface-muted transition-colors text-ink-secondary"
           aria-label="다음"
         >
           <ChevronRight />
@@ -105,22 +105,22 @@ export default function CalendarHeader({
 
         <button
           onClick={goToday}
-          className="ml-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
+          className="ml-2 px-3 py-1.5 text-sm border border-ink-faint rounded-lg hover:bg-surface-muted transition-colors text-ink-secondary font-medium"
         >
           오늘
         </button>
       </div>
 
-      {/* 뷰 전환 탭 */}
-      <div className="flex bg-gray-100 rounded-lg p-0.5">
+      {/* 뷰 전환 탭 — pill 스타일 */}
+      <div className="flex gap-0.5 rounded-full bg-surface-muted p-0.5">
         {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => (
           <button
             key={v}
             onClick={() => onViewChange(v)}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            className={`px-3.5 py-1.5 text-sm rounded-full transition-all ${
               view === v
-                ? 'bg-white shadow-sm font-medium text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-brand-900 text-white font-semibold shadow-card'
+                : 'text-ink-secondary hover:text-ink'
             }`}
           >
             {VIEW_LABELS[v]}

@@ -57,14 +57,14 @@ export default function MonthView({ events, currentDate, onDateClick }: MonthVie
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-white">
+    <div className="flex-1 overflow-auto">
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 border-b border-gray-200">
+      <div className="grid grid-cols-7 bg-surface-muted border-b border-ink-faint/20">
         {DOW_LABELS.map((label, i) => (
           <div
             key={label}
-            className={`py-2 text-center text-xs font-medium ${
-              i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'
+            className={`py-2.5 text-center text-xs font-semibold ${
+              i === 0 ? 'text-brand' : i === 6 ? 'text-blue-500' : 'text-ink-secondary'
             }`}
           >
             {label}
@@ -73,7 +73,7 @@ export default function MonthView({ events, currentDate, onDateClick }: MonthVie
       </div>
 
       {/* 날짜 그리드 */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 bg-white">
         {cells.map((cell, idx) => {
           const isToday = cell.dateStr === todayStr;
           const dayEvents = getEventsForDate(events, cell.dateStr);
@@ -85,23 +85,23 @@ export default function MonthView({ events, currentDate, onDateClick }: MonthVie
             <div
               key={cell.dateStr + idx}
               onClick={() => onDateClick(cell.dateStr)}
-              className={`min-h-24 border border-gray-100 p-1 cursor-pointer hover:bg-gray-50 transition-colors ${
-                !cell.isCurrentMonth ? 'bg-gray-50' : ''
+              className={`min-h-24 border border-ink-faint/10 p-1.5 cursor-pointer transition-colors ${
+                !cell.isCurrentMonth ? 'bg-surface-muted/50' : 'hover:bg-accent-50/30'
               }`}
             >
               {/* 날짜 숫자 */}
               <div className="flex justify-start mb-1">
                 <span
-                  className={`text-xs w-6 h-6 flex items-center justify-center rounded-full ${
+                  className={`text-xs w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
                     isToday
-                      ? 'bg-brand text-white font-bold'
+                      ? 'bg-brand text-white font-bold shadow-card'
                       : !cell.isCurrentMonth
-                      ? 'text-gray-300'
+                      ? 'text-ink-faint'
                       : colIndex === 0
-                      ? 'text-red-400 font-medium'
+                      ? 'text-brand font-medium'
                       : colIndex === 6
-                      ? 'text-blue-400 font-medium'
-                      : 'text-gray-700'
+                      ? 'text-blue-500 font-medium'
+                      : 'text-ink'
                   }`}
                 >
                   {cell.day}
@@ -116,13 +116,13 @@ export default function MonthView({ events, currentDate, onDateClick }: MonthVie
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: ev.color }}
                     />
-                    <span className="text-xs text-gray-700 truncate leading-tight">
+                    <span className="text-xs text-ink truncate leading-tight">
                       {ev.crmCustomerName ? `${ev.title} · ${ev.crmCustomerName}` : ev.title}
                     </span>
                   </div>
                 ))}
                 {hiddenCount > 0 && (
-                  <div className="text-xs text-gray-400 px-1">+{hiddenCount}</div>
+                  <div className="text-xs text-ink-muted px-1">+{hiddenCount}</div>
                 )}
               </div>
             </div>

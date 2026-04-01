@@ -119,35 +119,35 @@ interface CsCardProps {
 
 function CsCard({ record, onDismiss, onPipelineChange }: CsCardProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow">
+    <div className="rounded-lg border-l-4 border-l-blue-300 bg-surface-muted p-4 transition-shadow hover:shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="font-semibold text-gray-900 truncate">
+          <p className="font-semibold text-ink truncate">
             {record.customerName ?? '(고객명 없음)'}
           </p>
-          <p className="text-sm text-gray-600 truncate">{record.address}</p>
+          <p className="text-sm text-ink-secondary truncate">{record.address}</p>
           {record.phone && (
             <a
               href={`tel:${record.phone}`}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm font-medium text-brand underline underline-offset-2 decoration-brand/30 hover:decoration-brand"
             >
               {record.phone}
             </a>
           )}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             {record.inquiryChannel && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+              <span className="rounded-full bg-white px-2 py-0.5 text-xs text-ink-secondary">
                 {record.inquiryChannel}
               </span>
             )}
             {record.inquiryDate && (
-              <span className="text-xs text-gray-400">{record.inquiryDate}</span>
+              <span className="text-xs text-ink-muted">{record.inquiryDate}</span>
             )}
           </div>
         </div>
         <button
           onClick={() => onDismiss(record.id)}
-          className="shrink-0 text-gray-300 hover:text-gray-500 text-xl leading-none"
+          className="shrink-0 text-ink-faint hover:text-ink-secondary text-xl leading-none"
           aria-label="연락완료"
           title="연락완료"
         >
@@ -158,7 +158,7 @@ function CsCard({ record, onDismiss, onPipelineChange }: CsCardProps) {
         <select
           defaultValue="정보 입력 완료"
           onChange={(e) => onPipelineChange(record.id, e.target.value)}
-          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full rounded-lg border border-ink-faint/30 bg-white px-3 py-2 text-xs text-ink font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors"
         >
           {PIPELINE_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
