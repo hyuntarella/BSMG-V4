@@ -12,6 +12,7 @@ import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
+import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
 import InitialGuide from './InitialGuide'
 import SettingsPanel from './SettingsPanel'
@@ -129,7 +130,7 @@ export default function EstimateEditor({
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
-  const { voice } = useEstimateVoice({
+  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel } = useEstimateVoice({
     estimate,
     activeSheetIndex,
     setActiveTab,
@@ -282,6 +283,8 @@ export default function EstimateEditor({
             m2={estimate.m2}
             wallM2={estimate.wall_m2}
             margin={getSheetMargin(activeSheetIndex)}
+            getCellHighlightLevel={getCellHighlightLevel}
+            sheetIndex={activeSheetIndex}
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
             onItemTextChange={(i, f, v) => updateItemText(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
@@ -298,7 +301,20 @@ export default function EstimateEditor({
       </main>
 
       <EmailModal open={emailOpen} onSend={handleEmail} onClose={() => setEmailOpen(false)} sending={emailSending} />
-      <VoiceBar status={voice.status} seconds={voice.seconds} lastText={voice.lastText} onToggle={voice.toggleRecording} onStop={voice.stopSpeaking} />
+      <VoiceLogPanel
+        logs={voiceLogs}
+        onFeedback={updateLogFeedback}
+        onCorrection={submitCorrection}
+      />
+      <VoiceBar
+        status={voice.status}
+        seconds={voice.seconds}
+        lastText={voice.lastText}
+        onToggle={voice.toggleRecording}
+        onStop={voice.stopSpeaking}
+        isContinuousMode={voice.isContinuousMode}
+        onContinuousToggle={voice.toggleContinuousRecording}
+      />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )

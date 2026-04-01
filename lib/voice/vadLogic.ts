@@ -7,6 +7,9 @@ export const VAD_SILENCE_DURATION_MS = 5000;
 /** 말한 후 무음 시 종료 대기 시간 (빠른 응답) */
 export const VAD_POST_SPEECH_SILENCE_MS = 2000;
 
+/** 연속 녹음 모드: 발화 후 무음 감지 시간 (2초) */
+export const VAD_CONTINUOUS_SILENCE_MS = 2000;
+
 /**
  * Float32Array 오디오 샘플에서 RMS를 계산하고 dB로 변환한다.
  * @param samples - AnalyserNode.getFloatTimeDomainData() 결과

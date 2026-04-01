@@ -16,6 +16,10 @@ interface WorkSheetProps {
   wallM2?: number
   margin: number
   modifiedCells?: ModifiedCells
+  /** 셀 하이라이트 레벨 (0=없음, 1=직전, 2=2턴전, 3=3턴전) */
+  getCellHighlightLevel?: (cellKey: string) => number
+  /** 현재 시트 인덱스 (하이라이트 키 생성용) */
+  sheetIndex?: number
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onItemTextChange?: (itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => void
   onSheetChange: (field: string, value: number) => void
@@ -32,6 +36,8 @@ export default function WorkSheet({
   wallM2,
   margin,
   modifiedCells,
+  getCellHighlightLevel,
+  sheetIndex = 0,
   onItemChange,
   onItemTextChange,
   onSheetChange,
@@ -152,6 +158,19 @@ export default function WorkSheet({
           <tbody>
             {sheet.items.map((item, idx) => {
               const hasChange = modifiedCells && Array.from(modifiedCells.keys()).some(k => k.includes(`:${idx}:`))
+              // 셀별 하이라이트 레벨 계산
+              const getHl = (field: string) => {
+                if (!getCellHighlightLevel) return 0
+                // voice:sheetIndex:itemName:field 형태로 매칭
+                return getCellHighlightLevel(`voice:${sheetIndex}:${item.name}:${field}`)
+              }
+              const hlClass = (field: string) => {
+                const level = getHl(field)
+                if (level === 1) return 'bg-accent-200/60'   // 직전 수정 — 진한 색
+                if (level === 2) return 'bg-accent-100/50'   // 2턴 전 — 중간 색
+                if (level === 3) return 'bg-accent-50/40'    // 3턴 전 — 연한 색
+                return ''
+              }
               return (
               <tr
                 key={idx}
@@ -190,24 +209,24 @@ export default function WorkSheet({
                     className="text-center text-gray-500"
                   />
                 </td>
-                <td className="px-1 py-1 text-right">
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('qty')}`}>
                   <InlineCell value={item.qty} onSave={v => onItemChange(idx, 'qty', v as number)} />
                 </td>
                 {/* 재료비 단가/금액 */}
-                <td className="px-1 py-1 text-right">
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('mat')}`}>
                   <InlineCell value={item.mat} onSave={v => onItemChange(idx, 'mat', v as number)} />
                 </td>
-                <td className="px-1 py-1 text-right tabular-nums text-gray-600">{fm(item.mat_amount)}</td>
+                <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('mat')}`}>{fm(item.mat_amount)}</td>
                 {/* 노무비 단가/금액 */}
-                <td className="px-1 py-1 text-right">
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('labor')}`}>
                   <InlineCell value={item.labor} onSave={v => onItemChange(idx, 'labor', v as number)} />
                 </td>
-                <td className="px-1 py-1 text-right tabular-nums text-gray-600">{fm(item.labor_amount)}</td>
+                <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('labor')}`}>{fm(item.labor_amount)}</td>
                 {/* 경비 단가/금액 */}
-                <td className="px-1 py-1 text-right">
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('exp')}`}>
                   <InlineCell value={item.exp} onSave={v => onItemChange(idx, 'exp', v as number)} />
                 </td>
-                <td className="px-1 py-1 text-right tabular-nums text-gray-600">{fm(item.exp_amount)}</td>
+                <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('exp')}`}>{fm(item.exp_amount)}</td>
                 {/* 합계 금액 */}
                 <td className="px-1 py-1 text-right font-semibold tabular-nums">{fm(item.total)}</td>
                 <td className="px-1 py-1 text-center">

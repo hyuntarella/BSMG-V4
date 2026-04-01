@@ -7,6 +7,16 @@ import { canStartRecording } from '@/lib/voice/autoResumeLogic'
 export type VoiceStatus = 'idle' | 'recording' | 'processing' | 'speaking'
 export type VoiceMode = 'extract' | 'supplement' | 'modify' | 'command'
 
+/** 연속 녹음 모드 설정 */
+export interface ContinuousRecordingConfig {
+  /** 연속 녹음 활성화 여부 */
+  enabled: boolean
+  /** 발화 후 무음 감지 시간 (ms). 기본 2000 */
+  silenceDurationMs?: number
+  /** 트리거 단어 활성화 여부. 기본 true */
+  triggerWordEnabled?: boolean
+}
+
 interface UseVoiceOptions {
   mode: VoiceMode
   /** modify 모드에서 견적서 상태 JSON */
@@ -27,10 +37,12 @@ interface UseVoiceOptions {
   onSttText?: (text: string) => boolean | void
   /** 에러 콜백 */
   onError?: (error: string) => void
+  /** 연속 녹음 설정 */
+  continuousRecording?: ContinuousRecordingConfig
 }
 
 const MAX_CLARIFICATION_COUNT = 2
-const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평. 150헤베, 50평, 3만5천, 35000원, 면적 200, 벽체 30미터, 평단가 4만원, 재료비 500원, 마진 50퍼센트'
+const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평. 150헤베, 50평, 3만5천, 35000원, 면적 200, 벽체 30미터, 평단가 4만원, 재료비 500원, 마진 50퍼센트, 넣어'
 
 export function useVoice(options: UseVoiceOptions) {
   const {
@@ -44,6 +56,7 @@ export function useVoice(options: UseVoiceOptions) {
     onSttText,
     onClarification,
     onError,
+    continuousRecording,
   } = options
 
   // 콜백 refs — processAudio 클로저에서 항상 최신 콜백 참조
@@ -77,6 +90,18 @@ export function useVoice(options: UseVoiceOptions) {
   /** VAD 또는 강제 종료에 의한 녹음 중지 — true이면 processAudio 건너뜀 */
   const vadStopRef = useRef(false)
 
+  // ── 연속 녹음 상태 ──
+  const [isContinuousMode, setIsContinuousMode] = useState(false)
+  const isContinuousModeRef = useRef(false)
+  isContinuousModeRef.current = isContinuousMode
+  /** 연속 녹음 시 음성 활동 감지 여부 */
+  const hadSpeechRef = useRef(false)
+  /** 연속 녹음 VAD 정리 함수 */
+  const continuousVadCleanupRef = useRef<(() => void) | null>(null)
+  /** 연속 녹음 config ref */
+  const continuousConfigRef = useRef(continuousRecording)
+  continuousConfigRef.current = continuousRecording
+
   // ── 녹음 시작 ──
   const startRecording = useCallback(async () => {
     // TTS 재생 중이거나 이미 녹음 중이면 무시
@@ -98,6 +123,7 @@ export function useVoice(options: UseVoiceOptions) {
       })
 
       chunksRef.current = []
+      hadSpeechRef.current = false
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
@@ -141,6 +167,10 @@ export function useVoice(options: UseVoiceOptions) {
 
   // ── 녹음 중지 ──
   const stopRecording = useCallback(() => {
+    // 연속 녹음 VAD 정리
+    continuousVadCleanupRef.current?.()
+    continuousVadCleanupRef.current = null
+
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
@@ -170,6 +200,29 @@ export function useVoice(options: UseVoiceOptions) {
     }
   }, [status, startRecording, stopRecording])
 
+  // ── 연속 녹음 시작 ──
+  const startContinuousRecording = useCallback(async () => {
+    setIsContinuousMode(true)
+    await startRecording()
+  }, [startRecording])
+
+  // ── 연속 녹음 종료 ──
+  const stopContinuousRecording = useCallback(() => {
+    setIsContinuousMode(false)
+    continuousVadCleanupRef.current?.()
+    continuousVadCleanupRef.current = null
+    forceStopRecording()
+  }, [forceStopRecording])
+
+  // ── 연속 녹음 토글 ──
+  const toggleContinuousRecording = useCallback(() => {
+    if (isContinuousModeRef.current) {
+      stopContinuousRecording()
+    } else {
+      startContinuousRecording()
+    }
+  }, [startContinuousRecording, stopContinuousRecording])
+
   // ── TTS 중지 ──
   const stopSpeaking = useCallback(() => {
     if (audioRef.current) {
@@ -198,6 +251,12 @@ export function useVoice(options: UseVoiceOptions) {
       const { text } = await sttRes.json()
 
       if (!text || text.trim().length === 0) {
+        // 연속 녹음이면 다시 녹음 시작
+        if (isContinuousModeRef.current) {
+          setStatus('idle')
+          setTimeout(() => { if (isContinuousModeRef.current) startRecording() }, 300)
+          return
+        }
         setStatus('idle')
         return
       }
@@ -205,14 +264,24 @@ export function useVoice(options: UseVoiceOptions) {
       // Whisper 프롬프트 환각 방지: 무음 녹음 시 프롬프트를 그대로 출력하는 현상
       if (text.startsWith('방수 복합 우레탄 견적 바탕정리')) {
         console.log('[Voice] STT prompt hallucination detected, discarding')
+        if (isContinuousModeRef.current) {
+          setStatus('idle')
+          setTimeout(() => { if (isContinuousModeRef.current) startRecording() }, 300)
+          return
+        }
         setStatus('idle')
         return
       }
 
+      // STT 텍스트 즉시 표시
       setLastText(text)
 
       // onSttText 콜백 — true 반환 시 LLM 건너뜀
       if (callbacksRef.current.onSttText?.(text)) {
+        // 연속 녹음이면 다시 녹음 시작 (idle 전환은 onSttText 내부에서 처리할 수 있음)
+        if (isContinuousModeRef.current) {
+          // onSttText가 true를 반환하면 자체 처리 — 연속 녹음 재개는 useEstimateVoice에서
+        }
         setStatus('idle')
         return
       }
@@ -265,6 +334,83 @@ export function useVoice(options: UseVoiceOptions) {
 
   // processAudioRef 동기화
   useEffect(() => { processAudioRef.current = processAudio }, [processAudio])
+
+  // ── 연속 녹음 VAD: 2초 무음 감지 → 자동 처리 ──
+  useEffect(() => {
+    const config = continuousConfigRef.current
+    if (!config?.enabled || !isContinuousMode || status !== 'recording' || !recordingStream) {
+      return
+    }
+
+    let active = true
+    const silenceDuration = config.silenceDurationMs ?? 2000
+
+    const ctx = new AudioContext()
+    const source = ctx.createMediaStreamSource(recordingStream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 2048
+    source.connect(analyser)
+
+    const dataArray = new Float32Array(analyser.frequencyBinCount)
+    let silenceStart: number | null = null
+
+    const check = () => {
+      if (!active) return
+      analyser.getFloatTimeDomainData(dataArray)
+      const rms = Math.sqrt(dataArray.reduce((sum, v) => sum + v * v, 0) / dataArray.length)
+      const db = 20 * Math.log10(Math.max(rms, 1e-10))
+
+      if (db < -35) {
+        // 무음
+        if (!silenceStart) {
+          silenceStart = Date.now()
+        } else if (hadSpeechRef.current && Date.now() - silenceStart >= silenceDuration) {
+          // 발화 후 2초 무음 → 현재 녹음을 처리하고 바로 다시 녹음
+          console.log('[ContinuousVAD] 2s silence after speech → process + restart')
+          active = false
+          stopRecording()
+          return
+        }
+      } else {
+        // 소리 감지
+        hadSpeechRef.current = true
+        silenceStart = null
+      }
+    }
+
+    const intervalId = setInterval(check, 100)
+
+    continuousVadCleanupRef.current = () => {
+      active = false
+      clearInterval(intervalId)
+      ctx.close().catch(() => {})
+    }
+
+    return () => {
+      active = false
+      continuousVadCleanupRef.current?.()
+      continuousVadCleanupRef.current = null
+    }
+  }, [isContinuousMode, status, recordingStream, stopRecording])
+
+  // ── 연속 녹음: 처리 완료 후 자동 재녹음 ──
+  const prevStatusForContinuousRef = useRef<VoiceStatus>('idle')
+  useEffect(() => {
+    const prev = prevStatusForContinuousRef.current
+    prevStatusForContinuousRef.current = status
+
+    if (!isContinuousModeRef.current) return
+
+    // processing/speaking → idle 전환 시 자동 재녹음
+    if ((prev === 'processing' || prev === 'speaking') && status === 'idle') {
+      const delay = prev === 'speaking' ? 600 : 300
+      setTimeout(() => {
+        if (isContinuousModeRef.current && statusRef.current === 'idle') {
+          startRecording()
+        }
+      }, delay)
+    }
+  }, [status, startRecording])
 
   // ── modify 응답 처리 (확신도 분기) ──
   const handleModifyResponse = useCallback(
@@ -394,6 +540,11 @@ export function useVoice(options: UseVoiceOptions) {
     resetClarificationCount,
     streamRef,
     recordingStream,
+    // 연속 녹음
+    isContinuousMode,
+    startContinuousRecording,
+    stopContinuousRecording,
+    toggleContinuousRecording,
   }
 }
 
