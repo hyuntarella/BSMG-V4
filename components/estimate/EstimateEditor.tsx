@@ -125,7 +125,7 @@ export default function EstimateEditor({
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
-  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel } = useEstimateVoice({
+  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight } = useEstimateVoice({
     estimate,
     activeSheetIndex,
     setActiveTab,
@@ -278,6 +278,7 @@ export default function EstimateEditor({
             margin={getSheetMargin(activeSheetIndex)}
             getCellHighlightLevel={getCellHighlightLevel}
             sheetIndex={activeSheetIndex}
+            realtimeHighlight={realtimeHighlight}
             onItemChange={(i, f, v) => updateItem(activeSheetIndex, i, f, v)}
             onItemTextChange={(i, f, v) => updateItemText(activeSheetIndex, i, f, v)}
             onSheetChange={(f, v) => updateSheet(activeSheetIndex, f, v)}
@@ -303,6 +304,7 @@ export default function EstimateEditor({
         status={voice.status}
         seconds={voice.seconds}
         lastText={voice.lastText}
+        interimText={voice.interimText}
         processingCount={voice.processingCount}
         onToggle={voice.toggleRecording}
       />

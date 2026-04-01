@@ -1,14 +1,51 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { hasEndingTrigger } from '@/lib/voice/triggerMatcher'
 
 export type VoiceStatus = 'idle' | 'recording' | 'processing'
+
+// ── Web Speech API 타입 (브라우저 전용, lib.dom에 없을 수 있음) ──
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean
+  readonly length: number
+  [index: number]: { readonly transcript: string; readonly confidence: number }
+}
+interface SpeechRecognitionResultList {
+  readonly length: number
+  [index: number]: SpeechRecognitionResult
+}
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number
+  readonly results: SpeechRecognitionResultList
+}
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string
+}
+interface WebSpeechRecognition extends EventTarget {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  maxAlternatives: number
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+  start(): void
+  stop(): void
+  abort(): void
+}
 
 interface UseVoiceOptions {
   /** STT 힌트 프롬프트 */
   sttPrompt?: string
-  /** 세그먼트 완료 콜백 (STT 텍스트) */
+  /** Whisper STT 세그먼트 완료 콜백 */
   onSegment?: (text: string) => void
+  /** Web Speech API interim result 콜백 (실시간) */
+  onInterim?: (text: string) => void
+  /** Web Speech API final result 콜백 */
+  onWebSpeechFinal?: (text: string) => void
+  /** 종결 어미 감지 콜백 (오디오 세그먼트 분리 트리거) */
+  onEndingDetected?: (interimText: string) => void
   /** 에러 콜백 */
   onError?: (error: string) => void
   /** 발화 후 무음 감지 시간 (ms). 기본 2000 */
@@ -20,24 +57,29 @@ interface UseVoiceOptions {
 const DEFAULT_STT_PROMPT = '방수 복합 우레탄 견적 바탕정리 바탕미장 복합시트 보호누름 우레탄도막 상도 톱코트 벽체실링 사다리차 스카이차 폐기물 크랙보수 드라이비트 헤베 평 넣어 넘겨. 150헤베 50평 3만5천 35000원 면적200 벽체30미터 평단가4만원 재료비500원 마진50퍼센트'
 
 /**
- * 핵심 음성 훅 — 연속 녹음 + VAD 세그먼트.
+ * 핵심 음성 훅 — Web Speech API + MediaRecorder 병렬 실행.
  *
- * 버튼 ON → 마이크 열림 → 연속 녹음
- * 발화 후 2초 무음 → 세그먼트 분리 → STT → onSegment(text)
- * 녹음은 계속 유지 (새 MediaRecorder)
- * 버튼 OFF → 마지막 세그먼트 처리 → 마이크 닫힘
+ * Layer 1: Web Speech API (실시간 전사, interim result)
+ * Layer 2: MediaRecorder → Whisper API (정확한 전사)
+ *
+ * 같은 마이크 스트림을 두 곳에서 동시 사용.
+ * 종결 어미 감지 시 즉시 오디오 세그먼트 분리.
+ * 2초 무음은 폴백으로 유지.
  */
 export function useVoice(options: UseVoiceOptions = {}) {
   const {
     sttPrompt = DEFAULT_STT_PROMPT,
     onSegment,
+    onInterim,
+    onWebSpeechFinal,
+    onEndingDetected,
     onError,
     silenceDurationMs = 2000,
     silenceThresholdDb = -35,
   } = options
 
-  const callbacksRef = useRef({ onSegment, onError })
-  callbacksRef.current = { onSegment, onError }
+  const callbacksRef = useRef({ onSegment, onError, onInterim, onWebSpeechFinal, onEndingDetected })
+  callbacksRef.current = { onSegment, onError, onInterim, onWebSpeechFinal, onEndingDetected }
 
   const [status, _setStatus] = useState<VoiceStatus>('idle')
   const statusRef = useRef<VoiceStatus>('idle')
@@ -45,6 +87,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
 
   const [seconds, setSeconds] = useState(0)
   const [lastText, setLastText] = useState('')
+  const [interimText, setInterimText] = useState('')
   const [processingCount, setProcessingCount] = useState(0)
 
   // 내부 refs
@@ -54,13 +97,18 @@ export function useVoice(options: UseVoiceOptions = {}) {
   const analyserRef = useRef<AnalyserNode | null>(null)
   const vadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const isFinalStopRef = useRef(false)
+  const recognitionRef = useRef<WebSpeechRecognition | null>(null)
 
   // VAD 상태
   const hadSpeechRef = useRef(false)
   const silenceStartRef = useRef<number | null>(null)
   const sttPromptRef = useRef(sttPrompt)
   sttPromptRef.current = sttPrompt
+
+  // Web Speech API 지원 여부
+  const webSpeechSupported = useRef(
+    typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+  )
 
   // ── 새 MediaRecorder 생성 (같은 스트림 재사용) ──
   const createRecorder = useCallback((stream: MediaStream): { recorder: MediaRecorder; getChunks: () => Blob[] } => {
@@ -76,7 +124,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
     return { recorder, getChunks: () => chunks }
   }, [])
 
-  // ── 세그먼트 처리 (STT) ──
+  // ── 세그먼트 처리 (Whisper STT) ──
   const processSegment = useCallback(async (chunks: Blob[]) => {
     if (chunks.length === 0) return
 
@@ -108,21 +156,16 @@ export function useVoice(options: UseVoiceOptions = {}) {
     }
   }, [])
 
-  // ── VAD 세그먼트: 현재 녹음 중지 → 새 녹음 시작 → 이전 오디오 처리 ──
+  // ── VAD/종결어미 세그먼트: 현재 녹음 중지 → 새 녹음 시작 → 이전 오디오 처리 ──
   const segmentRecording = useCallback(() => {
     const currentRecorder = recorderRef.current
     const stream = streamRef.current
     if (!currentRecorder || !stream || currentRecorder.state !== 'recording') return
 
-    // 현재 레코더의 chunks 접근을 위해 onstop에서 처리
-    isFinalStopRef.current = false
-
-    // 현재 레코더에서 chunks를 가져올 수 있도록 래퍼 사용
     const oldGetChunks = (currentRecorder as MediaRecorder & { _getChunks?: () => Blob[] })._getChunks
 
     currentRecorder.onstop = () => {
       const chunks = oldGetChunks?.() ?? []
-      // 최소 녹음 시간 체크 (0.5초)
       if (chunks.length > 0) {
         processSegment(chunks)
       }
@@ -130,7 +173,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
 
     currentRecorder.stop()
 
-    // 즉시 새 레코더 시작
+    // 즉시 새 레코더 시작 (같은 stream 재사용 → 갭 거의 없음)
     const { recorder: newRecorder, getChunks } = createRecorder(stream)
     ;(newRecorder as MediaRecorder & { _getChunks?: () => Blob[] })._getChunks = getChunks
     recorderRef.current = newRecorder
@@ -141,7 +184,82 @@ export function useVoice(options: UseVoiceOptions = {}) {
     silenceStartRef.current = null
   }, [createRecorder, processSegment])
 
-  // ── 녹음 시작 (연속 녹음) ──
+  // ── Web Speech API 시작 ──
+  const startWebSpeech = useCallback(() => {
+    if (!webSpeechSupported.current) return
+
+    type SpeechRecognitionCtor = new () => WebSpeechRecognition
+    const Ctor = (window as unknown as Record<string, unknown>).SpeechRecognition as SpeechRecognitionCtor | undefined
+      ?? (window as unknown as Record<string, unknown>).webkitSpeechRecognition as SpeechRecognitionCtor | undefined
+    if (!Ctor) return
+
+    const recognition = new Ctor()
+    recognition.lang = 'ko-KR'
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.maxAlternatives = 1
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = ''
+      let finalText = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalText += result[0].transcript
+        } else {
+          interim += result[0].transcript
+        }
+      }
+
+      if (interim) {
+        setInterimText(interim)
+        callbacksRef.current.onInterim?.(interim)
+
+        // 종결 어미 감지 → 세그먼트 분리 트리거
+        if (hasEndingTrigger(interim)) {
+          callbacksRef.current.onEndingDetected?.(interim)
+          segmentRecording()
+        }
+      }
+
+      if (finalText) {
+        setInterimText('')
+        callbacksRef.current.onWebSpeechFinal?.(finalText)
+      }
+    }
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      // "no-speech" 에러는 무시 (VAD가 처리)
+      if (event.error === 'no-speech' || event.error === 'aborted') return
+      console.warn('[WebSpeech] error:', event.error)
+    }
+
+    recognition.onend = () => {
+      // 녹음 중이면 자동 재시작 (Chrome은 자동 중단하므로)
+      if (statusRef.current === 'recording' && recognitionRef.current) {
+        try { recognition.start() } catch { /* 이미 시작됨 */ }
+      }
+    }
+
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+    } catch {
+      console.warn('[WebSpeech] start failed')
+    }
+  }, [segmentRecording])
+
+  // ── Web Speech API 중지 ──
+  const stopWebSpeech = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch { /* 이미 중지 */ }
+      recognitionRef.current = null
+    }
+    setInterimText('')
+  }, [])
+
+  // ── 녹음 시작 (연속 녹음 + Web Speech API 병렬) ──
   const startRecording = useCallback(async () => {
     if (statusRef.current !== 'idle') return
 
@@ -166,13 +284,17 @@ export function useVoice(options: UseVoiceOptions = {}) {
 
       setStatus('recording')
       setSeconds(0)
+      setInterimText('')
       hadSpeechRef.current = false
       silenceStartRef.current = null
 
       // 시간 카운터
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000)
 
-      // VAD 모니터링 (100ms 간격)
+      // Web Speech API 병렬 시작
+      startWebSpeech()
+
+      // VAD 모니터링 (100ms 간격) — 2초 무음 폴백
       const dataArray = new Float32Array(analyser.frequencyBinCount)
 
       vadIntervalRef.current = setInterval(() => {
@@ -183,15 +305,13 @@ export function useVoice(options: UseVoiceOptions = {}) {
         const db = 20 * Math.log10(Math.max(rms, 1e-10))
 
         if (db >= silenceThresholdDb) {
-          // 소리 감지
           hadSpeechRef.current = true
           silenceStartRef.current = null
         } else if (hadSpeechRef.current) {
-          // 발화 후 무음
           if (!silenceStartRef.current) {
             silenceStartRef.current = Date.now()
           } else if (Date.now() - silenceStartRef.current >= silenceDurationMs) {
-            // 2초 무음 → 세그먼트
+            // 2초 무음 → 세그먼트 (종결 어미 없이 말 끊는 경우 폴백)
             segmentRecording()
           }
         }
@@ -200,10 +320,13 @@ export function useVoice(options: UseVoiceOptions = {}) {
       callbacksRef.current.onError?.('마이크 접근 실패')
       console.error(err)
     }
-  }, [silenceDurationMs, silenceThresholdDb, createRecorder, segmentRecording])
+  }, [silenceDurationMs, silenceThresholdDb, createRecorder, segmentRecording, startWebSpeech])
 
   // ── 녹음 중지 (마지막 세그먼트 처리 + 정리) ──
   const stopRecording = useCallback(() => {
+    // Web Speech API 중지
+    stopWebSpeech()
+
     // VAD 중지
     if (vadIntervalRef.current) {
       clearInterval(vadIntervalRef.current)
@@ -217,7 +340,6 @@ export function useVoice(options: UseVoiceOptions = {}) {
 
     const recorder = recorderRef.current
     if (recorder && recorder.state === 'recording') {
-      isFinalStopRef.current = true
       const getChunks = (recorder as MediaRecorder & { _getChunks?: () => Blob[] })._getChunks
 
       recorder.onstop = () => {
@@ -241,7 +363,6 @@ export function useVoice(options: UseVoiceOptions = {}) {
       }
       recorder.stop()
     } else {
-      // 레코더 없으면 바로 정리
       streamRef.current?.getTracks().forEach(t => t.stop())
       streamRef.current = null
       audioCtxRef.current?.close().catch(() => {})
@@ -250,7 +371,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
       recorderRef.current = null
       setStatus('idle')
     }
-  }, [processSegment])
+  }, [processSegment, stopWebSpeech])
 
   // ── 토글 ──
   const toggleRecording = useCallback(() => {
@@ -268,6 +389,9 @@ export function useVoice(options: UseVoiceOptions = {}) {
       if (timerRef.current) clearInterval(timerRef.current)
       streamRef.current?.getTracks().forEach(t => t.stop())
       audioCtxRef.current?.close().catch(() => {})
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop() } catch { /* ok */ }
+      }
     }
   }, [])
 
@@ -275,6 +399,8 @@ export function useVoice(options: UseVoiceOptions = {}) {
     status,
     seconds,
     lastText,
+    /** Web Speech API 실시간 전사 텍스트 */
+    interimText,
     /** 현재 백그라운드에서 처리 중인 세그먼트 수 */
     processingCount,
     startRecording,

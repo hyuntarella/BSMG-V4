@@ -10,6 +10,16 @@ import InlineCell from './InlineCell'
 import MarginGauge from './MarginGauge'
 import AddItemModal from './AddItemModal'
 
+/** 실시간 음성 감지 하이라이트 (Web Speech API interim) */
+export interface RealtimeHighlight {
+  /** 감지된 공종명 (행 노란 하이라이트) */
+  itemName?: string
+  /** 감지된 필드 (셀 포커스 테두리) */
+  field?: string
+  /** 미리보기 값 (연한 색 텍스트) */
+  previewValue?: number
+}
+
 interface WorkSheetProps {
   sheet: EstimateSheet
   m2: number
@@ -20,6 +30,8 @@ interface WorkSheetProps {
   getCellHighlightLevel?: (cellKey: string) => number
   /** 현재 시트 인덱스 (하이라이트 키 생성용) */
   sheetIndex?: number
+  /** 실시간 음성 감지 하이라이트 (Web Speech API interim) */
+  realtimeHighlight?: RealtimeHighlight
   onItemChange: (itemIndex: number, field: string, value: number) => void
   onItemTextChange?: (itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => void
   onSheetChange: (field: string, value: number) => void
@@ -38,6 +50,7 @@ export default function WorkSheet({
   modifiedCells,
   getCellHighlightLevel,
   sheetIndex = 0,
+  realtimeHighlight,
   onItemChange,
   onItemTextChange,
   onSheetChange,
@@ -161,22 +174,27 @@ export default function WorkSheet({
               // 셀별 하이라이트 레벨 계산
               const getHl = (field: string) => {
                 if (!getCellHighlightLevel) return 0
-                // voice:sheetIndex:itemName:field 형태로 매칭
                 return getCellHighlightLevel(`voice:${sheetIndex}:${item.name}:${field}`)
               }
               const hlClass = (field: string) => {
                 const level = getHl(field)
-                if (level === 1) return 'bg-accent-200/60'   // 직전 수정 — 진한 색
-                if (level === 2) return 'bg-accent-100/50'   // 2턴 전 — 중간 색
-                if (level === 3) return 'bg-accent-50/40'    // 3턴 전 — 연한 색
+                if (level === 1) return 'bg-accent-200/60'
+                if (level === 2) return 'bg-accent-100/50'
+                if (level === 3) return 'bg-accent-50/40'
                 return ''
               }
+              // 실시간 하이라이트 (Web Speech API interim)
+              const isRealtimeRow = realtimeHighlight?.itemName === item.name
+              const isRealtimeCell = (field: string) =>
+                isRealtimeRow && realtimeHighlight?.field === field
+              const realtimePreview = (field: string) =>
+                isRealtimeCell(field) ? realtimeHighlight?.previewValue : undefined
               return (
               <tr
                 key={idx}
                 className={`border-b border-gray-200 hover:bg-blue-50/50 ${
                   item.is_equipment ? 'bg-amber-50/50' : ''
-                } ${hasChange ? 'bg-yellow-50' : ''}`}
+                } ${hasChange ? 'bg-yellow-50' : ''} ${isRealtimeRow ? 'bg-yellow-100/60' : ''}`}
               >
                 <td className="px-2 py-1 text-center text-gray-400">{item.sort_order}</td>
                 <td className="px-2 py-1 font-medium">
@@ -213,18 +231,27 @@ export default function WorkSheet({
                   <InlineCell value={item.qty} onSave={v => onItemChange(idx, 'qty', v as number)} />
                 </td>
                 {/* 재료비 단가/금액 */}
-                <td className={`px-1 py-1 text-right transition-colors ${hlClass('mat')}`}>
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('mat')} ${isRealtimeCell('mat') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.mat} onSave={v => onItemChange(idx, 'mat', v as number)} />
+                  {realtimePreview('mat') !== undefined && (
+                    <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('mat')!)}</span>
+                  )}
                 </td>
                 <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('mat')}`}>{fm(item.mat_amount)}</td>
                 {/* 노무비 단가/금액 */}
-                <td className={`px-1 py-1 text-right transition-colors ${hlClass('labor')}`}>
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('labor')} ${isRealtimeCell('labor') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.labor} onSave={v => onItemChange(idx, 'labor', v as number)} />
+                  {realtimePreview('labor') !== undefined && (
+                    <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('labor')!)}</span>
+                  )}
                 </td>
                 <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('labor')}`}>{fm(item.labor_amount)}</td>
                 {/* 경비 단가/금액 */}
-                <td className={`px-1 py-1 text-right transition-colors ${hlClass('exp')}`}>
+                <td className={`px-1 py-1 text-right transition-colors ${hlClass('exp')} ${isRealtimeCell('exp') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.exp} onSave={v => onItemChange(idx, 'exp', v as number)} />
+                  {realtimePreview('exp') !== undefined && (
+                    <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('exp')!)}</span>
+                  )}
                 </td>
                 <td className={`px-1 py-1 text-right tabular-nums text-gray-600 transition-colors ${hlClass('exp')}`}>{fm(item.exp_amount)}</td>
                 {/* 합계 금액 */}

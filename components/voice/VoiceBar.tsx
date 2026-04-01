@@ -6,6 +6,8 @@ interface VoiceBarProps {
   status: VoiceBarStatus
   seconds: number
   lastText: string
+  /** Web Speech API 실시간 전사 텍스트 */
+  interimText?: string
   /** 백그라운드 처리 중인 세그먼트 수 */
   processingCount?: number
   onToggle: () => void
@@ -15,6 +17,7 @@ export default function VoiceBar({
   status,
   seconds,
   lastText,
+  interimText = '',
   processingCount = 0,
   onToggle,
 }: VoiceBarProps) {
@@ -39,12 +42,24 @@ export default function VoiceBar({
 
         {/* 상태 텍스트 */}
         <div className="min-w-0 flex-1">
-          <p className={`truncate text-sm font-medium ${isActive ? 'text-red-700' : 'text-ink'}`}>
-            {getStatusText(status, lastText)}
-          </p>
+          {/* 실시간 전사 텍스트 (녹음 중 + interim이 있을 때) */}
+          {isActive && interimText ? (
+            <p className="truncate text-sm font-medium text-red-700">
+              {interimText}
+            </p>
+          ) : (
+            <p className={`truncate text-sm font-medium ${isActive ? 'text-red-700' : 'text-ink'}`}>
+              {getStatusText(status, lastText)}
+            </p>
+          )}
           {status === 'idle' && (
             <p className="text-xs text-ink-muted">
               탭하여 음성 연결 · Space
+            </p>
+          )}
+          {isActive && !interimText && (
+            <p className="text-xs text-red-400">
+              듣고 있습니다...
             </p>
           )}
           {isActive && processingCount > 0 && (

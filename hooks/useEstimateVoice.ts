@@ -11,6 +11,8 @@ import { hasTriggerWord, removeTriggerWord, isStopWord } from '@/lib/voice/trigg
 import { COMPLEX_BASE, URETHANE_BASE } from '@/lib/estimate/constants'
 import type { VoiceLogEntry } from '@/lib/voice/voiceLogTypes'
 import type { CorrectionEntry, AvailableItem } from '@/lib/voice/prompts'
+import { parseCommand, detectRealtime } from '@/lib/voice/realtimeParser'
+import type { RealtimeHighlight } from '@/components/estimate/WorkSheet'
 
 // ── 인터페이스 ──
 
@@ -36,17 +38,23 @@ const SKIP_PATTERNS = /(?:넘겨|넘겨줘|넘기자|넘기|넘겨라|시작)\s*
 let globalTurnCounter = 0
 
 /**
- * EstimateEditor 음성 통합 훅.
+ * EstimateEditor 음성 통합 훅 — 3단 파이프라인.
  *
- * TTS 없음. 속도 최우선.
+ * Layer 1: Web Speech API (실시간, 무료, 항상 ON)
+ *   - 화면에 단어 즉시 표시 (interim result)
+ *   - 공종명 감지 → 시트 행 하이라이트
+ *   - 필드명 감지 → 해당 셀 포커스 테두리
+ *   - 숫자+단위 감지 → 값 미리보기 (연한 색)
+ *   - 종결 어미 감지 → 즉시 오디오 세그먼트
+ *   - 단순 명령 패턴 → 즉시 실행 (LLM 안 거침)
  *
- * 최초 생성 (시트 없음):
- *   버튼 ON → 연속 녹음 → 자유 발화 → "넘겨"/2초 무음 세그먼트 축적
- *   → "넘겨" 감지 시 전체 텍스트 LLM extract → 시트 즉시 생성 → 녹음 유지
+ * Layer 2: Whisper API (정확, 백그라운드)
+ *   - 종결 어미 트리거 시 해당 구간 오디오 전송
+ *   - 단순 명령 → Layer 1 결과 검증 (틀리면 롤백+재실행)
+ *   - 복잡한 명령 → 정확한 텍스트를 Layer 3으로
  *
- * 수정 (시트 있음):
- *   녹음 중 발화 → "넣어"/2초 무음 → 세그먼트 STT → LLM modify → 시트 반영
- *   → 로그에 표시 → 녹음 유지 → 버튼 OFF로 종료
+ * Layer 3: Claude Sonnet LLM (복잡한 명령만)
+ *   - 총액 역산, 일괄 조정, 패턴 매칭 실패
  */
 export function useEstimateVoice({
   estimate,
@@ -102,6 +110,16 @@ export function useEstimateVoice({
   const [currentTurn, setCurrentTurn] = useState(0)
   const [cellTurns, setCellTurns] = useState<Map<string, number>>(new Map())
 
+  // ── 실시간 하이라이트 (Web Speech API interim) ──
+  const [realtimeHighlight, setRealtimeHighlight] = useState<RealtimeHighlight>({})
+
+  // ── 규칙 파서로 즉시 실행한 결과 추적 (Whisper 검증용) ──
+  const lastRuleResultRef = useRef<{
+    command: VoiceCommand
+    webSpeechText: string
+    snapshotSaved: boolean
+  } | null>(null)
+
   // stale closure 방지
   const estimateRef = useRef(estimate)
   estimateRef.current = estimate
@@ -117,6 +135,14 @@ export function useEstimateVoice({
       name: b.name, unit: b.unit, mat: 0, labor: 0, exp: 0, aliases: getAliases(b.name),
     })),
   ]
+
+  /** 현재 시트의 공종명 목록 */
+  const getSheetItemNames = useCallback((): string[] => {
+    const est = estimateRef.current
+    const idx = activeSheetIndexRef.current
+    if (idx < 0 || idx >= est.sheets.length) return []
+    return est.sheets[idx].items.map(it => it.name)
+  }, [])
 
   // ── 견적서 상태 JSON ──
   const buildEstimateContext = useCallback(() => {
@@ -135,7 +161,7 @@ export function useEstimateVoice({
     })
   }, [])
 
-  // ── LLM modify 호출 ──
+  // ── LLM modify 호출 (Layer 3) ──
   const sendToModifyLlm = useCallback(async (text: string) => {
     try {
       const { getModifySystem } = require('@/lib/voice/prompts')
@@ -183,7 +209,6 @@ export function useEstimateVoice({
       const data = await res.json()
       console.log('[LLM] extract:', data)
 
-      // 견적서 생성
       const area = data.area ?? 100
       const wallM2 = data.wallM2 ?? data.wall_m2 ?? 0
       const complexPpp = data.complexPpp ?? null
@@ -279,15 +304,71 @@ export function useEstimateVoice({
   sendToModifyLlmRef.current = sendToModifyLlm
   const sendToExtractLlmRef = useRef(sendToExtractLlm)
   sendToExtractLlmRef.current = sendToExtractLlm
+  const handleModifyCommandsRef = useRef(handleModifyCommands)
+  handleModifyCommandsRef.current = handleModifyCommands
 
-  // ── 세그먼트 처리 콜백 (useVoice의 onSegment) ──
+  // ── Layer 1: Web Speech API interim result 처리 (실시간 피드백) ──
+  const handleInterim = useCallback((text: string) => {
+    if (estimateRef.current.sheets.length === 0) return // 최초 모드에서는 무시
+
+    const sheetItems = getSheetItemNames()
+    const detection = detectRealtime(text, sheetItems)
+
+    setRealtimeHighlight({
+      itemName: detection.itemName,
+      field: detection.field,
+      previewValue: detection.previewValue,
+    })
+  }, [getSheetItemNames])
+
+  // ── Layer 1: 종결 어미 감지 시 규칙 파서로 즉시 실행 ──
+  const handleEndingDetected = useCallback((interimText: string) => {
+    if (estimateRef.current.sheets.length === 0) return // 최초 모드 제외
+
+    // 실시간 하이라이트 초기화
+    setRealtimeHighlight({})
+
+    const sheetItems = getSheetItemNames()
+    const result = parseCommand(interimText, sheetItems)
+
+    if (result.success && result.command) {
+      // 규칙 파서 즉시 실행
+      console.log('[RuleParser] 즉시 실행:', result.command)
+      callbacksRef.current.saveSnapshot('음성 수정 (규칙파서)', 'voice')
+      const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
+      callbacksRef.current.applyVoiceCommands([result.command], targetSheet)
+
+      // Whisper 검증용 저장
+      lastRuleResultRef.current = {
+        command: result.command,
+        webSpeechText: interimText,
+        snapshotSaved: true,
+      }
+
+      // 로그 + 하이라이트
+      const summary = `${result.command.target ?? ''} ${result.command.field ?? result.command.action} ${result.command.value ?? (result.command.delta ? (result.command.delta > 0 ? '+' : '') + result.command.delta : '')}`.trim()
+      callbacksRef.current.addLog('user', interimText, [result.command], summary)
+
+      const newTurn = ++globalTurnCounter
+      setCurrentTurn(newTurn)
+      setCellTurns(prev => {
+        const next = new Map(prev)
+        if (result.command!.target) {
+          next.set(`voice:${targetSheet}:${result.command!.target}:${result.command!.field ?? result.command!.action}`, newTurn)
+        }
+        return next
+      })
+    }
+    // needsLlm인 경우 → Whisper(onSegment)에서 LLM으로 처리됨
+  }, [getSheetItemNames])
+
+  // ── Layer 2: Whisper 세그먼트 처리 (검증 + 복잡 명령) ──
   const handleSegment = useCallback((text: string) => {
     console.log('[Voice] segment:', JSON.stringify(text))
     let processedText = text
 
     // 종료 단어 ("끝", "그만")
     if (isStopWord(processedText.trim())) {
-      // 최초 모드에서 축적된 텍스트가 있으면 처리
       if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
         const combined = accumulatedTextRef.current.join(' ')
         accumulatedTextRef.current = []
@@ -309,7 +390,6 @@ export function useEstimateVoice({
       processedText = processedText.trim().replace(SKIP_PATTERNS, '').trim()
     }
 
-    // 텍스트가 비어있으면 무시 (트리거 단어만 있었던 경우)
     const hasContent = processedText.trim().length > 0
 
     // ── 최초 생성 모드 (시트 없음) ──
@@ -319,7 +399,6 @@ export function useEstimateVoice({
       }
 
       if (hadSkip || hadTrigger) {
-        // "넘겨" 또는 "넣어" → 축적된 텍스트 전체를 LLM extract
         const combined = accumulatedTextRef.current.join(' ')
         accumulatedTextRef.current = []
         if (combined.trim()) {
@@ -327,27 +406,66 @@ export function useEstimateVoice({
           sendToExtractLlmRef.current(combined)
         }
       }
-      // 트리거 없으면 축적만 (2초 무음 세그먼트 — 다음 발화 대기)
       return
     }
 
-    // ── 수정 모드 (시트 있음) ──
+    // ── 수정 모드 (시트 있음) — Whisper 검증 + LLM 폴백 ──
     if (!hasContent) return
 
-    // 각 세그먼트를 즉시 LLM modify → 시트 반영
-    sendToModifyLlmRef.current(processedText)
-  }, [])
+    // 규칙 파서가 이미 실행했는지 확인 (Whisper 검증)
+    const lastRule = lastRuleResultRef.current
+    if (lastRule) {
+      lastRuleResultRef.current = null // 1회 소모
 
-  // ── useVoice 훅 ──
+      // Whisper 텍스트로 다시 규칙 파서 실행
+      const sheetItems = getSheetItemNames()
+      const whisperResult = parseCommand(processedText, sheetItems)
+
+      if (whisperResult.success && whisperResult.command) {
+        // Whisper 결과와 비교
+        const same = isSameCommand(lastRule.command, whisperResult.command)
+        if (!same) {
+          // 다르다! → 롤백 + Whisper 결과로 재실행
+          console.log('[Whisper] 검증 실패 — 롤백 + 재실행:', whisperResult.command)
+          callbacksRef.current.undo()
+          handleModifyCommandsRef.current([whisperResult.command], processedText)
+        } else {
+          console.log('[Whisper] 검증 통과')
+        }
+        return
+      }
+
+      if (whisperResult.needsLlm) {
+        // 규칙 파서가 이미 처리했지만 Whisper에서 다른 패턴 → 롤백 + LLM
+        console.log('[Whisper] 규칙 파서 결과 롤백 → LLM으로')
+        callbacksRef.current.undo()
+        sendToModifyLlmRef.current(processedText)
+        return
+      }
+    }
+
+    // 규칙 파서 시도 (종결어미 없이 2초 무음으로 온 경우)
+    const sheetItems = getSheetItemNames()
+    const ruleResult = parseCommand(processedText, sheetItems)
+
+    if (ruleResult.success && ruleResult.command) {
+      // 규칙 파서 성공 → 즉시 실행 (Whisper 텍스트이므로 검증 불필요)
+      handleModifyCommandsRef.current([ruleResult.command], processedText)
+      return
+    }
+
+    // 규칙 파서 실패 → LLM (Layer 3)
+    sendToModifyLlmRef.current(processedText)
+  }, [getSheetItemNames])
+
+  // ── useVoice 훅 (Layer 1 + Layer 2) ──
   const voiceHook = useVoice({
     onSegment: handleSegment,
+    onInterim: handleInterim,
+    onEndingDetected: handleEndingDetected,
     onError: (err) => console.error('[Voice]', err),
     silenceDurationMs: 2000,
   })
-
-  // ── 키보드 단축키: Space push-to-talk ──
-  // (연속 녹음이므로 keydown=시작, keyup는 무시. 토글로 동작)
-  // 실제로는 토글만 사용
 
   // ── 교정 처리 ──
   const submitCorrection = useCallback(async (logId: string, correctionText: string) => {
@@ -379,12 +497,13 @@ export function useEstimateVoice({
   // ── 녹음 시작 시 축적 텍스트 초기화 ──
   const startRecording = useCallback(async () => {
     accumulatedTextRef.current = []
+    setRealtimeHighlight({})
     voiceHook.startRecording()
   }, [voiceHook])
 
   // ── 녹음 종료 시 미처리 축적 텍스트 처리 ──
   const stopRecording = useCallback(() => {
-    // 최초 모드에서 축적된 텍스트가 있으면 처리 ("넘겨" 없이 버튼으로 종료한 경우)
+    setRealtimeHighlight({})
     if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
       const combined = accumulatedTextRef.current.join(' ')
       accumulatedTextRef.current = []
@@ -401,6 +520,7 @@ export function useEstimateVoice({
       status: voiceHook.status,
       seconds: voiceHook.seconds,
       lastText: voiceHook.lastText,
+      interimText: voiceHook.interimText,
       processingCount: voiceHook.processingCount,
       toggleRecording: voiceHook.toggleRecording,
       startRecording,
@@ -412,11 +532,23 @@ export function useEstimateVoice({
     submitCorrection,
     getCellHighlightLevel,
     currentTurn,
+    realtimeHighlight,
   }
 }
 
+// ── 명령 비교 (검증용) ──
+
+function isSameCommand(a: VoiceCommand, b: VoiceCommand): boolean {
+  if (a.action !== b.action) return false
+  if (a.target !== b.target) return false
+  if (a.field !== b.field) return false
+  if (a.value !== undefined && b.value !== undefined) return a.value === b.value
+  if (a.delta !== undefined && b.delta !== undefined) return a.delta === b.delta
+  return true
+}
+
 // ── 공종 줄임말 매핑 ──
-function getAliases(name: string): string[] {
+export function getAliases(name: string): string[] {
   const map: Record<string, string[]> = {
     '바탕정리': ['바정', '바탕'],
     '바탕조정제미장': ['바미', '바탕미장', '미장'],
