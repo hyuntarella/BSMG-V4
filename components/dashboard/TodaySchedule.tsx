@@ -50,8 +50,12 @@ export default function TodaySchedule() {
       {loading ? (
         <p className="text-sm text-ink-muted">불러오는 중...</p>
       ) : events.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-ink-faint py-6 text-center">
-          <p className="text-xs text-ink-muted">오늘 일정이 없습니다</p>
+        <div className="flex flex-col items-center rounded-lg border border-dashed border-ink-faint py-8 text-center">
+          <svg className="h-8 w-8 text-ink-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-sm font-medium text-ink-secondary">오늘 일정 없음</p>
+          <p className="text-xs text-ink-muted mt-0.5">예정된 일정이 없습니다</p>
         </div>
       ) : (
         <div className="rounded-lg bg-surface-muted divide-y divide-white">
