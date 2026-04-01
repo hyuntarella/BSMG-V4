@@ -61,9 +61,13 @@ export default function UnsentCard() {
     return (
       <div className="rounded-xl bg-white p-5 shadow-card">
         <h2 className="mb-3 text-sm font-semibold text-ink">미발송</h2>
-        <p className="rounded-lg border border-dashed border-ink-faint py-6 text-center text-sm text-ink-muted">
-          미발송 건이 없습니다
-        </p>
+        <div className="flex flex-col items-center rounded-lg border border-dashed border-ink-faint py-8 text-center">
+          <svg className="h-8 w-8 text-emerald-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-sm font-medium text-ink-secondary">모두 발송 완료</p>
+          <p className="text-xs text-ink-muted mt-0.5">미발송 건이 없습니다</p>
+        </div>
       </div>
     )
   }

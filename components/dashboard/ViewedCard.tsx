@@ -54,9 +54,14 @@ export default function ViewedCard() {
     return (
       <div className="rounded-xl bg-white p-5 shadow-card">
         <h3 className="mb-2 text-sm font-semibold text-ink">견적서 열람 고객</h3>
-        <p className="rounded-lg border border-dashed border-ink-faint py-4 text-center text-xs text-ink-muted">
-          열람 기록이 없습니다
-        </p>
+        <div className="flex flex-col items-center rounded-lg border border-dashed border-ink-faint py-8 text-center">
+          <svg className="h-8 w-8 text-ink-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <p className="text-sm font-medium text-ink-secondary">아직 열람 기록 없음</p>
+          <p className="text-xs text-ink-muted mt-0.5">고객이 견적서를 열면 여기 표시됩니다</p>
+        </div>
       </div>
     )
   }

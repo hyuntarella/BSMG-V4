@@ -63,10 +63,13 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={onClick}
-      className={`cursor-pointer rounded-xl bg-white p-3.5 shadow-card transition-all hover:shadow-card-hover ${
+      className={`group cursor-pointer rounded-xl bg-white p-3.5 shadow-card transition-all hover:shadow-card-hover hover:-translate-y-0.5 relative overflow-hidden ${
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       }`}
     >
+      {/* hover 시 좌측 브랜드 바 */}
+      <div className="absolute left-0 top-0 bottom-0 w-0 bg-brand transition-all group-hover:w-1" />
+
       {/* 주소 */}
       <p className="truncate text-sm font-semibold text-ink">{record.address}</p>
 
