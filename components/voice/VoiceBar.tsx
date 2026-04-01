@@ -17,9 +17,15 @@ export default function VoiceBar({
   onToggle,
   onStop,
 }: VoiceBarProps) {
+  const isActive = status === 'recording' || status === 'listening'
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-4 py-3 shadow-lg">
-      <div className="mx-auto flex max-w-4xl items-center gap-3">
+    <div className={`fixed bottom-0 left-0 right-0 z-50 border-t px-4 py-3 transition-all ${
+      isActive
+        ? 'border-red-200 bg-red-50/95 backdrop-blur-md'
+        : 'border-ink-faint/30 bg-white/90 backdrop-blur-md shadow-elevated'
+    }`}>
+      <div className="mx-auto flex max-w-4xl items-center gap-4">
         {/* 메인 버튼 */}
         <button
           onClick={status === 'speaking' ? onStop : onToggle}
@@ -32,19 +38,19 @@ export default function VoiceBar({
 
         {/* 상태 텍스트 */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-gray-600">
+          <p className={`truncate text-sm font-medium ${isActive ? 'text-red-700' : 'text-ink'}`}>
             {getStatusText(status, seconds, lastText)}
           </p>
           {status === 'idle' && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-ink-muted">
               탭하여 말하기 · 볼륨 버튼 · Space
             </p>
           )}
         </div>
 
         {/* 녹음 중 시간 표시 */}
-        {(status === 'recording' || status === 'listening') && (
-          <span className="shrink-0 font-mono text-sm text-red-500">
+        {isActive && (
+          <span className="shrink-0 rounded-full bg-red-100 px-3 py-1 font-mono text-sm font-semibold text-red-600">
             {formatTime(seconds)}
           </span>
         )}
@@ -56,14 +62,14 @@ export default function VoiceBar({
 function getButtonStyle(status: VoiceBarStatus): string {
   switch (status) {
     case 'idle':
-      return 'bg-blue-600 text-white hover:bg-blue-700'
+      return 'bg-accent text-white hover:bg-accent-dark shadow-card hover:shadow-card-hover hover:scale-105'
     case 'recording':
     case 'listening':
-      return 'bg-red-500 text-white animate-pulse'
+      return 'bg-red-500 text-white animate-pulse shadow-lg'
     case 'processing':
-      return 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      return 'bg-ink-faint text-ink-muted cursor-not-allowed'
     case 'speaking':
-      return 'bg-green-500 text-white hover:bg-green-600'
+      return 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-card'
   }
 }
 

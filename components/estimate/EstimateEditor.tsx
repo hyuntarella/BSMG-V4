@@ -149,20 +149,22 @@ export default function EstimateEditor({
   const hasComplex = estimate.sheets.some((s) => s.type === '복합')
   const hasUrethane = estimate.sheets.some((s) => s.type === '우레탄')
 
+  const [moreOpen, setMoreOpen] = useState(false)
+
   return (
-    <div className="flex min-h-screen flex-col pb-20">
+    <div className="flex min-h-screen flex-col bg-surface pb-20">
       {/* 헤더 */}
-      <header className="sticky top-0 z-40 border-b bg-white px-3 py-2 shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-brand-800/20 bg-brand-900 px-3 py-2.5 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 shrink-0">
-            <a href="/estimates" className="p-1 text-gray-400 hover:text-gray-600">&larr;</a>
-            <h1 className="text-sm font-bold text-brand">방수명가 견적서</h1>
+            <a href="/estimates" className="p-1 text-brand-300 hover:text-white transition-colors">&larr;</a>
+            <h1 className="text-sm font-bold text-white">방수명가 견적서</h1>
             {estimate.mgmt_no && (
-              <span className="hidden sm:inline text-xs text-gray-400">{estimate.mgmt_no}</span>
+              <span className="hidden sm:inline text-xs text-brand-300">{estimate.mgmt_no}</span>
             )}
             <button
               onClick={() => setSettingsOpen(true)}
-              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-md p-1.5 text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
               aria-label="설정"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -170,63 +172,93 @@ export default function EstimateEditor({
                 <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
               </svg>
             </button>
+            {isDirty && <span className="ml-1 h-2 w-2 rounded-full bg-accent animate-pulse" title="변경됨" />}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <div className="flex items-center gap-2">
+            {/* 주요 액션 */}
             <button
               onClick={handleSave}
               disabled={saving || !estimate.id}
-              className="rounded bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+              className="rounded-lg bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-white/25 disabled:opacity-40 transition-colors"
             >
               {saving ? '저장 중...' : '저장'}
             </button>
             <button
               onClick={handleDownload}
               disabled={downloading || !estimate.id}
-              className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-accent-dark disabled:opacity-40 transition-colors"
             >
               {downloading ? '생성 중...' : '엑셀'}
             </button>
-            <button
-              onClick={handlePdfDownload}
-              disabled={pdfDownloading || !estimate.id}
-              className="rounded border border-brand px-2.5 py-1.5 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
-            >
-              {pdfDownloading ? '생성 중...' : 'PDF'}
-            </button>
-            <button
-              onClick={() => setEmailOpen(true)}
-              disabled={!estimate.id}
-              className="rounded border border-brand px-2.5 py-1.5 text-xs font-medium text-brand hover:bg-red-50 disabled:opacity-50"
-            >
-              이메일
-            </button>
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (estimate.site_name) params.set('address', estimate.site_name);
-                if (estimate.manager_name) params.set('manager', estimate.manager_name);
-                router.push(`/proposal${params.toString() ? '?' + params.toString() : ''}`);
-              }}
-              disabled={!estimate.id}
-              className="rounded border border-green-600 px-2.5 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
-            >
-              제안서
-            </button>
-            {isDirty && <span className="text-xs text-amber-500">변경됨</span>}
-            {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded bg-blue-100 px-2.5 py-1.5 text-xs text-blue-700 hover:bg-blue-200">+ 복합</button>}
-            {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }} className="rounded bg-purple-100 px-2.5 py-1.5 text-xs text-purple-700 hover:bg-purple-200">+ 우레탄</button>}
-            {activeSheetIndex >= 0 && (
+
+            {/* 시트 추가 버튼 — 시트 없을 때 직접 노출 */}
+            {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded-lg bg-blue-500/20 px-2.5 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-500/30 transition-colors">+ 복합</button>}
+            {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }} className="rounded-lg bg-purple-500/20 px-2.5 py-1.5 text-xs font-semibold text-purple-200 hover:bg-purple-500/30 transition-colors">+ 우레탄</button>}
+
+            {/* 더보기 드롭다운 */}
+            <div className="relative">
               <button
-                onClick={() => {
-                  const type = estimate.sheets[activeSheetIndex]?.type
-                  if (window.confirm(`${type} 시트를 삭제하시겠습니까?`)) {
-                    removeSheet(activeSheetIndex)
-                    setActiveTab('compare')
-                  }
-                }}
-                className="rounded border border-red-300 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50"
-              >시트 삭제</button>
-            )}
+                onClick={() => setMoreOpen(!moreOpen)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="더보기"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
+              </button>
+              {moreOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-xl bg-white py-1 shadow-elevated">
+                    <button
+                      onClick={() => { handlePdfDownload(); setMoreOpen(false) }}
+                      disabled={pdfDownloading || !estimate.id}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
+                    >
+                      <span className="text-brand">PDF</span> {pdfDownloading ? '생성 중...' : 'PDF 다운로드'}
+                    </button>
+                    <button
+                      onClick={() => { setEmailOpen(true); setMoreOpen(false) }}
+                      disabled={!estimate.id}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
+                    >
+                      이메일 발송
+                    </button>
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        if (estimate.site_name) params.set('address', estimate.site_name);
+                        if (estimate.manager_name) params.set('manager', estimate.manager_name);
+                        router.push(`/proposal${params.toString() ? '?' + params.toString() : ''}`);
+                        setMoreOpen(false)
+                      }}
+                      disabled={!estimate.id}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
+                    >
+                      제안서 작성
+                    </button>
+                    <hr className="my-1 border-surface-muted" />
+                    {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail'); setMoreOpen(false) }} className="flex w-full px-3 py-2 text-xs text-blue-600 hover:bg-surface-muted">+ 복합 시트</button>}
+                    {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail'); setMoreOpen(false) }} className="flex w-full px-3 py-2 text-xs text-purple-600 hover:bg-surface-muted">+ 우레탄 시트</button>}
+                    {activeSheetIndex >= 0 && (
+                      <button
+                        onClick={() => {
+                          const type = estimate.sheets[activeSheetIndex]?.type
+                          if (window.confirm(`${type} 시트를 삭제하시겠습니까?`)) {
+                            removeSheet(activeSheetIndex)
+                            setActiveTab('compare')
+                          }
+                          setMoreOpen(false)
+                        }}
+                        className="flex w-full px-3 py-2 text-xs text-red-500 hover:bg-surface-muted"
+                      >시트 삭제</button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
