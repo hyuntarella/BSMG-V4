@@ -56,24 +56,29 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
   return (
     <div className="flex flex-col">
       {/* 필터 바 */}
-      <div className="flex flex-wrap items-center gap-2 border-b bg-white px-4 py-2">
-        <input
-          type="text"
-          placeholder="주소, 고객명, 전화번호 검색"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/20"
-        />
+      <div className="flex flex-wrap items-center gap-2 bg-white px-4 py-3 shadow-card">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="주소, 고객명, 전화번호 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="rounded-xl border border-ink-faint/30 bg-surface-muted pl-9 pr-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 focus:bg-white transition-colors"
+          />
+        </div>
         <select
           value={managerFilter}
           onChange={(e) => setManagerFilter(e.target.value)}
-          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand"
+          className="rounded-xl border border-ink-faint/30 bg-surface-muted px-3 py-2 text-sm font-medium text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
         >
           <option value="전체">담당자 전체</option>
           <option value="이창엽">이창엽</option>
           <option value="박민우">박민우</option>
         </select>
-        {loading && <span className="text-xs text-gray-400">로딩 중...</span>}
+        {loading && <span className="text-xs text-ink-muted">로딩 중...</span>}
         {error && <span className="text-xs text-red-500">{error}</span>}
       </div>
 

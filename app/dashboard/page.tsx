@@ -55,12 +55,15 @@ export default function DashboardPage() {
         <div className="mt-6">
           <button
             onClick={() => setShowLoadModal(true)}
-            className="w-full rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-card hover:bg-brand-dark hover:shadow-card-hover transition-all"
+            className="w-full rounded-xl bg-gradient-to-r from-brand to-brand-dark py-4 text-base font-semibold text-white shadow-elevated hover:shadow-lg transition-all hover:scale-[1.005] active:scale-[0.995]"
             data-testid="load-estimate-btn"
           >
             견적서 불러오기
           </button>
         </div>
+
+        {/* 푸터 */}
+        <p className="mt-8 text-center text-xs text-ink-faint">방수명가 v4</p>
       </div>
 
       {/* 견적서 불러오기 모달 */}
