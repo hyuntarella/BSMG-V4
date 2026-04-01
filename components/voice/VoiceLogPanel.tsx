@@ -93,7 +93,15 @@ export default function VoiceLogPanel({
                     {/* 파싱 결과 */}
                     {log.actionSummary && (
                       <div className="flex items-center gap-2 pl-5">
-                        <span className="text-accent-dark">→ {log.actionSummary}</span>
+                        <span className="text-accent-dark">
+                          → {log.actionSummary}
+                          {log.executionDetail?.prevValue !== undefined && (
+                            <span className="text-ink-muted"> ({log.executionDetail.prevValue}→)</span>
+                          )}
+                          {log.executionDetail?.fieldInferred && (
+                            <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700">(추론)</span>
+                          )}
+                        </span>
                         <span className="text-green-500">✓</span>
                         {/* 피드백 버튼 */}
                         {log.feedback === null && (

@@ -7,11 +7,12 @@ import type { VoiceCommand } from '@/lib/voice/commands'
 import type { ConfidenceResult } from '@/lib/voice/confidenceRouter'
 import { useVoice } from '@/hooks/useVoice'
 import type { TabId } from '@/components/estimate/TabBar'
-import { hasTriggerWord, removeTriggerWord, isStopWord } from '@/lib/voice/triggerMatcher'
+import { hasTriggerWord, removeTriggerWord, isStopWord, detectCorrection } from '@/lib/voice/triggerMatcher'
 import { COMPLEX_BASE, URETHANE_BASE } from '@/lib/estimate/constants'
 import type { VoiceLogEntry } from '@/lib/voice/voiceLogTypes'
 import type { CorrectionEntry, AvailableItem } from '@/lib/voice/prompts'
-import { parseCommand, detectRealtime } from '@/lib/voice/realtimeParser'
+import { parseCommand, detectRealtime, matchItemName, inferField } from '@/lib/voice/realtimeParser'
+import type { ParseContext } from '@/lib/voice/realtimeParser'
 import type { RealtimeHighlight } from '@/components/estimate/WorkSheet'
 
 // ── 인터페이스 ──
@@ -79,6 +80,7 @@ export function useEstimateVoice({
     text: string,
     action?: VoiceCommand[],
     actionSummary?: string,
+    executionDetail?: { prevValue?: number; fieldInferred?: boolean },
   ) => {
     const entry: VoiceLogEntry = {
       id: crypto.randomUUID(),
@@ -86,6 +88,7 @@ export function useEstimateVoice({
       text,
       action,
       actionSummary,
+      executionDetail,
       feedback: null,
       timestamp: Date.now(),
     }
@@ -120,6 +123,14 @@ export function useEstimateVoice({
     snapshotSaved: boolean
   } | null>(null)
 
+  // ── 빠른 교정 루프: 마지막 실행 명령 추적 ──
+  const lastExecutedCommandRef = useRef<VoiceCommand | null>(null)
+
+  // ── 불완전 명령 버퍼 (Step 4) ──
+  const pendingBufferRef = useRef<string>('')
+  const bufferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [bufferHint, setBufferHint] = useState<string>('')
+
   // stale closure 방지
   const estimateRef = useRef(estimate)
   estimateRef.current = estimate
@@ -142,6 +153,38 @@ export function useEstimateVoice({
     const idx = activeSheetIndexRef.current
     if (idx < 0 || idx >= est.sheets.length) return []
     return est.sheets[idx].items.map(it => it.name)
+  }, [])
+
+  /** 명령의 이전 값 추출 (실행 상세 로그용) */
+  const getPrevValue = useCallback((cmd: VoiceCommand): number | undefined => {
+    const est = estimateRef.current
+    const idx = activeSheetIndexRef.current
+    if (idx < 0 || idx >= est.sheets.length) return undefined
+    if (cmd.action !== 'update_item' || !cmd.target || !cmd.field) return undefined
+    const item = est.sheets[idx].items.find(it => it.name === cmd.target)
+    if (!item) return undefined
+    const fieldKey = cmd.field as keyof typeof item
+    const val = item[fieldKey]
+    return typeof val === 'number' ? val : undefined
+  }, [])
+
+  /** ParseContext 빌드 (필드 추론용) */
+  const buildParseContext = useCallback((): ParseContext => {
+    const est = estimateRef.current
+    const idx = activeSheetIndexRef.current
+    const sheetState = (idx >= 0 && idx < est.sheets.length)
+      ? est.sheets[idx].items.map(it => ({
+          name: it.name,
+          mat: it.mat,
+          labor: it.labor,
+          exp: it.exp,
+          is_equipment: it.is_equipment ?? false,
+        }))
+      : undefined
+    return {
+      lastCommand: lastExecutedCommandRef.current ?? undefined,
+      sheetState,
+    }
   }, [])
 
   // ── 견적서 상태 JSON ──
@@ -237,7 +280,10 @@ export function useEstimateVoice({
       return
     }
 
-    // 수정 명령
+    // 수정 명령 — 이전값 추출 (로그용)
+    const firstCmd = commands[0]
+    const prevValue = firstCmd ? getPrevValue(firstCmd) : undefined
+
     const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
     callbacksRef.current.saveSnapshot('음성 수정', 'voice')
     const result = callbacksRef.current.applyVoiceCommands(commands, targetSheet)
@@ -247,7 +293,10 @@ export function useEstimateVoice({
       `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
     ).join(', ')
 
-    callbacksRef.current.addLog('user', originalText, commands, summary)
+    callbacksRef.current.addLog('user', originalText, commands, summary, { prevValue })
+
+    // 빠른 교정용 마지막 명령 저장
+    lastExecutedCommandRef.current = commands[commands.length - 1]
 
     if (result.executed) {
       const newTurn = ++globalTurnCounter
@@ -311,6 +360,36 @@ export function useEstimateVoice({
   const handleInterim = useCallback((text: string) => {
     if (estimateRef.current.sheets.length === 0) return // 최초 모드에서는 무시
 
+    // 빠른 교정 루프: "아니" 계열 감지
+    const correction = detectCorrection(text)
+    if (correction) {
+      const lastCmd = lastExecutedCommandRef.current
+      if (!lastCmd) return
+
+      // "아니" 뒤에 공종명이 오면 교정이 아니라 새 명령 → 무시
+      const afterNi = text.trim().replace(/^(?:아니야|아닌데|아니)\s*/, '').trim()
+      if (afterNi && matchItemName(afterNi, getSheetItemNames())) return
+
+      if (correction.type === 'undo_only') {
+        callbacksRef.current.undo()
+        callbacksRef.current.addLog('system', '취소')
+        lastExecutedCommandRef.current = null
+        return
+      }
+      if (correction.type === 'undo_and_replace_value' && correction.newValue !== undefined) {
+        callbacksRef.current.undo()
+        const newCmd: VoiceCommand = { ...lastCmd, value: correction.newValue, delta: undefined }
+        handleModifyCommandsRef.current([newCmd], text)
+        return
+      }
+      if (correction.type === 'undo_and_replace_field' && correction.newField) {
+        callbacksRef.current.undo()
+        const newCmd: VoiceCommand = { ...lastCmd, field: correction.newField }
+        handleModifyCommandsRef.current([newCmd], text)
+        return
+      }
+    }
+
     const sheetItems = getSheetItemNames()
     const detection = detectRealtime(text, sheetItems)
 
@@ -328,12 +407,28 @@ export function useEstimateVoice({
     // 실시간 하이라이트 초기화
     setRealtimeHighlight({})
 
+    // 불완전 버퍼 합치기
+    let textToProcess = interimText
+    if (pendingBufferRef.current) {
+      textToProcess = pendingBufferRef.current + ' ' + interimText
+      pendingBufferRef.current = ''
+      setBufferHint('')
+      if (bufferTimerRef.current) {
+        clearTimeout(bufferTimerRef.current)
+        bufferTimerRef.current = null
+      }
+    }
+
     const sheetItems = getSheetItemNames()
-    const result = parseCommand(interimText, sheetItems)
+    const ctx = buildParseContext()
+    const result = parseCommand(textToProcess, sheetItems, ctx)
 
     if (result.success && result.command) {
+      // 이전값 추출 (로그용)
+      const prevValue = getPrevValue(result.command)
+
       // 규칙 파서 즉시 실행
-      console.log('[RuleParser] 즉시 실행:', result.command)
+      console.log('[RuleParser] 즉시 실행:', result.command, result.fieldInferred ? `(추론: ${result.inferredConfidence})` : '')
       callbacksRef.current.saveSnapshot('음성 수정 (규칙파서)', 'voice')
       const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
       callbacksRef.current.applyVoiceCommands([result.command], targetSheet)
@@ -341,13 +436,20 @@ export function useEstimateVoice({
       // Whisper 검증용 저장
       lastRuleResultRef.current = {
         command: result.command,
-        webSpeechText: interimText,
+        webSpeechText: textToProcess,
         snapshotSaved: true,
       }
 
+      // 빠른 교정용 마지막 명령 저장
+      lastExecutedCommandRef.current = result.command
+
       // 로그 + 하이라이트
-      const summary = `${result.command.target ?? ''} ${result.command.field ?? result.command.action} ${result.command.value ?? (result.command.delta ? (result.command.delta > 0 ? '+' : '') + result.command.delta : '')}`.trim()
-      callbacksRef.current.addLog('user', interimText, [result.command], summary)
+      const inferTag = result.fieldInferred ? ' (추론)' : ''
+      const summary = `${result.command.target ?? ''} ${result.command.field ?? result.command.action} ${result.command.value ?? (result.command.delta ? (result.command.delta > 0 ? '+' : '') + result.command.delta : '')}${inferTag}`.trim()
+      callbacksRef.current.addLog('user', textToProcess, [result.command], summary, {
+        prevValue,
+        fieldInferred: result.fieldInferred,
+      })
 
       const newTurn = ++globalTurnCounter
       setCurrentTurn(newTurn)
@@ -358,9 +460,22 @@ export function useEstimateVoice({
         }
         return next
       })
+    } else if (result.needsLlm) {
+      // 불완전 명령 버퍼: 공종명만 감지됐으면 버퍼에 저장
+      const detection = detectRealtime(textToProcess, sheetItems)
+      if (detection.itemName && !detection.previewValue) {
+        pendingBufferRef.current = textToProcess
+        setBufferHint(detection.itemName)
+        // 2초 후 힌트 클리어
+        bufferTimerRef.current = setTimeout(() => {
+          pendingBufferRef.current = ''
+          setBufferHint('')
+          bufferTimerRef.current = null
+        }, 2000)
+      }
+      // needsLlm인 경우 → Whisper(onSegment)에서 LLM으로 처리됨
     }
-    // needsLlm인 경우 → Whisper(onSegment)에서 LLM으로 처리됨
-  }, [getSheetItemNames])
+  }, [getSheetItemNames, buildParseContext])
 
   // ── Layer 2: Whisper 세그먼트 처리 (검증 + 복잡 명령) ──
   const handleSegment = useCallback((text: string) => {
@@ -419,7 +534,7 @@ export function useEstimateVoice({
 
       // Whisper 텍스트로 다시 규칙 파서 실행
       const sheetItems = getSheetItemNames()
-      const whisperResult = parseCommand(processedText, sheetItems)
+      const whisperResult = parseCommand(processedText, sheetItems, buildParseContext())
 
       if (whisperResult.success && whisperResult.command) {
         // Whisper 결과와 비교
@@ -446,7 +561,7 @@ export function useEstimateVoice({
 
     // 규칙 파서 시도 (종결어미 없이 2초 무음으로 온 경우)
     const sheetItems = getSheetItemNames()
-    const ruleResult = parseCommand(processedText, sheetItems)
+    const ruleResult = parseCommand(processedText, sheetItems, buildParseContext())
 
     if (ruleResult.success && ruleResult.command) {
       // 규칙 파서 성공 → 즉시 실행 (Whisper 텍스트이므로 검증 불필요)
@@ -456,7 +571,7 @@ export function useEstimateVoice({
 
     // 규칙 파서 실패 → LLM (Layer 3)
     sendToModifyLlmRef.current(processedText)
-  }, [getSheetItemNames])
+  }, [getSheetItemNames, buildParseContext])
 
   // ── useVoice 훅 (Layer 1 + Layer 2) ──
   const voiceHook = useVoice({
@@ -521,6 +636,7 @@ export function useEstimateVoice({
       seconds: voiceHook.seconds,
       lastText: voiceHook.lastText,
       interimText: voiceHook.interimText,
+      audioLevel: voiceHook.audioLevel,
       processingCount: voiceHook.processingCount,
       toggleRecording: voiceHook.toggleRecording,
       startRecording,
@@ -533,6 +649,7 @@ export function useEstimateVoice({
     getCellHighlightLevel,
     currentTurn,
     realtimeHighlight,
+    bufferHint,
   }
 }
 

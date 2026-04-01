@@ -125,7 +125,7 @@ export default function EstimateEditor({
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
-  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight } = useEstimateVoice({
+  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight, bufferHint } = useEstimateVoice({
     estimate,
     activeSheetIndex,
     setActiveTab,
@@ -305,7 +305,9 @@ export default function EstimateEditor({
         seconds={voice.seconds}
         lastText={voice.lastText}
         interimText={voice.interimText}
+        audioLevel={voice.audioLevel}
         processingCount={voice.processingCount}
+        bufferHint={bufferHint}
         onToggle={voice.toggleRecording}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

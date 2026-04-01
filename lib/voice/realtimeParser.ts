@@ -62,6 +62,76 @@ const FIELD_ALIASES: Record<string, string> = {
   '규격': 'spec',
 }
 
+// ── 동음이의어 사전 ──
+
+const BUILTIN_DICTIONARY: Record<string, string> = {
+  '이계소': '2개소',
+  '삼계소': '3개소',
+  '사계소': '4개소',
+  '오계소': '5개소',
+  '헤베': 'm²',
+  '루베': 'm³',
+}
+
+/** STT 오인식을 교정하는 사전 치환 */
+function applyDictionary(text: string): string {
+  let result = text
+  for (const [wrong, correct] of Object.entries(BUILTIN_DICTIONARY)) {
+    if (result.includes(wrong)) {
+      result = result.replaceAll(wrong, correct)
+    }
+  }
+  return result
+}
+
+// ── 순한글 숫자 파싱 ──
+
+/**
+ * 순한글 숫자를 파싱한다: "오백", "삼천오백", "만", "삼만오천"
+ */
+export function parseKoreanFull(text: string): number | null {
+  const digits: Record<string, number> = {
+    '일': 1, '이': 2, '삼': 3, '사': 4, '오': 5,
+    '육': 6, '칠': 7, '팔': 8, '구': 9,
+  }
+  const units: Record<string, number> = {
+    '십': 10, '백': 100, '천': 1000, '만': 10000,
+  }
+
+  const cleaned = text.trim()
+  if (!cleaned) return null
+
+  const hasKorean = Object.keys(digits).some(k => cleaned.includes(k)) ||
+                    Object.keys(units).some(k => cleaned.includes(k))
+  if (!hasKorean) return null
+
+  let result = 0
+  let current = 0
+  let manPart = 0
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i]
+    if (digits[ch] !== undefined) {
+      current = digits[ch]
+    } else if (ch === '만') {
+      if (current === 0 && result === 0) {
+        manPart = 1 * 10000
+      } else {
+        manPart = (result + current) * 10000
+      }
+      result = 0
+      current = 0
+    } else if (units[ch] !== undefined && ch !== '만') {
+      if (current === 0) current = 1
+      result += current * units[ch]
+      current = 0
+    }
+  }
+  result += current + manPart
+
+  return result > 0 ? result : null
+}
+
 // ── 종결 어미 패턴 ──
 
 const ENDING_TRIGGER = /(넣어|바꿔|해줘?|올려|내려|빼|추가|수정|맞춰|변경|삭제|제거)(줘|라|봐)?[.!?]?$/
@@ -108,7 +178,8 @@ export function parseKoreanNumber(text: string, isAmountContext: boolean): numbe
     return val
   }
 
-  return null
+  // 순한글 숫자 폴백
+  return parseKoreanFull(cleaned)
 }
 
 // ── 공종명 fuzzy 매칭 ──
@@ -154,6 +225,74 @@ export function matchField(input: string, itemName?: string): string | null {
   return field
 }
 
+// ── 필드 자동 추론 (6-level priority) ──
+
+export interface ParseContext {
+  lastCommand?: VoiceCommand
+  sheetState?: Array<{
+    name: string
+    mat: number
+    labor: number
+    exp: number
+    is_equipment: boolean
+  }>
+}
+
+/**
+ * 필드명이 없을 때 6단계 우선순위로 추론.
+ * Priority 1: 명시적 — 호출 전 처리됨
+ * Priority 2: 직전 명령 컨텍스트
+ * Priority 3: 동작어 → mat 기본
+ * Priority 4: 값 범위
+ * Priority 5: 시트 상태 (비제로 필드가 1개)
+ * Priority 6: 카테고리 기본값
+ */
+export function inferField(
+  itemName: string | null,
+  value: number | null,
+  actionWord: string | null,
+  context?: ParseContext,
+): { field: string; confidence: 'high' | 'low' } | null {
+  // Priority 2: context carry-over
+  if (context?.lastCommand?.field) {
+    return { field: context.lastCommand.field, confidence: 'high' }
+  }
+
+  // Priority 3: action word → mat default
+  if (actionWord && /올려|내려|바꿔|변경|수정/.test(actionWord)) {
+    return { field: 'mat', confidence: 'high' }
+  }
+
+  // Priority 4: value range
+  if (value !== null) {
+    if (value >= 100000) return { field: 'labor', confidence: 'low' }
+    if (value >= 100 && value <= 10000) return { field: 'mat', confidence: 'low' }
+  }
+
+  // Priority 5: sheet state — if item has only 1 non-zero field
+  if (itemName && context?.sheetState) {
+    const item = context.sheetState.find(it => it.name === itemName)
+    if (item) {
+      const nonZero: string[] = []
+      if (item.mat > 0) nonZero.push('mat')
+      if (item.labor > 0) nonZero.push('labor')
+      if (item.exp > 0) nonZero.push('exp')
+      if (nonZero.length === 1) return { field: nonZero[0], confidence: 'low' }
+    }
+  }
+
+  // Priority 6: category default
+  if (itemName) {
+    const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
+    if (equipmentNames.some(eq => itemName.includes(eq))) {
+      return { field: 'labor', confidence: 'low' }
+    }
+    return { field: 'mat', confidence: 'low' }
+  }
+
+  return null
+}
+
 // ── 실시간 피드백 상태 ──
 
 /** 실시간 파서가 감지한 상태 (화면 하이라이트용) */
@@ -174,7 +313,7 @@ export interface RealtimeDetection {
  */
 export function detectRealtime(text: string, sheetItems?: string[]): RealtimeDetection {
   const result: RealtimeDetection = { isComplete: false }
-  const words = text.trim().split(/\s+/)
+  const words = applyDictionary(text.trim()).split(/\s+/)
 
   // 공종명 감지 (앞부분 단어들에서)
   for (let i = 0; i < Math.min(words.length, 3); i++) {
@@ -232,6 +371,10 @@ export interface ParseResult {
   command?: VoiceCommand
   /** LLM이 필요한지 (규칙 파서로 처리 불가) */
   needsLlm: boolean
+  /** 필드가 추론되었는지 (low confidence일 수 있음) */
+  fieldInferred?: boolean
+  /** 추론 신뢰도 */
+  inferredConfidence?: 'high' | 'low'
 }
 
 /**
@@ -241,8 +384,8 @@ export interface ParseResult {
  * @param text STT 텍스트 (Web Speech API 또는 Whisper)
  * @param sheetItems 현재 시트의 공종명 목록
  */
-export function parseCommand(text: string, sheetItems?: string[]): ParseResult {
-  const trimmed = text.trim()
+export function parseCommand(text: string, sheetItems?: string[], context?: ParseContext): ParseResult {
+  const trimmed = applyDictionary(text.trim())
   if (!trimmed) return { success: false, needsLlm: false }
 
   // ── 삭제 명령: "[공종명] 빼줘/삭제" ──
@@ -327,6 +470,68 @@ export function parseCommand(text: string, sheetItems?: string[]): ParseResult {
             delta: isUp ? rawValue : -rawValue,
             confidence: 0.95,
           },
+        }
+      }
+    }
+  }
+
+  // ── 필드 생략 패턴: "[공종명] [값]으로" 또는 "[공종명] [값] 올려/내려" ──
+  {
+    // "[공종명] [값] 올려/내려" (필드 없음)
+    if (isUp || isDown) {
+      const withoutDir = trimmed.replace(/(올려|올려줘|올려라|내려|내려줘|내려라)$/, '').trim()
+      const words = withoutDir.split(/\s+/)
+      // 단어들에서 공종명 + 숫자 찾기
+      for (let i = 0; i < Math.min(words.length, 3); i++) {
+        const candidate = words.slice(0, i + 1).join('')
+        const itemName = matchItemName(candidate, sheetItems)
+        if (itemName) {
+          const rest = words.slice(i + 1).join(' ')
+          const val = parseKoreanNumber(rest, true)
+          if (val !== null) {
+            const actionWord = isUp ? '올려' : '내려'
+            const inferred = inferField(itemName, val, actionWord, context)
+            if (inferred) {
+              return {
+                success: true,
+                needsLlm: false,
+                fieldInferred: true,
+                inferredConfidence: inferred.confidence,
+                command: {
+                  action: 'update_item',
+                  target: itemName,
+                  field: inferred.field,
+                  delta: isUp ? val : -val,
+                  confidence: inferred.confidence === 'high' ? 0.90 : 0.75,
+                },
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // "[공종명] [값]으로" (필드 없음)
+    const absNoField = trimmed.match(/(.+?)\s+(\d[\d,.]*)\s*(원|만원|만)?\s*(으로)\s*$/)
+    if (absNoField) {
+      const itemName = matchItemName(absNoField[1], sheetItems)
+      const val = parseKoreanNumber(absNoField[2] + (absNoField[3] ?? ''), true)
+      if (itemName && val !== null) {
+        const inferred = inferField(itemName, val, null, context)
+        if (inferred) {
+          return {
+            success: true,
+            needsLlm: false,
+            fieldInferred: true,
+            inferredConfidence: inferred.confidence,
+            command: {
+              action: 'update_item',
+              target: itemName,
+              field: inferred.field,
+              value: val,
+              confidence: inferred.confidence === 'high' ? 0.90 : 0.75,
+            },
+          }
         }
       }
     }

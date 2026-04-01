@@ -88,6 +88,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
   const [seconds, setSeconds] = useState(0)
   const [lastText, setLastText] = useState('')
   const [interimText, setInterimText] = useState('')
+  const [audioLevel, setAudioLevel] = useState(0)
   const [processingCount, setProcessingCount] = useState(0)
 
   // 내부 refs
@@ -104,6 +105,9 @@ export function useVoice(options: UseVoiceOptions = {}) {
   const silenceStartRef = useRef<number | null>(null)
   const sttPromptRef = useRef(sttPrompt)
   sttPromptRef.current = sttPrompt
+
+  // 타이밍 로그
+  const recordingStartRef = useRef<number>(0)
 
   // Web Speech API 지원 여부
   const webSpeechSupported = useRef(
@@ -128,6 +132,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
   const processSegment = useCallback(async (chunks: Blob[]) => {
     if (chunks.length === 0) return
 
+    const whisperStart = performance.now()
     setProcessingCount(c => c + 1)
     try {
       const blob = new Blob(chunks, { type: 'audio/webm' })
@@ -140,6 +145,7 @@ export function useVoice(options: UseVoiceOptions = {}) {
       })
       if (!res.ok) throw new Error('STT 실패')
       const { text } = await res.json()
+      console.log(`[timing] whisper returned: ${(performance.now() - whisperStart).toFixed(0)}ms`)
 
       if (!text || text.trim().length === 0) return
 
@@ -213,18 +219,21 @@ export function useVoice(options: UseVoiceOptions = {}) {
       }
 
       if (interim) {
+        const elapsed = performance.now() - recordingStartRef.current
+        console.log(`[timing] interim arrived: ${elapsed.toFixed(0)}ms`)
         setInterimText(interim)
         callbacksRef.current.onInterim?.(interim)
 
         // 종결 어미 감지 → 세그먼트 분리 트리거
         if (hasEndingTrigger(interim)) {
+          console.log(`[timing] ending detected: ${elapsed.toFixed(0)}ms`)
           callbacksRef.current.onEndingDetected?.(interim)
           segmentRecording()
         }
       }
 
       if (finalText) {
-        setInterimText('')
+        // interim을 지우지 않음 — 다음 interim이 자동으로 덮어씀
         callbacksRef.current.onWebSpeechFinal?.(finalText)
       }
     }
@@ -285,8 +294,10 @@ export function useVoice(options: UseVoiceOptions = {}) {
       setStatus('recording')
       setSeconds(0)
       setInterimText('')
+      setAudioLevel(0)
       hadSpeechRef.current = false
       silenceStartRef.current = null
+      recordingStartRef.current = performance.now()
 
       // 시간 카운터
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000)
@@ -303,6 +314,10 @@ export function useVoice(options: UseVoiceOptions = {}) {
 
         const rms = Math.sqrt(dataArray.reduce((sum, v) => sum + v * v, 0) / dataArray.length)
         const db = 20 * Math.log10(Math.max(rms, 1e-10))
+
+        // 오디오 레벨 업데이트 (0~1 정규화, -60dB→0, 0dB→1)
+        const normalized = Math.max(0, Math.min(1, (db + 60) / 60))
+        setAudioLevel(normalized)
 
         if (db >= silenceThresholdDb) {
           hadSpeechRef.current = true
@@ -401,6 +416,8 @@ export function useVoice(options: UseVoiceOptions = {}) {
     lastText,
     /** Web Speech API 실시간 전사 텍스트 */
     interimText,
+    /** 오디오 입력 레벨 (0~1) */
+    audioLevel,
     /** 현재 백그라운드에서 처리 중인 세그먼트 수 */
     processingCount,
     startRecording,

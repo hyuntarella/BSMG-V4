@@ -11,6 +11,11 @@ export interface VoiceLogEntry {
   feedback?: 'positive' | 'negative' | null
   /** LLM 해석 요약 (UI 표시용) */
   actionSummary?: string
+  /** 실행 상세 (이전값, 추론 여부) */
+  executionDetail?: {
+    prevValue?: number
+    fieldInferred?: boolean
+  }
   timestamp: number
 }
 

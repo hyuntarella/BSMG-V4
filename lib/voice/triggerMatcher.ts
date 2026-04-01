@@ -50,3 +50,63 @@ export function removeTriggerWord(text: string): string {
 export function isStopWord(text: string): boolean {
   return STOP_PATTERNS.test(text.trim())
 }
+
+// ── 빠른 교정 루프 ──
+
+export interface CorrectionResult {
+  type: 'undo_only' | 'undo_and_replace_value' | 'undo_and_replace_field'
+  newValue?: number
+  newField?: string
+}
+
+const FIELD_NAMES: Record<string, string> = {
+  '재료비': 'mat', '재료': 'mat', '자재': 'mat',
+  '노무비': 'labor', '노무': 'labor', '인건비': 'labor',
+  '경비': 'exp', '단가': 'mat', '수량': 'qty',
+}
+
+/**
+ * "아니" 계열 교정 명령을 감지한다.
+ * "아니" / "아니야" / "아닌데" → 직전 명령 취소
+ * "아니 600원" → 취소 + 새 값
+ * "아니 재료비" → 취소 + 필드 변경
+ * "X 아니고 Y" → 취소 + 새 값
+ */
+export function detectCorrection(text: string): CorrectionResult | null {
+  const trimmed = text.trim()
+  // Must start with "아니" variants or "취소"
+  if (!/^(?:아니|아니야|아닌데|취소)/.test(trimmed)) return null
+
+  // "취소" alone → undo
+  if (trimmed === '취소') return { type: 'undo_only' }
+
+  const afterNi = trimmed.replace(/^(?:아니야|아닌데|아니)\s*/, '').trim()
+
+  // "아니" alone → just undo
+  if (!afterNi) return { type: 'undo_only' }
+
+  // "X 아니고 Y" pattern
+  const anigoMatch = trimmed.match(/(\d[\d,]*)\s*(?:원|만원|만)?\s*아니고\s*(\d[\d,]*)\s*(원|만원|만)?/)
+  if (anigoMatch) {
+    let val = parseInt(anigoMatch[2].replace(/,/g, ''))
+    if (anigoMatch[3] === '만원' || anigoMatch[3] === '만') val *= 10000
+    return { type: 'undo_and_replace_value', newValue: val }
+  }
+
+  // "아니 600원" / "아니 600" → undo + new value
+  const numMatch = afterNi.match(/^(\d[\d,]*)\s*(원|만원|만)?/)
+  if (numMatch) {
+    const val = parseInt(numMatch[1].replace(/,/g, ''))
+    const unit = numMatch[2]
+    let finalVal = val
+    if (unit === '만원' || unit === '만') finalVal = val * 10000
+    return { type: 'undo_and_replace_value', newValue: finalVal }
+  }
+
+  // "아니 재료비" / "아니 노무비" → undo + field change
+  if (FIELD_NAMES[afterNi]) {
+    return { type: 'undo_and_replace_field', newField: FIELD_NAMES[afterNi] }
+  }
+
+  return null
+}

@@ -8,8 +8,12 @@ interface VoiceBarProps {
   lastText: string
   /** Web Speech API 실시간 전사 텍스트 */
   interimText?: string
+  /** 오디오 입력 레벨 (0~1) */
+  audioLevel?: number
   /** 백그라운드 처리 중인 세그먼트 수 */
   processingCount?: number
+  /** 불완전 명령 버퍼 힌트 */
+  bufferHint?: string
   onToggle: () => void
 }
 
@@ -18,7 +22,9 @@ export default function VoiceBar({
   seconds,
   lastText,
   interimText = '',
+  audioLevel = 0,
   processingCount = 0,
+  bufferHint,
   onToggle,
 }: VoiceBarProps) {
   const isActive = status === 'recording'
@@ -58,9 +64,16 @@ export default function VoiceBar({
             </p>
           )}
           {isActive && !interimText && (
-            <p className="text-xs text-red-400">
-              듣고 있습니다...
-            </p>
+            <div className="flex items-end gap-0.5 h-4">
+              {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold, i) => (
+                <div key={i} className={`w-1 rounded-full transition-all duration-75 ${
+                  audioLevel >= threshold ? 'bg-red-400' : 'bg-red-200'
+                }`} style={{ height: `${Math.max(4, (i + 1) * 4)}px` }} />
+              ))}
+              <span className="ml-1.5 text-xs text-red-400">
+                {bufferHint ? `${bufferHint} ...` : '듣고 있습니다...'}
+              </span>
+            </div>
           )}
           {isActive && processingCount > 0 && (
             <p className="text-xs text-accent-dark">
