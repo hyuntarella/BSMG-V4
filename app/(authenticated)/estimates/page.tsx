@@ -71,7 +71,7 @@ export default async function EstimatesPage() {
   )
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-surface">
       <Header />
       <EstimateList estimates={estimatesWithTotal} />
     </div>

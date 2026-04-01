@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('단가표')
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-surface">
       <Header />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="mb-4 text-xl font-bold">설정</h1>
