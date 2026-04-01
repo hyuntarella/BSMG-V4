@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
@@ -65,17 +65,13 @@ export default function EstimateEditor({
         ? estimate.sheets.findIndex((s) => s.type === '우레탄')
         : -1
 
-  const playTtsRef = useRef<(text: string) => Promise<void>>(async () => {})
-
   const handleSave = useCallback(async () => {
     if (!estimate.id || saving) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
-      const data = await res.json()
-      await playTtsRef.current(data.success ? `저장 완료. 관리번호 ${estimate.mgmt_no ?? ''}.` : '저장에 실패했습니다.')
+      await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
     } catch {
-      await playTtsRef.current('저장 중 오류가 발생했습니다.')
+      console.error('저장 실패')
     } finally { setSaving(false) }
   }, [estimate.id, estimate.mgmt_no, saving])
 
@@ -124,9 +120,8 @@ export default function EstimateEditor({
       })
       const data = await res.json()
       setEmailOpen(false)
-      await playTtsRef.current(data.success ? `${to}으로 발송 완료.` : '이메일 발송에 실패했습니다.')
     } catch {
-      await playTtsRef.current('이메일 발송 중 오류가 발생했습니다.')
+      console.error('이메일 발송 실패')
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
@@ -144,8 +139,6 @@ export default function EstimateEditor({
     onSave: handleSave,
     onEmailOpen: () => setEmailOpen(true),
   })
-
-  playTtsRef.current = voice.playTts
 
   const hasComplex = estimate.sheets.some((s) => s.type === '복합')
   const hasUrethane = estimate.sheets.some((s) => s.type === '우레탄')
@@ -310,10 +303,8 @@ export default function EstimateEditor({
         status={voice.status}
         seconds={voice.seconds}
         lastText={voice.lastText}
+        processingCount={voice.processingCount}
         onToggle={voice.toggleRecording}
-        onStop={voice.stopSpeaking}
-        isContinuousMode={voice.isContinuousMode}
-        onContinuousToggle={voice.toggleContinuousRecording}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

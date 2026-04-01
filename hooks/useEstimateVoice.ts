@@ -1,16 +1,12 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
 import type { ConfidenceResult } from '@/lib/voice/confidenceRouter'
 import { useVoice } from '@/hooks/useVoice'
-import { useVoiceFlow } from '@/hooks/useVoiceFlow'
-import type { FlowState } from '@/lib/voice/voiceFlow'
 import type { TabId } from '@/components/estimate/TabBar'
-import { normalizeText, matchKeyword } from '@/lib/voice/keywordMatcher'
-import { matchSummaryKeyword, buildSummaryText, buildMarginText } from '@/lib/voice/summaryBuilder'
 import { hasTriggerWord, removeTriggerWord, isStopWord } from '@/lib/voice/triggerMatcher'
 import { COMPLEX_BASE, URETHANE_BASE } from '@/lib/estimate/constants'
 import type { VoiceLogEntry } from '@/lib/voice/voiceLogTypes'
@@ -33,19 +29,24 @@ interface UseEstimateVoiceOptions {
   onEmailOpen: () => void
 }
 
-/** 글로벌 턴 카운터 (하이라이트 페이드용) */
+/** "넘겨" 패턴 감지 */
+const SKIP_PATTERNS = /(?:넘겨|넘겨줘|넘기자|넘기|넘겨라|시작)\s*[.?!。？！]*\s*$/
+
+/** 글로벌 턴 카운터 */
 let globalTurnCounter = 0
 
 /**
  * EstimateEditor 음성 통합 훅.
  *
- * - useVoice: MediaRecorder → GPT-4o-transcribe (STT) 파이프라인
- * - useVoiceFlow: 면적/벽체/평단가 순서 수집 상태 기계
- * - 키워드 감지: "수정", "그만", "됐어" 등 감지
- * - 트리거 단어: "넣어" 감지 → 즉시 처리
- * - LLM: Claude Sonnet (modify 모드 명령 파싱) + 풍부한 컨텍스트
- * - TTS: OpenAI gpt-4o-mini-tts
- * - 연속 녹음: 버튼 ON → 연속, VAD 2초 무음 또는 "넣어"로 발화 구분
+ * TTS 없음. 속도 최우선.
+ *
+ * 최초 생성 (시트 없음):
+ *   버튼 ON → 연속 녹음 → 자유 발화 → "넘겨"/2초 무음 세그먼트 축적
+ *   → "넘겨" 감지 시 전체 텍스트 LLM extract → 시트 즉시 생성 → 녹음 유지
+ *
+ * 수정 (시트 있음):
+ *   녹음 중 발화 → "넣어"/2초 무음 → 세그먼트 STT → LLM modify → 시트 반영
+ *   → 로그에 표시 → 녹음 유지 → 버튼 OFF로 종료
  */
 export function useEstimateVoice({
   estimate,
@@ -63,7 +64,7 @@ export function useEstimateVoice({
 }: UseEstimateVoiceOptions) {
   const router = useRouter()
 
-  // ── 음성 로그 (풍부한 구조) ──
+  // ── 음성 로그 ──
   const [voiceLogs, setVoiceLogs] = useState<VoiceLogEntry[]>([])
   const addLog = useCallback((
     speaker: 'user' | 'system',
@@ -84,7 +85,7 @@ export function useEstimateVoice({
     return entry.id
   }, [])
 
-  // ── 피드백 업데이트 ──
+  // ── 피드백 ──
   const updateLogFeedback = useCallback((logId: string, feedback: 'positive' | 'negative') => {
     setVoiceLogs((prev) => prev.map(l =>
       l.id === logId ? { ...l, feedback } : l
@@ -94,181 +95,52 @@ export function useEstimateVoice({
   // ── 교정 이력 ──
   const [corrections, setCorrections] = useState<CorrectionEntry[]>([])
 
-  // ── 수정 모드 ──
-  const [isEditMode, setIsEditMode] = useState(false)
-  const isEditModeRef = useRef(false)
-  isEditModeRef.current = isEditMode
+  // ── 최초 생성 모드: 텍스트 축적 ──
+  const accumulatedTextRef = useRef<string[]>([])
 
-  // ── pendingConfirm ──
-  const [pendingConfirm, setPendingConfirm] = useState(false)
-  const pendingConfirmRef = useRef(false)
-  pendingConfirmRef.current = pendingConfirm
-
-  // ── 하이라이트 턴 추적 ──
+  // ── 하이라이트 ──
   const [currentTurn, setCurrentTurn] = useState(0)
   const [cellTurns, setCellTurns] = useState<Map<string, number>>(new Map())
 
   // stale closure 방지
-  const callbacksRef = useRef({ onSave, onEmailOpen, addLog, undo, getSheetMargin })
-  callbacksRef.current = { onSave, onEmailOpen, addLog, undo, getSheetMargin }
+  const estimateRef = useRef(estimate)
+  estimateRef.current = estimate
+  const activeSheetIndexRef = useRef(activeSheetIndex)
+  activeSheetIndexRef.current = activeSheetIndex
+  const callbacksRef = useRef({ onSave, onEmailOpen, undo, getSheetMargin, addLog, saveSnapshot, applyVoiceCommands, updateMeta, addSheet, initFromVoiceFlow, setActiveTab })
+  callbacksRef.current = { onSave, onEmailOpen, undo, getSheetMargin, addLog, saveSnapshot, applyVoiceCommands, updateMeta, addSheet, initFromVoiceFlow, setActiveTab }
 
-  // playTts ref (순환 참조 방지)
-  const playTtsRef = useRef<(text: string) => Promise<void>>(async () => {})
-
-  // ── voiceFlow 참조 ──
-  const voiceFlowRef = useRef<{ isActive: boolean; startFlow: () => void; processText: (text: string) => void }>({
-    isActive: false,
-    startFlow: () => {},
-    processText: () => {},
-  })
-
-  // ── 사용 가능한 공종 마스터 데이터 빌드 ──
+  // ── 공종 마스터 데이터 ──
   const availableItems: AvailableItem[] = [
-    ...COMPLEX_BASE.map(b => ({
-      name: b.name, unit: b.unit, mat: 0, labor: 0, exp: 0,
-      aliases: getAliases(b.name),
-    })),
+    ...COMPLEX_BASE.map(b => ({ name: b.name, unit: b.unit, mat: 0, labor: 0, exp: 0, aliases: getAliases(b.name) })),
     ...URETHANE_BASE.filter(b => !COMPLEX_BASE.some(c => c.name === b.name)).map(b => ({
-      name: b.name, unit: b.unit, mat: 0, labor: 0, exp: 0,
-      aliases: getAliases(b.name),
+      name: b.name, unit: b.unit, mat: 0, labor: 0, exp: 0, aliases: getAliases(b.name),
     })),
   ]
 
-  // ── 음성 명령 처리 (시트 반영 + 하이라이트 갱신) ──
-  const handleVoiceCommands = useCallback(
-    (commands: VoiceCommand[]) => {
-      const sysCmd = commands.find((c) =>
-        ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare', 'update_meta'].includes(c.action)
-      )
-
-      if (sysCmd) {
-        switch (sysCmd.action) {
-          case 'save':
-            callbacksRef.current.onSave()
-            return
-          case 'email':
-            callbacksRef.current.onEmailOpen()
-            return
-          case 'load': {
-            const query = sysCmd.query ?? sysCmd.target ?? ''
-            const date = sysCmd.date ?? ''
-            const params = new URLSearchParams()
-            if (query) params.set('q', query)
-            if (date) params.set('date', date)
-            fetch(`/api/estimates/search?${params}`)
-              .then((r) => r.json())
-              .then((data) => {
-                if (data.estimates?.length > 0) {
-                  router.push(`/estimate/${data.estimates[0].id}`)
-                } else {
-                  playTtsRef.current('해당 견적서를 찾을 수 없습니다.')
-                }
-              })
-            return
-          }
-          case 'undo':
-            callbacksRef.current.undo()
-            return
-          case 'switch_tab': {
-            const t = sysCmd.target
-            if (t === '복합' || t === 'complex') setActiveTab('complex-detail')
-            else if (t === '우레탄' || t === 'urethane') setActiveTab('urethane-detail')
-            else if (t === '비교' || t === 'compare') setActiveTab('compare')
-            return
-          }
-          case 'compare':
-            setActiveTab('compare')
-            return
-          case 'read_summary': {
-            const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
-            const sheet = estimate.sheets[sheetIdx]
-            const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-            const msg = buildSummaryText(sheet?.type ?? '', estimate.m2, sheet?.items.length ?? 0, sheet?.grand_total ?? 0, margin)
-            callbacksRef.current.addLog('system', msg)
-            playTtsRef.current(msg)
-            return
-          }
-          case 'read_margin': {
-            const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
-            const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-            const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
-            callbacksRef.current.addLog('system', msg)
-            playTtsRef.current(msg)
-            return
-          }
-          case 'update_meta': {
-            const field = sysCmd.field as keyof Estimate
-            if (sysCmd.value !== undefined && field) {
-              updateMeta(field, sysCmd.value)
-              const msg = `${String(field)} ${sysCmd.value}으로 변경.`
-              callbacksRef.current.addLog('system', msg)
-              playTtsRef.current(msg)
-            }
-            return
-          }
-        }
-      }
-
-      // 수정 명령: 현재 활성 시트에 적용
-      const targetSheet = activeSheetIndex >= 0 ? activeSheetIndex : 0
-      saveSnapshot('음성 수정', 'voice')
-      const result = applyVoiceCommands(commands, targetSheet)
-
-      if (result.executed) {
-        // 턴 카운터 증가 + 셀 하이라이트 업데이트
-        const newTurn = ++globalTurnCounter
-        setCurrentTurn(newTurn)
-        setCellTurns(prev => {
-          const next = new Map(prev)
-          commands.forEach(c => {
-            if (c.target) {
-              const key = `voice:${targetSheet}:${c.target}:${c.field ?? c.action}`
-              next.set(key, newTurn)
-            }
-          })
-          return next
-        })
-
-        if (result.routing.level === 'medium') {
-          setPendingConfirm(true)
-        }
-      }
-    },
-    [activeSheetIndex, applyVoiceCommands, saveSnapshot, router, setActiveTab, estimate, updateMeta],
-  )
-
-  // ── 견적서 상태 JSON (LLM 컨텍스트 — 풍부하게) ──
-  const estimateContext = JSON.stringify({
-    m2: estimate.m2,
-    wall_m2: estimate.wall_m2,
-    sheets: estimate.sheets.map((s) => ({
-      type: s.type,
-      price_per_pyeong: s.price_per_pyeong,
-      grand_total: s.grand_total,
-      items: s.items.map((it) => ({
-        name: it.name,
-        spec: it.spec,
-        unit: it.unit,
-        qty: it.qty,
-        mat: it.mat,
-        labor: it.labor,
-        exp: it.exp,
-        mat_amount: it.mat_amount,
-        labor_amount: it.labor_amount,
-        exp_amount: it.exp_amount,
-        total: it.total,
+  // ── 견적서 상태 JSON ──
+  const buildEstimateContext = useCallback(() => {
+    const est = estimateRef.current
+    return JSON.stringify({
+      m2: est.m2, wall_m2: est.wall_m2,
+      sheets: est.sheets.map((s) => ({
+        type: s.type, price_per_pyeong: s.price_per_pyeong, grand_total: s.grand_total,
+        items: s.items.map((it) => ({
+          name: it.name, spec: it.spec, unit: it.unit, qty: it.qty,
+          mat: it.mat, labor: it.labor, exp: it.exp,
+          mat_amount: it.mat_amount, labor_amount: it.labor_amount, exp_amount: it.exp_amount,
+          total: it.total,
+        })),
       })),
-    })),
-  })
-  const estimateContextRef = useRef(estimateContext)
-  estimateContextRef.current = estimateContext
+    })
+  }, [])
 
-  // ── LLM 호출 (Claude modify 모드 — 풍부한 컨텍스트) ──
-  const sendToLlm = useCallback(async (text: string) => {
+  // ── LLM modify 호출 ──
+  const sendToModifyLlm = useCallback(async (text: string) => {
     try {
       const { getModifySystem } = require('@/lib/voice/prompts')
       const system = getModifySystem(
-        estimateContextRef.current,
+        buildEstimateContext(),
         '[]',
         corrections.length > 0 ? corrections.slice(-10) : undefined,
         availableItems.length > 0 ? availableItems : undefined,
@@ -283,299 +155,261 @@ export function useEstimateVoice({
       const data = await res.json()
       console.log('[LLM] modify:', data)
 
-      // 되묻기
       if (data.clarification_needed) {
         callbacksRef.current.addLog('system', data.clarification_needed)
-        await playTtsRef.current(data.clarification_needed)
         return
       }
 
-      // 명령 실행 — 시트 반영을 TTS보다 먼저
       if (data.commands && data.commands.length > 0) {
-        // 명령 실행 요약 생성
-        const summary = data.commands.map((c: VoiceCommand) =>
-          `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
-        ).join(', ')
-
-        // 유저 로그에 파싱 결과 첨부
-        const logId = callbacksRef.current.addLog('user', text, data.commands, summary)
-
-        handleVoiceCommands(data.commands)
-
-        // TTS 응답 — 시트 반영 이후 병렬 실행
-        if (data.tts_response) {
-          callbacksRef.current.addLog('system', data.tts_response)
-          playTtsRef.current(data.tts_response)  // await 제거 → 병렬
-        }
-
-        return logId
-      }
-
-      // TTS 응답만 있는 경우
-      if (data.tts_response) {
-        callbacksRef.current.addLog('system', data.tts_response)
-        await playTtsRef.current(data.tts_response)
+        handleModifyCommands(data.commands, text)
       }
     } catch (err) {
       console.error('[LLM] error:', err)
+      callbacksRef.current.addLog('system', '처리 실패')
     }
-  }, [handleVoiceCommands, corrections, availableItems])
+  }, [buildEstimateContext, corrections, availableItems])
 
-  const sendToLlmRef = useRef(sendToLlm)
-  sendToLlmRef.current = sendToLlm
+  // ── LLM extract 호출 (최초 생성) ──
+  const sendToExtractLlm = useCallback(async (text: string) => {
+    try {
+      const { EXTRACT_SYSTEM } = require('@/lib/voice/prompts')
 
-  // ── STT 전사 콜백 ──
-  const handleTranscript = useCallback((text: string) => {
-    let processedText = text
-    const normalized = normalizeText(text)
-    console.log('[Voice] transcript:', JSON.stringify(text), '→ normalized:', JSON.stringify(normalized))
-
-    // Whisper 프롬프트 환각 방지
-    if (text.startsWith('방수 복합 우레탄 견적 바탕정리')) {
-      console.log('[Voice] prompt hallucination, discarding')
-      return
-    }
-
-    // 종료 단어 감지 ("됐어", "끝" → 연속 녹음 종료)
-    if (isStopWord(normalized)) {
-      console.log('[Voice] stop word detected → exit')
-      setIsEditMode(false)
-      setPendingConfirm(false)
-      callbacksRef.current.addLog('system', '종료합니다.')
-      playTtsRef.current('종료합니다.')
-      return
-    }
-
-    // 트리거 단어 감지 ("넣어" → 트리거 단어 제거 후 처리)
-    if (hasTriggerWord(processedText)) {
-      processedText = removeTriggerWord(processedText)
-      console.log('[Voice] trigger word detected, cleaned text:', processedText)
-      if (!processedText || processedText.trim().length === 0) {
-        return  // 트리거 단어만 있는 경우
-      }
-    }
-
-    const normalizedProcessed = normalizeText(processedText)
-
-    callbacksRef.current.addLog('user', processedText)
-
-    // 1. 키워드 매칭
-    const action = matchKeyword(normalizedProcessed, isEditModeRef.current, estimate.sheets.length > 0)
-
-    if (action === 'exit_edit') {
-      console.log('[Voice] "그만" → 수정 모드 종료')
-      setIsEditMode(false)
-      setPendingConfirm(false)
-      callbacksRef.current.addLog('system', '종료합니다.')
-      playTtsRef.current('종료합니다.')
-      return
-    }
-    if (action === 'enter_edit') {
-      console.log('[Voice] "수정" → 수정 모드 진입')
-      setIsEditMode(true)
-      callbacksRef.current.addLog('system', '수정 모드.')
-      playTtsRef.current('수정 모드.')
-      return
-    }
-    if (action === 'confirm') {
-      console.log('[Voice] "됐어" → 확정')
-      callbacksRef.current.addLog('system', '확인.')
-      playTtsRef.current('확인.')
-      return
-    }
-
-    // 2. 상태 요약
-    const summaryAction = matchSummaryKeyword(normalizedProcessed)
-    if (summaryAction && estimate.sheets.length > 0) {
-      const sheetIdx = activeSheetIndex >= 0 ? activeSheetIndex : 0
-      const sheet = estimate.sheets[sheetIdx]
-      if (summaryAction === 'read_summary' && sheet) {
-        const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-        const msg = buildSummaryText(sheet.type, estimate.m2, sheet.items.length, sheet.grand_total ?? 0, margin)
-        callbacksRef.current.addLog('system', msg)
-        playTtsRef.current(msg)
-      } else if (summaryAction === 'read_margin') {
-        const margin = callbacksRef.current.getSheetMargin(sheetIdx)
-        const msg = buildMarginText(estimate.sheets[sheetIdx]?.type ?? '', margin)
-        callbacksRef.current.addLog('system', msg)
-        playTtsRef.current(msg)
-      }
-      return
-    }
-
-    // 3. 시트 없을 때 → voiceFlow
-    if (estimate.sheets.length === 0) {
-      if (!voiceFlowRef.current.isActive) {
-        voiceFlowRef.current.startFlow()
-      }
-      voiceFlowRef.current.processText(processedText)
-      return
-    }
-
-    // 4. voiceFlow 활성 시
-    if (voiceFlowRef.current.isActive) {
-      voiceFlowRef.current.processText(processedText)
-      return
-    }
-
-    // 5. pendingConfirm 응답
-    if (pendingConfirmRef.current) {
-      setPendingConfirm(false)
-      if (/^(아니|아니오|아니요|틀려|틀렸|달라|다르)/.test(normalizedProcessed)) {
-        callbacksRef.current.undo()
-        callbacksRef.current.addLog('system', '되돌렸습니다.')
-        playTtsRef.current('되돌렸습니다.')
-        return
-      }
-      // 긍정이면 그냥 유지, 새 명령이면 아래로 진행
-    }
-
-    // 6. Claude LLM으로 전달
-    sendToLlmRef.current(processedText)
-  }, [estimate, activeSheetIndex])
-
-  // ── useVoice 훅 (MediaRecorder → Whisper STT + 연속 녹음) ──
-  const voiceHook = useVoice({
-    mode: 'modify',
-    skipLlm: true,
-    continuousRecording: {
-      enabled: true,
-      silenceDurationMs: 2000,
-      triggerWordEnabled: true,
-    },
-    onSttText: (text: string) => {
-      handleTranscript(text)
-      return true // LLM 건너뜀 — handleTranscript 내부에서 sendToLlm 호출
-    },
-    onError: (err) => {
-      console.error('[Voice] error:', err)
-    },
-  })
-
-  // playTts ref 동기화
-  playTtsRef.current = voiceHook.playTts
-
-  // ── voiceFlow 훅 ──
-  const voiceFlow = useVoiceFlow({
-    startRecording: voiceHook.startRecording,
-    stopRecording: voiceHook.stopRecording,
-    playTts: voiceHook.playTts,
-    onComplete: (state: FlowState) => {
-      initFromVoiceFlow({
-        area: state.area ?? 100,
-        wallM2: state.wallM2 ?? 0,
-        complexPpp: state.complexPpp,
-        urethanePpp: state.urethanePpp,
+      const res = await fetch('/api/llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system: EXTRACT_SYSTEM, user: text }),
       })
-      setActiveTab('complex-detail')
-    },
-    addLog: (type: 'user' | 'assistant', text: string) => {
-      addLog(type === 'assistant' ? 'system' : 'user', text)
-    },
+      if (!res.ok) throw new Error('LLM 실패')
+      const data = await res.json()
+      console.log('[LLM] extract:', data)
+
+      // 견적서 생성
+      const area = data.area ?? 100
+      const wallM2 = data.wallM2 ?? data.wall_m2 ?? 0
+      const complexPpp = data.complexPpp ?? null
+      const urethanePpp = data.urethanePpp ?? null
+
+      callbacksRef.current.initFromVoiceFlow({ area, wallM2, complexPpp, urethanePpp })
+      callbacksRef.current.setActiveTab('complex-detail')
+
+      const summary = `면적 ${area}㎡ 벽체 ${wallM2}㎡ 복합 ${complexPpp ?? '자동'} 우레탄 ${urethanePpp ?? '자동'}`
+      callbacksRef.current.addLog('system', `견적서 생성: ${summary}`)
+    } catch (err) {
+      console.error('[LLM] extract error:', err)
+      callbacksRef.current.addLog('system', '생성 실패')
+    }
+  }, [])
+
+  // ── 수정 명령 적용 ──
+  const handleModifyCommands = useCallback((commands: VoiceCommand[], originalText: string) => {
+    // 시스템 명령 먼저 확인
+    const sysCmd = commands.find((c) =>
+      ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare', 'update_meta'].includes(c.action)
+    )
+
+    if (sysCmd) {
+      handleSystemCommand(sysCmd)
+      return
+    }
+
+    // 수정 명령
+    const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
+    callbacksRef.current.saveSnapshot('음성 수정', 'voice')
+    const result = callbacksRef.current.applyVoiceCommands(commands, targetSheet)
+
+    // 로그 + 하이라이트
+    const summary = commands.map((c: VoiceCommand) =>
+      `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
+    ).join(', ')
+
+    callbacksRef.current.addLog('user', originalText, commands, summary)
+
+    if (result.executed) {
+      const newTurn = ++globalTurnCounter
+      setCurrentTurn(newTurn)
+      setCellTurns(prev => {
+        const next = new Map(prev)
+        commands.forEach(c => {
+          if (c.target) next.set(`voice:${targetSheet}:${c.target}:${c.field ?? c.action}`, newTurn)
+        })
+        return next
+      })
+    }
+  }, [])
+
+  // ── 시스템 명령 처리 ──
+  const handleSystemCommand = useCallback((cmd: VoiceCommand) => {
+    switch (cmd.action) {
+      case 'save': callbacksRef.current.onSave(); break
+      case 'email': callbacksRef.current.onEmailOpen(); break
+      case 'undo': callbacksRef.current.undo(); break
+      case 'load': {
+        const query = cmd.query ?? cmd.target ?? ''
+        const date = cmd.date ?? ''
+        const params = new URLSearchParams()
+        if (query) params.set('q', query)
+        if (date) params.set('date', date)
+        fetch(`/api/estimates/search?${params}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.estimates?.length > 0) router.push(`/estimate/${data.estimates[0].id}`)
+          })
+        break
+      }
+      case 'switch_tab': {
+        const t = cmd.target
+        if (t === '복합' || t === 'complex') callbacksRef.current.setActiveTab('complex-detail')
+        else if (t === '우레탄' || t === 'urethane') callbacksRef.current.setActiveTab('urethane-detail')
+        else if (t === '비교' || t === 'compare') callbacksRef.current.setActiveTab('compare')
+        break
+      }
+      case 'compare': callbacksRef.current.setActiveTab('compare'); break
+      case 'update_meta': {
+        const field = cmd.field as keyof Estimate
+        if (cmd.value !== undefined && field) {
+          callbacksRef.current.updateMeta(field, cmd.value)
+          callbacksRef.current.addLog('system', `${String(field)} → ${cmd.value}`)
+        }
+        break
+      }
+    }
+  }, [router])
+
+  const sendToModifyLlmRef = useRef(sendToModifyLlm)
+  sendToModifyLlmRef.current = sendToModifyLlm
+  const sendToExtractLlmRef = useRef(sendToExtractLlm)
+  sendToExtractLlmRef.current = sendToExtractLlm
+
+  // ── 세그먼트 처리 콜백 (useVoice의 onSegment) ──
+  const handleSegment = useCallback((text: string) => {
+    console.log('[Voice] segment:', JSON.stringify(text))
+    let processedText = text
+
+    // 종료 단어 ("끝", "그만")
+    if (isStopWord(processedText.trim())) {
+      // 최초 모드에서 축적된 텍스트가 있으면 처리
+      if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
+        const combined = accumulatedTextRef.current.join(' ')
+        accumulatedTextRef.current = []
+        callbacksRef.current.addLog('user', combined)
+        sendToExtractLlmRef.current(combined)
+      }
+      return
+    }
+
+    // "넣어" 트리거 단어 감지 + 제거
+    const hadTrigger = hasTriggerWord(processedText)
+    if (hadTrigger) {
+      processedText = removeTriggerWord(processedText)
+    }
+
+    // "넘겨" 감지 (최초 생성 트리거)
+    const hadSkip = SKIP_PATTERNS.test(processedText.trim())
+    if (hadSkip) {
+      processedText = processedText.trim().replace(SKIP_PATTERNS, '').trim()
+    }
+
+    // 텍스트가 비어있으면 무시 (트리거 단어만 있었던 경우)
+    const hasContent = processedText.trim().length > 0
+
+    // ── 최초 생성 모드 (시트 없음) ──
+    if (estimateRef.current.sheets.length === 0) {
+      if (hasContent) {
+        accumulatedTextRef.current.push(processedText)
+      }
+
+      if (hadSkip || hadTrigger) {
+        // "넘겨" 또는 "넣어" → 축적된 텍스트 전체를 LLM extract
+        const combined = accumulatedTextRef.current.join(' ')
+        accumulatedTextRef.current = []
+        if (combined.trim()) {
+          callbacksRef.current.addLog('user', combined)
+          sendToExtractLlmRef.current(combined)
+        }
+      }
+      // 트리거 없으면 축적만 (2초 무음 세그먼트 — 다음 발화 대기)
+      return
+    }
+
+    // ── 수정 모드 (시트 있음) ──
+    if (!hasContent) return
+
+    // 각 세그먼트를 즉시 LLM modify → 시트 반영
+    sendToModifyLlmRef.current(processedText)
+  }, [])
+
+  // ── useVoice 훅 ──
+  const voiceHook = useVoice({
+    onSegment: handleSegment,
+    onError: (err) => console.error('[Voice]', err),
+    silenceDurationMs: 2000,
   })
 
-  // voiceFlowRef 동기화
-  voiceFlowRef.current = voiceFlow
-
-  // ── 키보드 단축키: push-to-talk (keydown=시작, keyup=종료) ──
-  const isKeyDownRef = useRef(false)
-
-  useEffect(() => {
-    const isVoiceKey = (e: KeyboardEvent) =>
-      e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === ' ' || e.code === 'Space'
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (!isVoiceKey(e)) return
-
-      e.preventDefault()
-      if (isKeyDownRef.current) return // 키 반복 무시
-      isKeyDownRef.current = true
-      voiceHook.startRecording()
-    }
-
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (!isVoiceKey(e)) return
-      if (!isKeyDownRef.current) return
-      isKeyDownRef.current = false
-      voiceHook.stopRecording()
-    }
-
-    document.addEventListener('keydown', onKeyDown)
-    document.addEventListener('keyup', onKeyUp)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.removeEventListener('keyup', onKeyUp)
-    }
-  }, [voiceHook.startRecording, voiceHook.stopRecording])
+  // ── 키보드 단축키: Space push-to-talk ──
+  // (연속 녹음이므로 keydown=시작, keyup는 무시. 토글로 동작)
+  // 실제로는 토글만 사용
 
   // ── 교정 처리 ──
-  const submitCorrection = useCallback(async (
-    logId: string,
-    correctionText: string,
-  ) => {
-    // 원본 로그 찾기
+  const submitCorrection = useCallback(async (logId: string, correctionText: string) => {
     const originalLog = voiceLogs.find(l => l.id === logId)
     if (!originalLog) return
 
-    // 교정 입력도 LLM에 보내서 재파싱
     callbacksRef.current.addLog('user', correctionText)
-    await sendToLlmRef.current(correctionText)
+    sendToModifyLlmRef.current(correctionText)
 
-    // 교정 이력에 추가
-    const entry: CorrectionEntry = {
+    setCorrections(prev => [...prev.slice(-9), {
       original_text: originalLog.text,
       corrected_action: { correction: correctionText },
-      context: {
-        targetItem: originalLog.action?.[0]?.target,
-        targetField: originalLog.action?.[0]?.field,
-      },
-    }
-    setCorrections(prev => [...prev.slice(-9), entry])
-
-    // 피드백 업데이트
+      context: { targetItem: originalLog.action?.[0]?.target, targetField: originalLog.action?.[0]?.field },
+    }])
     updateLogFeedback(logId, 'negative')
   }, [voiceLogs, updateLogFeedback])
 
-  // ── 셀 하이라이트 레벨 계산 (0=없음, 1=직전, 2=2턴전, 3=3턴전) ──
+  // ── 셀 하이라이트 ──
   const getCellHighlightLevel = useCallback((cellKey: string): number => {
     const cellTurn = cellTurns.get(cellKey)
     if (cellTurn === undefined) return 0
     const diff = currentTurn - cellTurn
-    if (diff <= 0) return 1  // 직전 수정
-    if (diff === 1) return 2  // 2턴 전
-    if (diff === 2) return 3  // 3턴 전
-    return 0  // 4턴 이상 → 하이라이트 제거
+    if (diff <= 0) return 1
+    if (diff === 1) return 2
+    if (diff === 2) return 3
+    return 0
   }, [cellTurns, currentTurn])
 
-  // ── VoiceBar 호환 인터페이스 ──
-  const voice = {
-    status: voiceHook.status,
-    seconds: voiceHook.seconds,
-    lastText: voiceHook.lastText,
-    toggleRecording: voiceHook.toggleRecording,
-    stopSpeaking: voiceHook.stopSpeaking,
-    playTts: voiceHook.playTts,
-    startRecording: voiceHook.startRecording,
-    stopRecording: voiceHook.stopRecording,
-    isContinuousMode: voiceHook.isContinuousMode,
-    toggleContinuousRecording: voiceHook.toggleContinuousRecording,
-  }
+  // ── 녹음 시작 시 축적 텍스트 초기화 ──
+  const startRecording = useCallback(async () => {
+    accumulatedTextRef.current = []
+    voiceHook.startRecording()
+  }, [voiceHook])
+
+  // ── 녹음 종료 시 미처리 축적 텍스트 처리 ──
+  const stopRecording = useCallback(() => {
+    // 최초 모드에서 축적된 텍스트가 있으면 처리 ("넘겨" 없이 버튼으로 종료한 경우)
+    if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
+      const combined = accumulatedTextRef.current.join(' ')
+      accumulatedTextRef.current = []
+      if (combined.trim()) {
+        callbacksRef.current.addLog('user', combined)
+        sendToExtractLlmRef.current(combined)
+      }
+    }
+    voiceHook.stopRecording()
+  }, [voiceHook])
 
   return {
-    voice,
+    voice: {
+      status: voiceHook.status,
+      seconds: voiceHook.seconds,
+      lastText: voiceHook.lastText,
+      processingCount: voiceHook.processingCount,
+      toggleRecording: voiceHook.toggleRecording,
+      startRecording,
+      stopRecording,
+    },
     voiceLogs,
     addLog,
     updateLogFeedback,
     submitCorrection,
-    editMode: {
-      isEditMode,
-      enterEditMode: () => setIsEditMode(true),
-      exitEditMode: () => { setIsEditMode(false); setPendingConfirm(false) },
-    },
-    voiceFlow,
-    pendingConfirm,
     getCellHighlightLevel,
     currentTurn,
   }
