@@ -1,140 +1,73 @@
 'use client'
 
 import { useState } from 'react'
-import { COST_BREAKPOINTS, LABOR_COST_PER_PUM, MATERIAL_INCREASE_RATE, OVERHEAD_RATE, PROFIT_RATE, DEFAULT_EQUIPMENT_PRICES } from '@/lib/estimate/constants'
+import PriceMatrixEditor from '@/components/settings/PriceMatrixEditor'
+import BaseItemsEditor from '@/components/settings/BaseItemsEditor'
+import PresetsEditor from '@/components/settings/PresetsEditor'
+import CostEditor from '@/components/settings/CostEditor'
+import CalcRulesEditor from '@/components/settings/CalcRulesEditor'
+import EquipmentEditor from '@/components/settings/EquipmentEditor'
+import WarrantyEditor from '@/components/settings/WarrantyEditor'
 
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
 }
 
+const TABS = ['단가표', '기본공종', '프리셋', '원가', '계산규칙', '장비단가', '보증']
+
 export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
-  const [activeSection, setActiveSection] = useState(0)
+  const [activeTab, setActiveTab] = useState('단가표')
 
   if (!isOpen) return null
-
-  const sections = [
-    { label: 'P매트릭스', content: <PMatrixSection /> },
-    { label: '원가 데이터', content: <CostSection /> },
-    { label: '비율', content: <RatesSection /> },
-    { label: '장비', content: <EquipmentSection /> },
-    { label: '음성', content: <VoiceSection /> },
-    { label: '정보', content: <InfoSection /> },
-  ]
 
   return (
     <div className="fixed inset-0 z-[90]">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-96 overflow-y-auto bg-white shadow-xl">
+      <div className="absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col bg-white shadow-xl">
+        {/* 헤더 */}
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">설정</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+          <h2 className="text-sm font-semibold">견적서 설정</h2>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
-        <div className="flex gap-1 overflow-x-auto border-b px-3 py-2">
-          {sections.map((s, i) => (
-            <button key={s.label} onClick={() => setActiveSection(i)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${activeSection === i ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'}`}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-        <div className="p-4">{sections[activeSection].content}</div>
-      </div>
-    </div>
-  )
-}
 
-function PMatrixSection() {
-  return (
-    <div className="text-xs">
-      <p className="mb-2 font-semibold">P매트릭스 — 면적대×공법×평단가별 단가</p>
-      <p className="text-gray-400">Supabase price_matrix 테이블에서 관리됩니다.</p>
-      <p className="mt-2 text-gray-400">향후 인라인 편집 기능 추가 예정.</p>
-    </div>
-  )
-}
-
-function CostSection() {
-  return (
-    <div className="space-y-3 text-xs">
-      <p className="font-semibold">원가 브레이크포인트</p>
-      {COST_BREAKPOINTS.map(bp => (
-        <div key={bp.pyeong} className="rounded border p-2">
-          <p className="font-bold">{bp.pyeong}평</p>
-          <div className="mt-1 grid grid-cols-2 gap-1 text-gray-600">
-            <span>하도: {bp.hado.toLocaleString()}</span>
-            <span>중도: {bp.jungdo15.toLocaleString()}</span>
-            <span>상도: {bp.sangdo.toLocaleString()}</span>
-            <span>시트: {bp.sheet.toLocaleString()}</span>
-            <span>잡비: {bp.misc.toLocaleString()}</span>
-            <span>품수: {bp.pum}</span>
+        {/* 탭 */}
+        <div className="overflow-x-auto whitespace-nowrap border-b">
+          <div className="flex gap-1.5 px-3 py-2">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'bg-brand text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
-      ))}
-      <div className="flex justify-between border-t pt-2">
-        <span className="text-gray-500">1품 단가</span>
-        <span className="font-medium">{LABOR_COST_PER_PUM.toLocaleString()}원</span>
+
+        {/* 콘텐츠 */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === '단가표' && <PriceMatrixEditor />}
+          {activeTab === '기본공종' && <BaseItemsEditor />}
+          {activeTab === '프리셋' && <PresetsEditor />}
+          {activeTab === '원가' && <CostEditor />}
+          {activeTab === '계산규칙' && <CalcRulesEditor />}
+          {activeTab === '장비단가' && <EquipmentEditor />}
+          {activeTab === '보증' && <WarrantyEditor />}
+        </div>
       </div>
-      <div className="flex justify-between">
-        <span className="text-gray-500">재료비 인상률</span>
-        <span className="font-medium">{MATERIAL_INCREASE_RATE * 100}%</span>
-      </div>
-    </div>
-  )
-}
-
-function RatesSection() {
-  return (
-    <div className="space-y-2 text-xs">
-      <Row label="공과잡비" value={`${OVERHEAD_RATE * 100}%`} />
-      <Row label="기업이윤" value={`${PROFIT_RATE * 100}%`} />
-      <Row label="절사 단위" value="100,000원" />
-    </div>
-  )
-}
-
-function EquipmentSection() {
-  return (
-    <div className="space-y-2 text-xs">
-      <Row label="사다리차" value={`${DEFAULT_EQUIPMENT_PRICES.ladder.toLocaleString()}원/일`} />
-      <Row label="스카이차" value={`${DEFAULT_EQUIPMENT_PRICES.sky.toLocaleString()}원/일`} />
-      <Row label="폐기물" value={`${DEFAULT_EQUIPMENT_PRICES.waste.toLocaleString()}원/일`} />
-    </div>
-  )
-}
-
-function VoiceSection() {
-  return (
-    <div className="space-y-2 text-xs">
-      <p className="font-semibold">음성 설정</p>
-      <Row label="STT 모델" value="gpt-4o-transcribe" />
-      <Row label="TTS 모델" value="gpt-4o-mini-tts" />
-      <Row label="TTS 속도" value="1.5배" />
-      <Row label="웨이크워드" value="견적" />
-      <Row label="마디 종료" value="됐어 / 넘겨" />
-      <Row label="취소" value="그만" />
-      <Row label="확신도 (높)" value="95%" />
-      <Row label="확신도 (중)" value="70%" />
-    </div>
-  )
-}
-
-function InfoSection() {
-  return (
-    <div className="space-y-2 text-xs">
-      <Row label="버전" value="v4.0" />
-      <Row label="STT" value="GPT-4o Transcribe" />
-      <Row label="LLM" value="Claude Sonnet" />
-      <Row label="TTS" value="GPT-4o-mini TTS (1.5x)" />
-    </div>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium">{value}</span>
     </div>
   )
 }

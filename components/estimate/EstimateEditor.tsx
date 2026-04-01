@@ -14,6 +14,7 @@ import CompareSheet from './CompareSheet'
 import VoiceBar from '@/components/voice/VoiceBar'
 import EmailModal from './EmailModal'
 import InitialGuide from './InitialGuide'
+import SettingsPanel from './SettingsPanel'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -31,6 +32,7 @@ export default function EstimateEditor({
   const [pdfDownloading, setPdfDownloading] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const {
     estimate,
@@ -158,6 +160,16 @@ export default function EstimateEditor({
             {estimate.mgmt_no && (
               <span className="hidden sm:inline text-xs text-gray-400">{estimate.mgmt_no}</span>
             )}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="설정"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
+            </button>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             <button
@@ -255,6 +267,7 @@ export default function EstimateEditor({
 
       <EmailModal open={emailOpen} onSend={handleEmail} onClose={() => setEmailOpen(false)} sending={emailSending} />
       <VoiceBar status={voice.status} seconds={voice.seconds} lastText={voice.lastText} onToggle={voice.toggleRecording} onStop={voice.stopSpeaking} />
+      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

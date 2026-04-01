@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { href: '/estimate/new', label: '+ 새 견적서' },
   { href: '/crm', label: 'CRM' },
   { href: '/calendar', label: '캘린더' },
-  { href: '/settings', label: '설정' },
 ]
 
 export default function Header() {

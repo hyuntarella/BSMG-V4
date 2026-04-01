@@ -117,7 +117,7 @@ export default function MonthView({ events, currentDate, onDateClick }: MonthVie
                       style={{ backgroundColor: ev.color }}
                     />
                     <span className="text-xs text-gray-700 truncate leading-tight">
-                      {ev.title}
+                      {ev.crmCustomerName ? `${ev.title} · ${ev.crmCustomerName}` : ev.title}
                     </span>
                   </div>
                 ))}

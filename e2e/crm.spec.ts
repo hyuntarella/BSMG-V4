@@ -178,6 +178,39 @@ test.describe('CRM 칸반보드', () => {
     // FAB 버튼이 없으면 스킵 (구현에 따라 다름)
   });
 
+  // 파이프라인 항목 수 표시 확인
+  test('파이프라인 탭에 항목 수가 항상 표시된다', async ({ page }) => {
+    await page.goto('/crm')
+    await page.waitForLoadState('networkidle')
+
+    // 각 스테이지 탭에 숫자 뱃지가 표시됨
+    const tabs = page.locator('button').filter({ hasText: /문의|영업|장기|시공|하자|실적/ })
+    const tabCount = await tabs.count()
+    expect(tabCount).toBeGreaterThanOrEqual(5)
+
+    // 각 탭에 숫자가 포함되어 있어야 함
+    for (let i = 0; i < Math.min(tabCount, 6); i++) {
+      const tabText = await tabs.nth(i).textContent()
+      // 탭 텍스트에 숫자가 포함됨 (예: "문의 3" 또는 "영업 5")
+      expect(tabText).toMatch(/\d/)
+    }
+  })
+
+  // CRM 상세 모달에서 캘린더 일정 추가 버튼 확인
+  test('상세 모달에 "캘린더 일정 추가" 버튼이 있다', async ({ page }) => {
+    await page.goto('/crm')
+    await page.waitForLoadState('networkidle')
+
+    const firstCard = page.locator('[data-testid="kanban-card"]').first()
+    if (await firstCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await firstCard.click()
+      await page.waitForTimeout(500)
+
+      // "캘린더 일정 추가" 버튼 확인
+      await expect(page.getByText('캘린더 일정 추가')).toBeVisible()
+    }
+  })
+
   // P2: CR-10
   test('CR-10: 상세 모달 — 외부 링크 버튼 (지도/거리뷰/내비/문자/전화) 표시', async ({ page }) => {
     await page.goto('/crm');

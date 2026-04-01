@@ -42,6 +42,15 @@ export default function DetailModal({ record, isOpen, onClose, onUpdate }: Detai
     );
   };
 
+  const handleGoToCalendar = () => {
+    const params = new URLSearchParams();
+    params.set('action', 'create');
+    params.set('crmId', record.id);
+    if (record.customerName) params.set('crmName', record.customerName);
+    if (record.address) params.set('address', record.address);
+    router.push(`/calendar?${params.toString()}`);
+  };
+
   const handleSave = async (field: keyof CrmRecord, rawValue: string | null) => {
     let value: string | number | string[] | null = rawValue;
 
@@ -172,7 +181,18 @@ export default function DetailModal({ record, isOpen, onClose, onUpdate }: Detai
 
           {/* 일정 */}
           <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">일정</h3>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">일정</h3>
+              <button
+                onClick={handleGoToCalendar}
+                className="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                </svg>
+                캘린더 일정 추가
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <DetailField label="문의일자" value={record.inquiryDate} type="date" onSave={(v) => handleSave('inquiryDate', v)} />
               <DetailField label="견적방문일자" value={record.visitDate} type="date" onSave={(v) => handleSave('visitDate', v)} />

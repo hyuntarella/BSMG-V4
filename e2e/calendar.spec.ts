@@ -272,6 +272,25 @@ test.describe('캘린더', () => {
     await expect(page.getByText('일').first()).toBeVisible()
   })
 
+  // 캘린더-CRM 연동: CRM query params로 이벤트 생성 모달 자동 열기
+  test('CRM에서 넘어온 경우 이벤트 생성 모달이 자동으로 열린다', async ({ page }) => {
+    await page.goto('/calendar?action=create&crmId=test-123&crmName=테스트고객')
+    await page.waitForLoadState('networkidle')
+
+    // 이벤트 생성 모달이 자동으로 열림
+    await expect(page.getByPlaceholder('일정 제목')).toBeVisible({ timeout: 5000 })
+
+    // CRM 고객 이름이 프리필됨
+    const titleInput = page.getByPlaceholder('일정 제목')
+    await expect(titleInput).toHaveValue(/테스트고객/)
+
+    // CRM 고객이 연결됨
+    await expect(page.getByText('연결됨')).toBeVisible()
+
+    // 취소
+    await page.getByText('취소').click()
+  })
+
   // P2: CA-14
   test('CA-14: Notion 캘린더 API 장애 시 → graceful degradation', async ({ page }) => {
     // Notion/캘린더 API 응답 가로채기

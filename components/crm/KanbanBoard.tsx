@@ -169,8 +169,12 @@ export default function KanbanBoard({
               >
                 {STAGE_LABELS[stage]}
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-xs ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                  className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-xs font-semibold ${
+                    isActive
+                      ? 'bg-white/25 text-white'
+                      : stageCount > 0
+                        ? 'bg-brand/10 text-brand'
+                        : 'bg-gray-100 text-gray-400'
                   }`}
                 >
                   {stageCount}
@@ -207,9 +211,13 @@ export default function KanbanBoard({
               >
                 {/* 컬럼 헤더 */}
                 <div className="flex items-center justify-between rounded-t-lg border-b bg-white px-3 py-2">
-                  <span className="text-xs font-semibold text-gray-700">{pipeline}</span>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                    {pipelineCards.length}
+                  <span className="text-xs font-semibold text-gray-700">
+                    {pipeline}
+                    <span className={`ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${
+                      pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {pipelineCards.length}
+                    </span>
                   </span>
                 </div>
 

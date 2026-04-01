@@ -226,6 +226,9 @@ export default function TimeGrid({
                             </span>
                           )}
                           {ev.title}
+                          {ev.crmCustomerName && (
+                            <span className="text-gray-500 ml-1">· {ev.crmCustomerName}</span>
+                          )}
                         </div>
                       </div>
                     </button>

@@ -298,6 +298,51 @@ test.describe('설정 페이지', () => {
     await expect(page.locator('h1').filter({ hasText: '설정' })).toBeVisible()
   })
 
+  // 견적서 에디터 내 설정 패널 열기
+  test('견적서 에디터에서 설정 패널이 열린다', async ({ page }) => {
+    // 새 견적서 생성
+    await page.goto('/estimate/new')
+    await page.waitForURL(/\/estimate\/[a-f0-9-]+$/, { timeout: 15000 })
+
+    // 설정 아이콘 클릭
+    const settingsBtn = page.locator('[aria-label="설정"]')
+    await expect(settingsBtn).toBeVisible()
+    await settingsBtn.click()
+    await page.waitForTimeout(500)
+
+    // 설정 패널 표시 확인
+    await expect(page.getByText('견적서 설정')).toBeVisible()
+
+    // 탭 확인 (단가표, 기본공종 등)
+    await expect(page.getByRole('button', { name: '단가표' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '기본공종' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '계산규칙' })).toBeVisible()
+
+    // 닫기
+    const closeBtn = page.locator('button').filter({ has: page.locator('svg path[d*="4.293"]') }).first()
+    if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await closeBtn.click()
+    }
+  })
+
+  // 네비게이션에서 설정이 제거됨
+  test('네비게이션 메뉴에 설정 링크가 없다', async ({ page }) => {
+    await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
+
+    // 햄버거 메뉴 열기
+    await page.locator('[aria-label="메뉴"]').click()
+    await page.waitForTimeout(300)
+
+    // 메뉴 항목 확인
+    await expect(page.getByText('CRM')).toBeVisible()
+    await expect(page.getByText('캘린더')).toBeVisible()
+
+    // 설정 링크가 없어야 함
+    const settingsLink = page.locator('nav a, nav button').filter({ hasText: '설정' })
+    await expect(settingsLink).toHaveCount(0)
+  })
+
   // P2: ST-16
   test('ST-16: 보증 저장 → API 호출 확인', async ({ page }) => {
     await page.goto('/settings')

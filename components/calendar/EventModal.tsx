@@ -21,6 +21,7 @@ interface EventModalProps {
   initialDate?: string;
   editEvent?: CalendarEvent | null;
   members: Member[];
+  crmPreFill?: { id: string; name: string } | null;
 }
 
 const EVENT_TYPES = ['방문', '시공', '미팅', '기타'];
@@ -40,6 +41,7 @@ export default function EventModal({
   initialDate,
   editEvent,
   members,
+  crmPreFill,
 }: EventModalProps) {
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -102,13 +104,21 @@ export default function EventModal({
       setType('방문');
       setAction('');
       setMemberId('');
-      setCrmQuery('');
-      setSelectedCrm(null);
       setMemo('');
+
+      // CRM에서 넘어온 경우 고객 정보 프리필
+      if (crmPreFill?.id) {
+        setSelectedCrm({ id: crmPreFill.id, name: crmPreFill.name });
+        setCrmQuery(crmPreFill.name);
+        setTitle(crmPreFill.name ? `방문 - ${crmPreFill.name}` : '');
+      } else {
+        setCrmQuery('');
+        setSelectedCrm(null);
+      }
     }
     setCrmResults([]);
     setShowCrmDropdown(false);
-  }, [isOpen, editEvent, initialDate]);
+  }, [isOpen, editEvent, initialDate, crmPreFill]);
 
   // CRM 고객 검색 (debounce 300ms)
   const searchCrm = useCallback((q: string) => {

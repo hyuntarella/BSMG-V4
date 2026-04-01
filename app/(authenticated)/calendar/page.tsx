@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import CalendarHeader from '@/components/calendar/CalendarHeader';
 import MonthView from '@/components/calendar/MonthView';
@@ -84,6 +85,7 @@ function getTitle(date: Date, view: CalendarView): string {
 }
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [view, setView] = useState<CalendarView>('month');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -99,8 +101,29 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [modalInitialDate, setModalInitialDate] = useState<string | undefined>(undefined);
 
+  // CRM 연동: query params로 전달된 CRM 고객 정보
+  const [crmPreFill, setCrmPreFill] = useState<{ id: string; name: string } | null>(null);
+
   // 설정 모달
   const [showSettings, setShowSettings] = useState(false);
+
+  // CRM에서 넘어온 경우 자동으로 이벤트 생성 모달 열기
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const crmId = searchParams.get('crmId');
+    const crmName = searchParams.get('crmName');
+    const address = searchParams.get('address');
+
+    if (action === 'create' && crmId) {
+      setCrmPreFill({ id: crmId, name: crmName ?? '' });
+      setEditingEvent(null);
+      setModalInitialDate(toDateStr(new Date()));
+      setShowEventModal(true);
+
+      // URL에서 query params 제거 (뒤로가기 시 재실행 방지)
+      window.history.replaceState(null, '', '/calendar');
+    }
+  }, [searchParams]);
 
   // ── 이벤트 로드 ──
 
@@ -182,6 +205,7 @@ export default function CalendarPage() {
   function handleEventSaved(savedEvent: CalendarEvent) {
     setShowEventModal(false);
     setEditingEvent(null);
+    setCrmPreFill(null);
     // events 업데이트
     setEvents((prev) => {
       const idx = prev.findIndex((e) => e.id === savedEvent.id);
@@ -355,11 +379,12 @@ export default function CalendarPage() {
       {/* EventModal */}
       <EventModal
         isOpen={showEventModal}
-        onClose={() => { setShowEventModal(false); setEditingEvent(null); }}
+        onClose={() => { setShowEventModal(false); setEditingEvent(null); setCrmPreFill(null); }}
         onSave={handleEventSaved}
         initialDate={modalInitialDate}
         editEvent={editingEvent}
         members={members}
+        crmPreFill={crmPreFill}
       />
 
       {/* SettingsModal */}
