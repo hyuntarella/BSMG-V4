@@ -410,6 +410,21 @@ export function useVoice(options: UseVoiceOptions = {}) {
     }
   }, [])
 
+  // ── Web Speech API 일시 중지/재개 (TTS 겹침 방지) ──
+  const pauseRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch { /* ok */ }
+    }
+  }, [])
+
+  const resumeRecognition = useCallback(() => {
+    if (statusRef.current === 'recording' && !recognitionRef.current) {
+      startWebSpeech()
+    } else if (statusRef.current === 'recording' && recognitionRef.current) {
+      try { recognitionRef.current.start() } catch { /* 이미 시작됨 */ }
+    }
+  }, [startWebSpeech])
+
   return {
     status,
     seconds,
@@ -423,6 +438,10 @@ export function useVoice(options: UseVoiceOptions = {}) {
     startRecording,
     stopRecording,
     toggleRecording,
+    /** Web Speech API 일시 중지 (TTS 겹침 방지) */
+    pauseRecognition,
+    /** Web Speech API 재개 */
+    resumeRecognition,
   }
 }
 

@@ -87,7 +87,9 @@ export default function VoiceLogPanel({
                   <div className="space-y-1">
                     {/* 사용자 발화 */}
                     <div className="flex items-start gap-2">
-                      <span className="shrink-0 font-medium text-ink">나:</span>
+                      <span className="shrink-0 font-medium text-ink" title={log.inputSource === 'typing' ? '타이핑' : '음성'}>
+                        {log.inputSource === 'typing' ? '⌨' : '🎤'}
+                      </span>
                       <span className="text-ink-secondary">&ldquo;{log.text}&rdquo;</span>
                     </div>
                     {/* 파싱 결과 */}

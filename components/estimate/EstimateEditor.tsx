@@ -11,7 +11,7 @@ import TabBar, { type TabId } from './TabBar'
 import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
-import VoiceBar from '@/components/voice/VoiceBar'
+import VoiceBarContainer from '@/components/voice/VoiceBarContainer'
 import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
 import InitialGuide from './InitialGuide'
@@ -125,7 +125,7 @@ export default function EstimateEditor({
     } finally { setEmailSending(false) }
   }, [estimate.id])
 
-  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight, bufferHint } = useEstimateVoice({
+  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight, bufferHint, mode, setMode, handleTextInput, handleTextSubmit, handleTextCancel, handleMultilineSubmit, commandHistory } = useEstimateVoice({
     estimate,
     activeSheetIndex,
     setActiveTab,
@@ -300,7 +300,9 @@ export default function EstimateEditor({
         onFeedback={updateLogFeedback}
         onCorrection={submitCorrection}
       />
-      <VoiceBar
+      <VoiceBarContainer
+        mode={mode}
+        onModeChange={setMode}
         status={voice.status}
         seconds={voice.seconds}
         lastText={voice.lastText}
@@ -309,6 +311,11 @@ export default function EstimateEditor({
         processingCount={voice.processingCount}
         bufferHint={bufferHint}
         onToggle={voice.toggleRecording}
+        onTextInputChange={handleTextInput}
+        onTextSubmit={handleTextSubmit}
+        onTextCancel={handleTextCancel}
+        onMultilineSubmit={handleMultilineSubmit}
+        commandHistory={commandHistory}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

@@ -16,6 +16,8 @@ export interface VoiceLogEntry {
     prevValue?: number
     fieldInferred?: boolean
   }
+  /** 입력 소스: typing (사무실), voice (현장/운전) */
+  inputSource?: 'typing' | 'voice'
   timestamp: number
 }
 

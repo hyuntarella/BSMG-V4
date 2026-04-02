@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate } from '@/lib/estimate/types'
 import type { VoiceCommand } from '@/lib/voice/commands'
@@ -14,6 +14,12 @@ import type { CorrectionEntry, AvailableItem } from '@/lib/voice/prompts'
 import { parseCommand, detectRealtime, matchItemName, inferField } from '@/lib/voice/realtimeParser'
 import type { ParseContext } from '@/lib/voice/realtimeParser'
 import type { RealtimeHighlight } from '@/components/estimate/WorkSheet'
+import type { InputMode } from '@/lib/voice/inputMode'
+import { INPUT_MODE_FLAGS } from '@/lib/voice/inputMode'
+import { detectAnomaly } from '@/lib/voice/anomalyDetector'
+import { playConfirmSound, playErrorSound, playRollbackSound } from '@/lib/voice/soundEffect'
+import { playTts, onTtsStateChange } from '@/lib/voice/ttsPlayer'
+import { buildSummaryText, buildMarginText, matchSummaryKeyword } from '@/lib/voice/summaryBuilder'
 
 // ── 인터페이스 ──
 
@@ -39,23 +45,16 @@ const SKIP_PATTERNS = /(?:넘겨|넘겨줘|넘기자|넘기|넘겨라|시작)\s*
 let globalTurnCounter = 0
 
 /**
- * EstimateEditor 음성 통합 훅 — 3단 파이프라인.
+ * EstimateEditor 음성 통합 훅 — 3모드 + 3단 파이프라인.
+ *
+ * 모드:
+ *   - office: 사무실 (타이핑)
+ *   - field: 현장 (음성+눈, 효과음)
+ *   - driving: 운전 (음성만, TTS 전면)
  *
  * Layer 1: Web Speech API (실시간, 무료, 항상 ON)
- *   - 화면에 단어 즉시 표시 (interim result)
- *   - 공종명 감지 → 시트 행 하이라이트
- *   - 필드명 감지 → 해당 셀 포커스 테두리
- *   - 숫자+단위 감지 → 값 미리보기 (연한 색)
- *   - 종결 어미 감지 → 즉시 오디오 세그먼트
- *   - 단순 명령 패턴 → 즉시 실행 (LLM 안 거침)
- *
  * Layer 2: Whisper API (정확, 백그라운드)
- *   - 종결 어미 트리거 시 해당 구간 오디오 전송
- *   - 단순 명령 → Layer 1 결과 검증 (틀리면 롤백+재실행)
- *   - 복잡한 명령 → 정확한 텍스트를 Layer 3으로
- *
  * Layer 3: Claude Sonnet LLM (복잡한 명령만)
- *   - 총액 역산, 일괄 조정, 패턴 매칭 실패
  */
 export function useEstimateVoice({
   estimate,
@@ -73,6 +72,12 @@ export function useEstimateVoice({
 }: UseEstimateVoiceOptions) {
   const router = useRouter()
 
+  // ── 입력 모드 ──
+  const [mode, setMode] = useState<InputMode>('field')
+
+  // ── 명령 히스토리 (사무실 모드, 최근 20개) ──
+  const [commandHistory, setCommandHistory] = useState<string[]>([])
+
   // ── 음성 로그 ──
   const [voiceLogs, setVoiceLogs] = useState<VoiceLogEntry[]>([])
   const addLog = useCallback((
@@ -81,6 +86,7 @@ export function useEstimateVoice({
     action?: VoiceCommand[],
     actionSummary?: string,
     executionDetail?: { prevValue?: number; fieldInferred?: boolean },
+    inputSource?: 'typing' | 'voice',
   ) => {
     const entry: VoiceLogEntry = {
       id: crypto.randomUUID(),
@@ -89,6 +95,7 @@ export function useEstimateVoice({
       action,
       actionSummary,
       executionDetail,
+      inputSource,
       feedback: null,
       timestamp: Date.now(),
     }
@@ -132,6 +139,8 @@ export function useEstimateVoice({
   const [bufferHint, setBufferHint] = useState<string>('')
 
   // stale closure 방지
+  const modeRef = useRef(mode)
+  modeRef.current = mode
   const estimateRef = useRef(estimate)
   estimateRef.current = estimate
   const activeSheetIndexRef = useRef(activeSheetIndex)
@@ -268,8 +277,11 @@ export function useEstimateVoice({
     }
   }, [])
 
-  // ── 수정 명령 적용 ──
+  // ── 수정 명령 적용 (모드 인식) ──
   const handleModifyCommands = useCallback((commands: VoiceCommand[], originalText: string) => {
+    const currentMode = modeRef.current
+    const flags = INPUT_MODE_FLAGS[currentMode]
+
     // 시스템 명령 먼저 확인
     const sysCmd = commands.find((c) =>
       ['save', 'email', 'load', 'undo', 'switch_tab', 'read_summary', 'read_margin', 'compare', 'update_meta'].includes(c.action)
@@ -277,12 +289,29 @@ export function useEstimateVoice({
 
     if (sysCmd) {
       handleSystemCommand(sysCmd)
+      // 운전 모드: undo에 TTS
+      if (flags.ttsEnabled && sysCmd.action === 'undo') {
+        playTts('취소했습니다.')
+      }
+      // 현장 모드: undo에 롤백 효과음
+      if (flags.soundEffectsEnabled && sysCmd.action === 'undo') {
+        playRollbackSound()
+      }
       return
     }
 
-    // 수정 명령 — 이전값 추출 (로그용)
+    // 수정 명령 — 이전값 추출 (로그용 + 이상치 감지)
     const firstCmd = commands[0]
     const prevValue = firstCmd ? getPrevValue(firstCmd) : undefined
+
+    // 이상치 감지
+    if (firstCmd) {
+      const anomaly = detectAnomaly(firstCmd, prevValue)
+      if (anomaly.isAnomaly) {
+        if (flags.ttsEnabled) playTts(anomaly.message)
+        callbacksRef.current.addLog('system', `⚠ ${anomaly.message}`, undefined, undefined, undefined, 'voice')
+      }
+    }
 
     const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
     callbacksRef.current.saveSnapshot('음성 수정', 'voice')
@@ -293,12 +322,17 @@ export function useEstimateVoice({
       `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
     ).join(', ')
 
-    callbacksRef.current.addLog('user', originalText, commands, summary, { prevValue })
+    callbacksRef.current.addLog('user', originalText, commands, summary, { prevValue }, 'voice')
 
     // 빠른 교정용 마지막 명령 저장
     lastExecutedCommandRef.current = commands[commands.length - 1]
 
     if (result.executed) {
+      // 효과음 (현장 모드만)
+      if (flags.soundEffectsEnabled) playConfirmSound()
+      // TTS (운전 모드)
+      if (flags.ttsEnabled) playTts(`${summary} 반영.`)
+
       const newTurn = ++globalTurnCounter
       setCurrentTurn(newTurn)
       setCellTurns(prev => {
@@ -308,15 +342,30 @@ export function useEstimateVoice({
         })
         return next
       })
+    } else {
+      if (flags.soundEffectsEnabled) playErrorSound()
+      if (flags.ttsEnabled) playTts('실행 실패.')
     }
   }, [])
 
   // ── 시스템 명령 처리 ──
   const handleSystemCommand = useCallback((cmd: VoiceCommand) => {
+    const currentMode = modeRef.current
+    const flags = INPUT_MODE_FLAGS[currentMode]
+
     switch (cmd.action) {
-      case 'save': callbacksRef.current.onSave(); break
-      case 'email': callbacksRef.current.onEmailOpen(); break
-      case 'undo': callbacksRef.current.undo(); break
+      case 'save':
+        callbacksRef.current.onSave()
+        if (flags.ttsEnabled) playTts('저장합니다.')
+        break
+      case 'email':
+        callbacksRef.current.onEmailOpen()
+        if (flags.ttsEnabled) playTts('이메일 발송 준비.')
+        break
+      case 'undo':
+        callbacksRef.current.undo()
+        callbacksRef.current.addLog('system', '취소')
+        break
       case 'load': {
         const query = cmd.query ?? cmd.target ?? ''
         const date = cmd.date ?? ''
@@ -338,6 +387,30 @@ export function useEstimateVoice({
         break
       }
       case 'compare': callbacksRef.current.setActiveTab('compare'); break
+      case 'read_summary': {
+        const est = estimateRef.current
+        const idx = activeSheetIndexRef.current
+        if (idx >= 0 && idx < est.sheets.length) {
+          const sheet = est.sheets[idx]
+          const margin = callbacksRef.current.getSheetMargin(idx)
+          const text = buildSummaryText(sheet.type, est.m2, sheet.items.length, sheet.grand_total, margin)
+          callbacksRef.current.addLog('system', text)
+          if (flags.ttsEnabled) playTts(text)
+        }
+        break
+      }
+      case 'read_margin': {
+        const est = estimateRef.current
+        const idx = activeSheetIndexRef.current
+        if (idx >= 0 && idx < est.sheets.length) {
+          const sheet = est.sheets[idx]
+          const margin = callbacksRef.current.getSheetMargin(idx)
+          const text = buildMarginText(sheet.type, margin)
+          callbacksRef.current.addLog('system', text)
+          if (flags.ttsEnabled) playTts(text)
+        }
+        break
+      }
       case 'update_meta': {
         const field = cmd.field as keyof Estimate
         if (cmd.value !== undefined && field) {
@@ -374,6 +447,10 @@ export function useEstimateVoice({
         callbacksRef.current.undo()
         callbacksRef.current.addLog('system', '취소')
         lastExecutedCommandRef.current = null
+        const currentMode = modeRef.current
+        const flags = INPUT_MODE_FLAGS[currentMode]
+        if (flags.soundEffectsEnabled) playRollbackSound()
+        if (flags.ttsEnabled) playTts('취소했습니다.')
         return
       }
       if (correction.type === 'undo_and_replace_value' && correction.newValue !== undefined) {
@@ -419,45 +496,78 @@ export function useEstimateVoice({
       }
     }
 
+    // 조회 명령 감지 ("현황", "총액", "요약", "마진")
+    const summaryKeyword = matchSummaryKeyword(textToProcess)
+    if (summaryKeyword) {
+      handleModifyCommandsRef.current([{ action: summaryKeyword, confidence: 0.98 }], textToProcess)
+      return
+    }
+
     const sheetItems = getSheetItemNames()
     const ctx = buildParseContext()
     const result = parseCommand(textToProcess, sheetItems, ctx)
 
     if (result.success && result.command) {
+      // 다중 명령 (commands 배열) 처리
+      const commands = result.commands ?? [result.command]
+
+      // undo 명령은 직접 처리
+      if (commands.length === 1 && commands[0].action === 'undo') {
+        handleModifyCommandsRef.current(commands, textToProcess)
+        return
+      }
+
       // 이전값 추출 (로그용)
-      const prevValue = getPrevValue(result.command)
+      const prevValue = getPrevValue(commands[0])
+      const currentMode = modeRef.current
+      const flags = INPUT_MODE_FLAGS[currentMode]
+
+      // 이상치 감지
+      const anomaly = detectAnomaly(commands[0], prevValue)
+      if (anomaly.isAnomaly) {
+        if (flags.ttsEnabled) playTts(anomaly.message)
+        callbacksRef.current.addLog('system', `⚠ ${anomaly.message}`, undefined, undefined, undefined, 'voice')
+      }
 
       // 규칙 파서 즉시 실행
-      console.log('[RuleParser] 즉시 실행:', result.command, result.fieldInferred ? `(추론: ${result.inferredConfidence})` : '')
+      console.log('[RuleParser] 즉시 실행:', commands, result.fieldInferred ? `(추론: ${result.inferredConfidence})` : '')
       callbacksRef.current.saveSnapshot('음성 수정 (규칙파서)', 'voice')
       const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
-      callbacksRef.current.applyVoiceCommands([result.command], targetSheet)
+      callbacksRef.current.applyVoiceCommands(commands, targetSheet)
 
-      // Whisper 검증용 저장
+      // Whisper 검증용 저장 (첫 번째 명령만)
       lastRuleResultRef.current = {
-        command: result.command,
+        command: commands[0],
         webSpeechText: textToProcess,
         snapshotSaved: true,
       }
 
       // 빠른 교정용 마지막 명령 저장
-      lastExecutedCommandRef.current = result.command
+      lastExecutedCommandRef.current = commands[commands.length - 1]
 
-      // 로그 + 하이라이트
+      // 효과음 (현장 모드)
+      if (flags.soundEffectsEnabled) playConfirmSound()
+
+      // TTS (운전 모드)
       const inferTag = result.fieldInferred ? ' (추론)' : ''
-      const summary = `${result.command.target ?? ''} ${result.command.field ?? result.command.action} ${result.command.value ?? (result.command.delta ? (result.command.delta > 0 ? '+' : '') + result.command.delta : '')}${inferTag}`.trim()
-      callbacksRef.current.addLog('user', textToProcess, [result.command], summary, {
+      const summary = commands.map((c: VoiceCommand) =>
+        `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
+      ).join(', ') + inferTag
+      if (flags.ttsEnabled) playTts(`${summary} 반영.`)
+
+      // 로그
+      callbacksRef.current.addLog('user', textToProcess, commands, summary, {
         prevValue,
         fieldInferred: result.fieldInferred,
-      })
+      }, 'voice')
 
       const newTurn = ++globalTurnCounter
       setCurrentTurn(newTurn)
       setCellTurns(prev => {
         const next = new Map(prev)
-        if (result.command!.target) {
-          next.set(`voice:${targetSheet}:${result.command!.target}:${result.command!.field ?? result.command!.action}`, newTurn)
-        }
+        commands.forEach(c => {
+          if (c.target) next.set(`voice:${targetSheet}:${c.target}:${c.field ?? c.action}`, newTurn)
+        })
         return next
       })
     } else if (result.needsLlm) {
@@ -565,7 +675,8 @@ export function useEstimateVoice({
 
     if (ruleResult.success && ruleResult.command) {
       // 규칙 파서 성공 → 즉시 실행 (Whisper 텍스트이므로 검증 불필요)
-      handleModifyCommandsRef.current([ruleResult.command], processedText)
+      const commands = ruleResult.commands ?? [ruleResult.command]
+      handleModifyCommandsRef.current(commands, processedText)
       return
     }
 
@@ -581,6 +692,18 @@ export function useEstimateVoice({
     onError: (err) => console.error('[Voice]', err),
     silenceDurationMs: 2000,
   })
+
+  // ── TTS-음성입력 겹침 방지 (조치 3) ──
+  useEffect(() => {
+    const unsubscribe = onTtsStateChange((playing) => {
+      if (playing) {
+        voiceHook.pauseRecognition()
+      } else {
+        voiceHook.resumeRecognition()
+      }
+    })
+    return unsubscribe
+  }, [voiceHook.pauseRecognition, voiceHook.resumeRecognition])
 
   // ── 교정 처리 ──
   const submitCorrection = useCallback(async (logId: string, correctionText: string) => {
@@ -608,6 +731,90 @@ export function useEstimateVoice({
     if (diff === 2) return 3
     return 0
   }, [cellTurns, currentTurn])
+
+  // ── 사무실 모드: 텍스트 입력 처리 ──
+
+  /** 실시간 입력 → 하이라이트 */
+  const handleTextInput = useCallback((text: string) => {
+    if (!text.trim()) {
+      setRealtimeHighlight({})
+      return
+    }
+    const sheetItems = getSheetItemNames()
+    const detection = detectRealtime(text, sheetItems)
+    setRealtimeHighlight({
+      itemName: detection.itemName,
+      field: detection.field,
+      previewValue: detection.previewValue,
+    })
+  }, [getSheetItemNames])
+
+  /** Enter → 명령 실행 */
+  const handleTextSubmit = useCallback((text: string) => {
+    setRealtimeHighlight({})
+    if (estimateRef.current.sheets.length === 0) return
+
+    // 히스토리 추가
+    setCommandHistory(prev => [...prev.slice(-19), text])
+
+    const sheetItems = getSheetItemNames()
+    const ctx = buildParseContext()
+    const result = parseCommand(text, sheetItems, ctx)
+
+    if (result.success) {
+      const commands = result.commands ?? (result.command ? [result.command] : [])
+      if (commands.length > 0) {
+        // undo 명령 처리
+        if (commands.length === 1 && commands[0].action === 'undo') {
+          callbacksRef.current.undo()
+          callbacksRef.current.addLog('system', '취소', undefined, undefined, undefined, 'typing')
+          return
+        }
+
+        // 수정 명령 — 이전값 추출 (로그용)
+        const firstCmd = commands[0]
+        const prevValue = firstCmd ? getPrevValue(firstCmd) : undefined
+
+        const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
+        callbacksRef.current.saveSnapshot('타이핑 수정', 'voice')
+        callbacksRef.current.applyVoiceCommands(commands, targetSheet)
+
+        // 로그 + 하이라이트
+        const summary = commands.map((c: VoiceCommand) =>
+          `${c.target ?? ''} ${c.field ?? c.action} ${c.value ?? (c.delta ? (c.delta > 0 ? '+' : '') + c.delta : '')}`.trim()
+        ).join(', ')
+
+        callbacksRef.current.addLog('user', text, commands, summary, { prevValue }, 'typing')
+
+        lastExecutedCommandRef.current = commands[commands.length - 1]
+
+        const newTurn = ++globalTurnCounter
+        setCurrentTurn(newTurn)
+        setCellTurns(prev => {
+          const next = new Map(prev)
+          commands.forEach(c => {
+            if (c.target) next.set(`voice:${targetSheet}:${c.target}:${c.field ?? c.action}`, newTurn)
+          })
+          return next
+        })
+      }
+    } else if (result.needsLlm) {
+      callbacksRef.current.addLog('user', text, undefined, undefined, undefined, 'typing')
+      sendToModifyLlmRef.current(text)
+    }
+  }, [getSheetItemNames, buildParseContext])
+
+  /** ESC → 미리보기 취소 */
+  const handleTextCancel = useCallback(() => {
+    setRealtimeHighlight({})
+  }, [])
+
+  /** 멀티라인 붙여넣기 → 줄 단위 처리 */
+  const handleMultilineSubmit = useCallback((lines: string[]) => {
+    for (const line of lines) {
+      handleTextSubmit(line)
+    }
+  }, [handleTextSubmit])
 
   // ── 녹음 시작 시 축적 텍스트 초기화 ──
   const startRecording = useCallback(async () => {
@@ -650,6 +857,13 @@ export function useEstimateVoice({
     currentTurn,
     realtimeHighlight,
     bufferHint,
+    mode,
+    setMode,
+    handleTextInput,
+    handleTextSubmit,
+    handleTextCancel,
+    handleMultilineSubmit,
+    commandHistory,
   }
 }
 
