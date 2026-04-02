@@ -369,6 +369,8 @@ export interface ParseResult {
   success: boolean
   /** 파싱된 명령 (규칙 기반으로 처리 가능) */
   command?: VoiceCommand
+  /** 다중 명령 (다중 숫자 패턴 등) */
+  commands?: VoiceCommand[]
   /** LLM이 필요한지 (규칙 파서로 처리 불가) */
   needsLlm: boolean
   /** 필드가 추론되었는지 (low confidence일 수 있음) */
@@ -533,6 +535,87 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
             },
           }
         }
+      }
+    }
+  }
+
+  // ── 되돌리기 명령: "취소", "되돌려" ──
+  if (/^(취소|되돌려|되돌려줘|되돌리기|언두|undo)\s*[.!?]?\s*$/.test(trimmed)) {
+    return {
+      success: true,
+      needsLlm: false,
+      command: { action: 'undo', confidence: 0.98 },
+    }
+  }
+
+  // ── 단순 일괄 조정: "전체 재 +10%", "전체 재료비 10% 올려" ──
+  {
+    const bulkMatch = trimmed.match(
+      /^전체\s*(재료비|재료|자재|재|노무비|노무|인건비|노|경비|경|전부|전체|all)?\s*[+\-]?\s*(\d+(?:\.\d+)?)\s*%?\s*(올려|내려|인상|인하)?\s*$/
+    )
+    if (bulkMatch) {
+      const catInput = bulkMatch[1] ?? 'all'
+      const percent = parseFloat(bulkMatch[2])
+      const dir = bulkMatch[3]
+      const catMap: Record<string, string> = {
+        '재료비': 'mat', '재료': 'mat', '자재': 'mat', '재': 'mat',
+        '노무비': 'labor', '노무': 'labor', '인건비': 'labor', '노': 'labor',
+        '경비': 'exp', '경': 'exp',
+        '전부': 'all', '전체': 'all', 'all': 'all',
+      }
+      const category = catMap[catInput] ?? 'all'
+      // 방향: "내려", "인하" → 음수, 그 외 양수. 또는 원문에 - 있으면 음수
+      const isNegative = dir === '내려' || dir === '인하' || trimmed.includes('-')
+      return {
+        success: true,
+        needsLlm: false,
+        command: {
+          action: 'bulk_adjust',
+          category,
+          percent: isNegative ? -percent : percent,
+          confidence: 0.92,
+        },
+      }
+    }
+  }
+
+  // ── 다중 숫자 패턴: "[공종명] [숫자] [숫자] [숫자]" ──
+  // 1개=재, 2개=재+노, 3개=재+노+경
+  {
+    const words = trimmed.split(/\s+/)
+    // 공종명을 앞에서부터 매칭
+    for (let i = 0; i < Math.min(words.length, 3); i++) {
+      const candidate = words.slice(0, i + 1).join('')
+      const itemName = matchItemName(candidate, sheetItems)
+      if (itemName) {
+        const rest = words.slice(i + 1)
+        // 나머지에서 숫자만 추출
+        const numbers: number[] = []
+        for (const w of rest) {
+          const val = parseKoreanNumber(w, true)
+          if (val !== null) numbers.push(val)
+        }
+        if (numbers.length >= 2) {
+          const commands: VoiceCommand[] = []
+          const fields = ['mat', 'labor', 'exp']
+          for (let j = 0; j < Math.min(numbers.length, 3); j++) {
+            commands.push({
+              action: 'update_item',
+              target: itemName,
+              field: fields[j],
+              value: numbers[j],
+              confidence: 0.90,
+            })
+          }
+          return {
+            success: true,
+            needsLlm: false,
+            commands,
+            command: commands[0], // 하위 호환
+          }
+        }
+        // 1개 숫자 → 기존 필드 추론 (이미 위에서 처리됨)
+        break
       }
     }
   }
