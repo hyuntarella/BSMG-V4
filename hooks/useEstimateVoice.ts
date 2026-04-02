@@ -771,9 +771,17 @@ export function useEstimateVoice({
           return
         }
 
-        // 수정 명령 — 이전값 추출 (로그용)
+        // 수정 명령 — 이전값 추출 (로그용 + 이상치 감지)
         const firstCmd = commands[0]
         const prevValue = firstCmd ? getPrevValue(firstCmd) : undefined
+
+        // 이상치 감지 (사무실 모드에서도)
+        if (firstCmd) {
+          const anomaly = detectAnomaly(firstCmd, prevValue)
+          if (anomaly.isAnomaly) {
+            callbacksRef.current.addLog('system', `⚠ ${anomaly.message}`, undefined, undefined, undefined, 'typing')
+          }
+        }
 
         const targetSheet = activeSheetIndexRef.current >= 0 ? activeSheetIndexRef.current : 0
         callbacksRef.current.saveSnapshot('타이핑 수정', 'voice')
