@@ -12,6 +12,8 @@ interface Member {
 interface CrmResult {
   id: string;
   name: string;
+  address?: string | null;
+  phone?: string | null;
 }
 
 interface EventModalProps {
@@ -141,9 +143,11 @@ export default function EventModal({
         const res = await fetch(`/api/crm/search?q=${encodeURIComponent(q)}&limit=8`);
         if (!res.ok) return;
         const data = await res.json();
-        const results: CrmResult[] = (data.results ?? []).map((r: { id: string; name: string }) => ({
+        const results: CrmResult[] = (data.results ?? []).map((r: { id: string; name: string; address?: string | null; phone?: string | null }) => ({
           id: r.id,
           name: r.name,
+          address: r.address,
+          phone: r.phone,
         }));
         setCrmResults(results);
         setShowCrmDropdown(results.length > 0);
@@ -166,6 +170,16 @@ export default function EventModal({
     setCrmQuery(crm.name);
     setCrmResults([]);
     setShowCrmDropdown(false);
+    // CRM 고객 선택 시 타이틀에 이름, 메모에 주소/전화 자동 입력
+    if (!title.trim() || title.startsWith('방문 -')) {
+      setTitle(crm.name ? `방문 - ${crm.name}` : '');
+    }
+    const autoMemo: string[] = [];
+    if (crm.address) autoMemo.push(`주소: ${crm.address}`);
+    if (crm.phone) autoMemo.push(`전화: ${crm.phone}`);
+    if (autoMemo.length > 0 && !memo.trim()) {
+      setMemo(autoMemo.join('\n'));
+    }
   }
 
   async function handleSave() {

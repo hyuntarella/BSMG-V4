@@ -290,12 +290,12 @@ export async function addComment(customerId: string, content: string): Promise<C
 export async function searchCustomers(
   query: string,
   limit: number = 8
-): Promise<Array<{ id: string; name: string }>> {
+): Promise<Array<{ id: string; name: string; address: string | null; phone: string | null }>> {
   const supabase = getServiceClient();
 
   const { data, error } = await supabase
     .from('crm_customers')
-    .select('id, customer_name, address')
+    .select('id, customer_name, address, phone')
     .or(`customer_name.ilike.%${query}%,address.ilike.%${query}%`)
     .limit(limit);
 
@@ -304,5 +304,7 @@ export async function searchCustomers(
   return (data ?? []).map((row) => ({
     id: row.id as string,
     name: (row.customer_name as string) || (row.address as string) || '',
+    address: (row.address as string) || null,
+    phone: (row.phone as string) || null,
   }));
 }

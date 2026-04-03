@@ -31,27 +31,29 @@ export default function DashboardPage() {
         {/* KPI 카드 */}
         <DashboardKpi />
 
+        {/* 최상단: 오늘 일정 (사용자 리서치 우선순위 1위) */}
+        <div className="mt-6" data-testid="today-schedule-section">
+          <TodaySchedule />
+        </div>
+
         {/* 2-컬럼 그리드 (데스크탑) */}
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
           {/* 좌측 컬럼 */}
           <div className="space-y-5">
-            {/* 0. CS 현황 */}
-            <CsStatusSection />
-
-            {/* 1. 미발송 */}
-            <UnsentCard />
-
-            {/* 2. 견적서 열람 고객 */}
+            {/* 1. 견적서 열람 고객 (우선순위 2위) */}
             <ViewedCard />
+
+            {/* 2. 미발송 */}
+            <UnsentCard />
           </div>
 
           {/* 우측 컬럼 */}
           <div className="space-y-5">
-            {/* 3. 연락해야 할 곳 */}
+            {/* 3. 연락해야 할 곳 (우선순위 3위) */}
             <FollowUpCard onCrmOpen={handleCrmOpen} />
 
-            {/* 4. 오늘 일정 */}
-            <TodaySchedule />
+            {/* 4. CS 현황 */}
+            <CsStatusSection />
           </div>
         </div>
 

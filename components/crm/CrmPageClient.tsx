@@ -76,9 +76,11 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
           />
         </div>
         <select
+          data-testid="manager-filter"
           value={managerFilter}
           onChange={(e) => setManagerFilter(e.target.value)}
           className="rounded-xl border border-ink-faint/30 bg-surface-muted px-3 py-2 text-sm font-medium text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
+          aria-label="담당자 필터"
         >
           <option value="전체">담당자 전체</option>
           <option value="이창엽">이창엽</option>

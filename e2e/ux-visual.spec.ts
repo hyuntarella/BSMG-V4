@@ -47,3 +47,24 @@ test('PC에서 하단 탭바 숨김', async ({ page }) => {
   await page.goto('/dashboard');
   await expect(page.locator('[data-testid="mobile-tab-bar"]')).not.toBeVisible({ timeout: 10000 });
 });
+
+// ── 3단계: 정보설계 ──
+
+test('대시보드 오늘 일정 섹션이 최상단에 존재', async ({ page }) => {
+  await page.goto('/dashboard');
+  await expect(page.locator('[data-testid="today-schedule-section"]')).toBeVisible({ timeout: 10000 });
+});
+
+test('대시보드 FollowUpCard 클릭 시 CRM 패널 열림', async ({ page }) => {
+  await page.goto('/dashboard');
+  const firstItem = page.locator('[data-testid="dashboard-crm-item"]').first();
+  if (await firstItem.isVisible({ timeout: 10000 })) {
+    await firstItem.click();
+    await expect(page.locator('[data-testid="crm-detail-panel"]')).toBeVisible({ timeout: 10000 });
+  }
+});
+
+test('CRM 담당자 필터가 존재한다', async ({ page }) => {
+  await page.goto('/crm');
+  await expect(page.locator('[data-testid="manager-filter"]')).toBeVisible({ timeout: 10000 });
+});
