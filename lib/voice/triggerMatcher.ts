@@ -74,7 +74,16 @@ const FIELD_NAMES: Record<string, string> = {
  */
 export function detectCorrection(text: string): CorrectionResult | null {
   const trimmed = text.trim()
-  // Must start with "아니" variants or "취소"
+
+  // "X 아니고 Y" pattern (아니로 시작하지 않을 수 있으므로 먼저 체크)
+  const anigoMatch = trimmed.match(/(\d[\d,]*)\s*(?:원|만원|만)?\s*아니고\s*(\d[\d,]*)\s*(원|만원|만)?/)
+  if (anigoMatch) {
+    let val = parseInt(anigoMatch[2].replace(/,/g, ''))
+    if (anigoMatch[3] === '만원' || anigoMatch[3] === '만') val *= 10000
+    return { type: 'undo_and_replace_value', newValue: val }
+  }
+
+  // 이하 "아니"로 시작해야 함
   if (!/^(?:아니|아니야|아닌데|취소)/.test(trimmed)) return null
 
   // "취소" alone → undo
@@ -84,14 +93,6 @@ export function detectCorrection(text: string): CorrectionResult | null {
 
   // "아니" alone → just undo
   if (!afterNi) return { type: 'undo_only' }
-
-  // "X 아니고 Y" pattern
-  const anigoMatch = trimmed.match(/(\d[\d,]*)\s*(?:원|만원|만)?\s*아니고\s*(\d[\d,]*)\s*(원|만원|만)?/)
-  if (anigoMatch) {
-    let val = parseInt(anigoMatch[2].replace(/,/g, ''))
-    if (anigoMatch[3] === '만원' || anigoMatch[3] === '만') val *= 10000
-    return { type: 'undo_and_replace_value', newValue: val }
-  }
 
   // "아니 600원" / "아니 600" → undo + new value
   const numMatch = afterNi.match(/^(\d[\d,]*)\s*(원|만원|만)?/)

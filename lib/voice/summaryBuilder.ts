@@ -10,7 +10,7 @@ export type SummaryAction = 'read_summary' | 'read_margin'
  * LLM 호출 없이 로컬에서 처리하기 위한 사전 분류.
  */
 export function matchSummaryKeyword(normalized: string): SummaryAction | null {
-  if (/현재\s*상태|상태\s*알려|요약/.test(normalized)) {
+  if (/현재\s*상태|상태\s*알려|요약|^총액$/.test(normalized)) {
     return 'read_summary'
   }
   if (/마진\s*얼마|^마진$/.test(normalized)) {

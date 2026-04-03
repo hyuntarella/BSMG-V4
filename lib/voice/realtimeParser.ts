@@ -105,6 +105,12 @@ export function parseKoreanFull(text: string): number | null {
                     Object.keys(units).some(k => cleaned.includes(k))
   if (!hasKorean) return null
 
+  // 모든 한글 글자가 숫자 자릿수 또는 단위여야 함 (프라이머 → "이" 오탐 방지)
+  const allChars = new Set([...Object.keys(digits), ...Object.keys(units)])
+  for (const ch of cleaned) {
+    if (/[가-힣]/.test(ch) && !allChars.has(ch)) return null
+  }
+
   let result = 0
   let current = 0
   let manPart = 0
@@ -139,6 +145,31 @@ const DIRECTION_UP = /(올려|올려줘|올려라)$/
 const DIRECTION_DOWN = /(내려|내려줘|내려라)$/
 const DELETE_TRIGGER = /(빼|빼줘|빼라|삭제|제거|삭제해|삭제해줘|제거해|제거해줘)$/
 const ADD_TRIGGER = /(추가|추가해|추가해줘)$/
+
+// ── 위치 패턴 ──
+
+/** "N번에", "N번째에", "맨 위에", "맨 아래에" 등에서 위치를 추출하고 제거한 텍스트를 반환 */
+export function extractPosition(text: string): { position: number | null; cleaned: string } {
+  // "맨 위에" / "맨 위" → position 1
+  const topMatch = text.match(/맨\s*위(에)?\s*/)
+  if (topMatch) {
+    return { position: 1, cleaned: text.replace(topMatch[0], '').trim() }
+  }
+
+  // "맨 아래에" / "맨 아래" → position -1 (끝)
+  const bottomMatch = text.match(/맨\s*아래(에)?\s*/)
+  if (bottomMatch) {
+    return { position: -1, cleaned: text.replace(bottomMatch[0], '').trim() }
+  }
+
+  // "N번째에" / "N번째" / "N번에" / "N번"
+  const posMatch = text.match(/(\d+)\s*번(째)?(에)?\s*/)
+  if (posMatch) {
+    return { position: parseInt(posMatch[1]), cleaned: text.replace(posMatch[0], '').trim() }
+  }
+
+  return { position: null, cleaned: text }
+}
 
 /** "으로" 절대값 종결 */
 const ABSOLUTE_ENDING = /(\d[\d,.]*)\s*(원|만원|만)?\s*(으로)\s*$/
@@ -187,21 +218,53 @@ export function parseKoreanNumber(text: string, isAmountContext: boolean): numbe
 /**
  * Web Speech API의 부정확한 공종명을 매칭.
  * 공백 제거 후 비교, 줄임말 매핑, prefix 매칭.
+ * "도" 접미사 제거 후 매칭도 시도.
  */
 export function matchItemName(input: string, sheetItems?: string[]): string | null {
-  const normalized = input.replace(/\s/g, '')
+  const trimmed = input.trim()
+  const normalized = trimmed.replace(/\s/g, '')
 
   // 1. 줄임말 매핑 (정확한 매치)
   if (ITEM_ALIASES[normalized]) return ITEM_ALIASES[normalized]
-  if (ITEM_ALIASES[input.trim()]) return ITEM_ALIASES[input.trim()]
+  if (ITEM_ALIASES[trimmed]) return ITEM_ALIASES[trimmed]
 
   // 2. 시트에 있는 공종명과 비교
   const items = sheetItems ?? KNOWN_ITEMS
+
+  // Pass 1: 정확한 매칭 (exact match 우선)
   for (const name of items) {
     const nameNorm = name.replace(/\s/g, '').replace(/\n/g, '')
     if (nameNorm === normalized) return name
-    if (nameNorm.includes(normalized) && normalized.length >= 2) return name
+  }
+
+  // Pass 2: includes 매칭 — 짧은 이름부터 (입력이 공종명을 포함하는 경우 우선)
+  // "노출 우레탄" 입력 시 "노출 우레탄"이 "노출 우레탄 1차"보다 먼저 매칭되어야 함
+  const sortedByLen = [...items].sort((a, b) =>
+    a.replace(/\s/g, '').length - b.replace(/\s/g, '').length
+  )
+  for (const name of sortedByLen) {
+    const nameNorm = name.replace(/\s/g, '').replace(/\n/g, '')
+    // 입력이 공종명을 포함 (예: "노출우레탄재료비" includes "노출우레탄")
     if (normalized.includes(nameNorm) && nameNorm.length >= 2) return name
+  }
+  // 공종명이 입력을 포함 (예: "바탕조정제미장" includes "미장")
+  for (const name of sortedByLen) {
+    const nameNorm = name.replace(/\s/g, '').replace(/\n/g, '')
+    if (nameNorm.includes(normalized) && normalized.length >= 2) return name
+  }
+
+  // 3. "도" 접미사 제거 후 재시도 ("미장도" → "미장", "시트도" → "시트")
+  if (normalized.endsWith('도') && normalized.length >= 2) {
+    const withoutDo = normalized.slice(0, -1)
+    if (ITEM_ALIASES[withoutDo]) return ITEM_ALIASES[withoutDo]
+    for (const name of items) {
+      const nameNorm = name.replace(/\s/g, '').replace(/\n/g, '')
+      if (nameNorm === withoutDo) return name
+    }
+    for (const name of sortedByLen) {
+      const nameNorm = name.replace(/\s/g, '').replace(/\n/g, '')
+      if (normalized.length >= 3 && nameNorm.includes(withoutDo) && withoutDo.length >= 2) return name
+    }
   }
 
   return null
@@ -403,47 +466,69 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
     }
   }
 
-  // ── 추가 명령: "[공종명] [수량][단위] 추가" ──
+  // ── 추가 명령: "[공종명] [수량][단위] [위치] 추가" ──
   if (ADD_TRIGGER.test(trimmed)) {
     const withoutEnding = trimmed.replace(ADD_TRIGGER, '').trim()
-    const qtyMatch = withoutEnding.match(/(\d+)\s*(미터|m|m²|헤베|평|식|개|일)?/)
+
+    // Step 1: 위치 패턴 추출 및 제거
+    const { position, cleaned: afterPos } = extractPosition(withoutEnding)
+
+    // Step 2: 수량+단위 추출 및 제거
+    const qtyMatch = afterPos.match(/(\d+)\s*(미터|m|m²|헤베|평|식|개|일)/)
+    let qty: number | undefined
+    let unit: string | undefined
+    let afterQty = afterPos
+
     if (qtyMatch) {
-      const name = withoutEnding.replace(qtyMatch[0], '').trim()
-      const resolvedName = matchItemName(name, sheetItems) ?? name
+      qty = parseInt(qtyMatch[1])
       const unitMap: Record<string, string> = { '미터': 'm', 'm': 'm', 'm²': 'm²', '헤베': 'm²', '평': '평', '식': '식', '개': '개', '일': '일' }
-      return {
-        success: true,
-        needsLlm: false,
-        command: {
-          action: 'add_item',
-          name: resolvedName,
-          qty: parseInt(qtyMatch[1]),
-          unit: unitMap[qtyMatch[2] ?? ''] ?? 'm²',
-          confidence: 0.90,
-        },
+      unit = unitMap[qtyMatch[2] ?? ''] ?? 'm²'
+      afterQty = afterPos.replace(qtyMatch[0], '').trim()
+    }
+
+    // Step 3: 공종명 매칭
+    const nameCandidate = afterQty.trim()
+    if (nameCandidate) {
+      const resolvedName = matchItemName(nameCandidate, sheetItems) ?? nameCandidate
+      const cmd: VoiceCommand = {
+        action: 'add_item',
+        name: resolvedName,
+        confidence: 0.90,
       }
+      if (qty !== undefined) cmd.qty = qty
+      if (unit) cmd.unit = unit
+      if (position !== null) cmd.position = position
+      return { success: true, needsLlm: false, command: cmd }
     }
   }
 
   // ── 절대값 변경: "[공종명] [필드] [값]으로 바꿔줘" ──
-  const absoluteMatch = trimmed.match(/(.+?)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+?)\s*(으로|바꿔|넣어|해줘|수정|변경)/)
-  if (absoluteMatch) {
-    const itemName = matchItemName(absoluteMatch[1], sheetItems)
-    const field = matchField(absoluteMatch[2], itemName ?? undefined)
-    const isAmountContext = field !== 'qty'
-    const value = parseKoreanNumber(absoluteMatch[3], isAmountContext)
+  // greedy 매칭으로 시도한 뒤 lazy 매칭으로 폴백 (숫자 포함 공종명 지원)
+  const absolutePatterns = [
+    /(.+)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+?)\s*(으로|바꿔|넣어|해줘|수정|변경)/,
+    /(.+?)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+?)\s*(으로|바꿔|넣어|해줘|수정|변경)/,
+  ]
+  for (const pat of absolutePatterns) {
+    const absoluteMatch = trimmed.match(pat)
+    if (absoluteMatch) {
+      const itemName = matchItemName(absoluteMatch[1], sheetItems)
+      const field = matchField(absoluteMatch[2], itemName ?? undefined)
+      // 필드 명시 시 만원 자동 변환 비활성 (재료비 100 = 100원, 평단가 35 = 35만원과 다름)
+      const isAmountContext = false
+      const value = parseKoreanNumber(absoluteMatch[3], isAmountContext)
 
-    if (itemName && field && value !== null) {
-      return {
-        success: true,
-        needsLlm: false,
-        command: {
-          action: 'update_item',
-          target: itemName,
-          field,
-          value,
-          confidence: 0.95,
-        },
+      if (itemName && field && value !== null) {
+        return {
+          success: true,
+          needsLlm: false,
+          command: {
+            action: 'update_item',
+            target: itemName,
+            field,
+            value,
+            confidence: 0.95,
+          },
+        }
       }
     }
   }
@@ -453,25 +538,32 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
   const isDown = DIRECTION_DOWN.test(trimmed)
   if (isUp || isDown) {
     const withoutDir = trimmed.replace(/(올려|올려줘|올려라|내려|내려줘|내려라)$/, '').trim()
-    // "[공종명] [필드] [값]"
-    const deltaMatch = withoutDir.match(/(.+?)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+)/)
-    if (deltaMatch) {
-      const itemName = matchItemName(deltaMatch[1], sheetItems)
-      const field = matchField(deltaMatch[2], itemName ?? undefined)
-      const isAmountContext = field !== 'qty'
-      const rawValue = parseKoreanNumber(deltaMatch[3], isAmountContext)
+    // greedy 먼저, lazy 폴백
+    const deltaPatterns = [
+      /(.+)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+)/,
+      /(.+?)\s+(재료비|재료|자재|노무비|노무|인건비|경비|단가|수량)\s+(.+)/,
+    ]
+    for (const pat of deltaPatterns) {
+      const deltaMatch = withoutDir.match(pat)
+      if (deltaMatch) {
+        const itemName = matchItemName(deltaMatch[1], sheetItems)
+        const field = matchField(deltaMatch[2], itemName ?? undefined)
+        // 필드 명시 시 만원 자동 변환 비활성
+        const isAmountContext = false
+        const rawValue = parseKoreanNumber(deltaMatch[3], isAmountContext)
 
-      if (itemName && field && rawValue !== null) {
-        return {
-          success: true,
-          needsLlm: false,
-          command: {
-            action: 'update_item',
-            target: itemName,
-            field,
-            delta: isUp ? rawValue : -rawValue,
-            confidence: 0.95,
-          },
+        if (itemName && field && rawValue !== null) {
+          return {
+            success: true,
+            needsLlm: false,
+            command: {
+              action: 'update_item',
+              target: itemName,
+              field,
+              delta: isUp ? rawValue : -rawValue,
+              confidence: 0.95,
+            },
+          }
         }
       }
     }
@@ -539,6 +631,81 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
     }
   }
 
+  // ── "도" 패턴: "미장도 300", "시트도 500 넣어", "하도도 올려" ──
+  // "도" 접미사로 끝나는 공종명 + 값/동작어 → 컨텍스트에서 필드 계승
+  // 주의: "하도"는 "하도 프라이머"의 줄임말이므로 "도" 패턴이 아님
+  {
+    const words = trimmed.split(/\s+/)
+    if (words.length >= 1) {
+      const firstWord = words[0]
+      // "도"로 끝나는 단어에서 공종명 매칭 시도
+      // 단, "도"를 제거한 형태가 유효한 공종명일 때만 "도" 패턴으로 처리
+      const isDoPattern = firstWord.endsWith('도') && firstWord.length >= 2 && (() => {
+        const withoutDo = firstWord.slice(0, -1)
+        // "도" 제거 후 유효한 매칭이 있어야 "도" 패턴
+        return ITEM_ALIASES[withoutDo] !== undefined ||
+          (sheetItems ?? KNOWN_ITEMS).some(n => {
+            const norm = n.replace(/\s/g, '').replace(/\n/g, '')
+            return (norm === withoutDo || (norm.includes(withoutDo) && withoutDo.length >= 2))
+          })
+      })()
+      if (isDoPattern) {
+        const itemName = matchItemName(firstWord, sheetItems)
+        if (itemName) {
+          const rest = words.slice(1).join(' ')
+
+          // "도" 패턴 + 올려/내려
+          if (DIRECTION_UP.test(trimmed) || DIRECTION_DOWN.test(trimmed)) {
+            const dirUp = DIRECTION_UP.test(trimmed)
+            const afterDir = rest.replace(/(올려|올려줘|올려라|내려|내려줘|내려라)$/, '').trim()
+            const val = afterDir ? parseKoreanNumber(afterDir, true) : null
+            const inferred = inferField(itemName, val, dirUp ? '올려' : '내려', context)
+            if (inferred) {
+              const cmd: VoiceCommand = {
+                action: 'update_item',
+                target: itemName,
+                field: inferred.field,
+                confidence: inferred.confidence === 'high' ? 0.90 : 0.75,
+              }
+              if (val !== null) cmd.delta = dirUp ? val : -val
+              return {
+                success: true,
+                needsLlm: val === null, // 값 없으면 LLM 필요할 수 있음
+                fieldInferred: true,
+                inferredConfidence: inferred.confidence,
+                command: cmd,
+              }
+            }
+          }
+
+          // "도" 패턴 + 값 (+ 넣어/으로 등)
+          if (rest) {
+            const cleanedRest = rest.replace(ENDING_TRIGGER, '').trim()
+            const val = parseKoreanNumber(cleanedRest, true)
+            if (val !== null) {
+              const inferred = inferField(itemName, val, null, context)
+              if (inferred) {
+                return {
+                  success: true,
+                  needsLlm: false,
+                  fieldInferred: true,
+                  inferredConfidence: inferred.confidence,
+                  command: {
+                    action: 'update_item',
+                    target: itemName,
+                    field: inferred.field,
+                    value: val,
+                    confidence: inferred.confidence === 'high' ? 0.90 : 0.75,
+                  },
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // ── 되돌리기 명령: "취소", "되돌려" ──
   if (/^(취소|되돌려|되돌려줘|되돌리기|언두|undo)\s*[.!?]?\s*$/.test(trimmed)) {
     return {
@@ -583,10 +750,11 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
   // 1개=재, 2개=재+노, 3개=재+노+경
   {
     const words = trimmed.split(/\s+/)
-    // 공종명을 앞에서부터 매칭
+    // 공종명을 앞에서부터 매칭 (공백 제거 + 공백 포함 둘 다)
     for (let i = 0; i < Math.min(words.length, 3); i++) {
-      const candidate = words.slice(0, i + 1).join('')
-      const itemName = matchItemName(candidate, sheetItems)
+      const candidateNoSpace = words.slice(0, i + 1).join('')
+      const candidateWithSpace = words.slice(0, i + 1).join(' ')
+      const itemName = matchItemName(candidateWithSpace, sheetItems) ?? matchItemName(candidateNoSpace, sheetItems)
       if (itemName) {
         const rest = words.slice(i + 1)
         // 나머지에서 숫자만 추출

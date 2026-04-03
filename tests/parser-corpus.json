@@ -1,0 +1,1778 @@
+[
+  {
+    "id": "ADD-001",
+    "category": "공종추가",
+    "input": "사다리차 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "알려진 버그 — 수량 없이 추가 시 실패"
+  },
+  {
+    "id": "ADD-002",
+    "category": "공종추가_위치지정",
+    "input": "사다리차 9번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "position": 9,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "알려진 버그 — 9가 공종명에서 잘못 추출됨"
+  },
+  {
+    "id": "ADD-003",
+    "category": "공종추가",
+    "input": "폐기물 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "폐기물처리",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말+수량없음 추가"
+  },
+  {
+    "id": "ADD-004",
+    "category": "공종추가",
+    "input": "드라이비트 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "드라이비트하부절개",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말+수량없음 추가"
+  },
+  {
+    "id": "ADD-005",
+    "category": "공종추가",
+    "input": "스카이차 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "스카이차",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "KNOWN_ITEMS에 없는 장비 — name 그대로 전달"
+  },
+  {
+    "id": "ADD-006",
+    "category": "공종추가",
+    "input": "크랙보수 20미터 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "qty": 20,
+      "unit": "m",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "수량+단위 포함 추가"
+  },
+  {
+    "id": "ADD-007",
+    "category": "공종추가",
+    "input": "실리콘 5식 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "실리콘",
+      "qty": 5,
+      "unit": "식",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "식 단위 추가"
+  },
+  {
+    "id": "ADD-008",
+    "category": "공종추가",
+    "input": "크랙보수 추가해줘",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "추가해줘 변형 + 수량 없음"
+  },
+  {
+    "id": "ADD-009",
+    "category": "공종추가_위치지정",
+    "input": "크랙보수 3번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "position": 3,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "위치 지정 추가 — 3이 위치임"
+  },
+  {
+    "id": "ADD-010",
+    "category": "공종추가_위치지정",
+    "input": "실리콘 5번째에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "실리콘",
+      "position": 5,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "N번째에 위치 패턴"
+  },
+  {
+    "id": "ADD-011",
+    "category": "공종추가_위치지정",
+    "input": "사다리차 맨 위에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "position": 1,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "맨 위 = position 1"
+  },
+  {
+    "id": "ADD-012",
+    "category": "공종추가",
+    "input": "사다리차 2일 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "qty": 2,
+      "unit": "일",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "장비 + 일 단위"
+  },
+  {
+    "id": "ADD-013",
+    "category": "공종추가",
+    "input": "폐기물 3일 추가해줘",
+    "expected": {
+      "action": "add_item",
+      "item_name": "폐기물처리",
+      "qty": 3,
+      "unit": "일",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 수량 + 추가해줘"
+  },
+  {
+    "id": "SET-001",
+    "category": "값설정",
+    "input": "바탕정리 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "기본 값 설정"
+  },
+  {
+    "id": "SET-002",
+    "category": "값설정",
+    "input": "복합 시트 재료비 5천원으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "value": 5000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "천원 단위 + 으로 종결"
+  },
+  {
+    "id": "SET-003",
+    "category": "값설정",
+    "input": "시트 재료비 5000으로 바꿔",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "value": 5000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 바꿔 종결"
+  },
+  {
+    "id": "SET-004",
+    "category": "값설정",
+    "input": "사다리차 단가 12만원으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "사다리차",
+      "field": "labor",
+      "value": 120000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "장비 + 단가 → labor, 만원 단위"
+  },
+  {
+    "id": "SET-005",
+    "category": "값설정",
+    "input": "사다리차 단가 15만원으로 바꿔줘",
+    "expected": {
+      "action": "update_item",
+      "item_name": "사다리차",
+      "field": "labor",
+      "value": 150000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "장비 단가 변경 바꿔줘"
+  },
+  {
+    "id": "SET-006",
+    "category": "값설정",
+    "input": "하도 프라이머 노무비 1200 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "하도 프라이머",
+      "field": "labor",
+      "value": 1200,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "공백 포함 공종명 + 노무비"
+  },
+  {
+    "id": "SET-007",
+    "category": "값설정",
+    "input": "우레탄 상도 경비 300 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "우레탄 상도",
+      "field": "exp",
+      "value": 300,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "경비 설정"
+  },
+  {
+    "id": "SET-008",
+    "category": "값설정",
+    "input": "바탕 재료비 3만5천 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 35000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 만천 조합 숫자"
+  },
+  {
+    "id": "SET-009",
+    "category": "값설정",
+    "input": "노출 우레탄 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄",
+      "field": "mat",
+      "value": 500,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "공백 포함 공종명"
+  },
+  {
+    "id": "SET-010",
+    "category": "값설정",
+    "input": "미장 수량 1으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕조정제미장",
+      "field": "qty",
+      "value": 1,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "수량 설정 — 금액 문맥 아님"
+  },
+  {
+    "id": "DELTA-001",
+    "category": "증감변경",
+    "input": "바탕정리 재료비 100 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "delta": 100,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "기본 증감"
+  },
+  {
+    "id": "DELTA-002",
+    "category": "증감변경",
+    "input": "바탕정리 재료비 200 내려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "delta": -200,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "기본 감소"
+  },
+  {
+    "id": "DELTA-003",
+    "category": "증감변경",
+    "input": "시트 노무비 500 올려줘",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "labor",
+      "delta": 500,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 올려줘"
+  },
+  {
+    "id": "DELTA-004",
+    "category": "증감변경",
+    "input": "하도 인건비 1000 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "하도 프라이머",
+      "field": "labor",
+      "delta": 1000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "인건비 = labor"
+  },
+  {
+    "id": "DELTA-005",
+    "category": "증감변경",
+    "input": "폐기물 단가 5만원 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "폐기물처리",
+      "field": "labor",
+      "delta": 50000,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "장비 + 단가 → labor + 만원 단위"
+  },
+  {
+    "id": "INFER-001",
+    "category": "필드추론",
+    "input": "바탕 500 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "delta": 500,
+      "position": null,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "필드 생략 → inferField로 mat 추론"
+  },
+  {
+    "id": "INFER-002",
+    "category": "필드추론",
+    "input": "시트 3000으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "value": 3000,
+      "position": null,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "필드 생략 + 으로 절대값"
+  },
+  {
+    "id": "INFER-003",
+    "category": "필드추론",
+    "input": "바탕 200 내려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "delta": -200,
+      "position": null,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "필드 생략 감소"
+  },
+  {
+    "id": "INFER-004",
+    "category": "필드추론",
+    "input": "사다리차 15만원으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "사다리차",
+      "field": "labor",
+      "value": 150000,
+      "position": null,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "장비류 필드 추론 → labor"
+  },
+  {
+    "id": "DEL-001",
+    "category": "삭제",
+    "input": "바탕정리 빼줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "바탕정리",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "기본 삭제"
+  },
+  {
+    "id": "DEL-002",
+    "category": "삭제",
+    "input": "사다리차 삭제",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "사다리차",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "삭제 키워드"
+  },
+  {
+    "id": "DEL-003",
+    "category": "삭제",
+    "input": "시트 빼",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "복합 시트",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 빼"
+  },
+  {
+    "id": "DEL-004",
+    "category": "삭제",
+    "input": "드라이비트 삭제해줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "드라이비트하부절개",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 삭제해줘"
+  },
+  {
+    "id": "DEL-005",
+    "category": "삭제",
+    "input": "폐기물 제거해줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "폐기물처리",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "줄임말 + 제거해줘"
+  },
+  {
+    "id": "DEL-006",
+    "category": "삭제",
+    "input": "우레탄 상도 제거",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "우레탄 상도",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P1",
+    "note": "공백 포함 공종명 + 제거"
+  },
+  {
+    "id": "CORR-001",
+    "category": "교정",
+    "input": "아니",
+    "expected": {
+      "correction_type": "undo_only"
+    },
+    "priority": "P1",
+    "note": "단순 취소"
+  },
+  {
+    "id": "CORR-002",
+    "category": "교정",
+    "input": "아니 600원",
+    "expected": {
+      "correction_type": "undo_and_replace_value",
+      "newValue": 600
+    },
+    "priority": "P1",
+    "note": "취소 + 새 값"
+  },
+  {
+    "id": "CORR-003",
+    "category": "교정",
+    "input": "아니 600",
+    "expected": {
+      "correction_type": "undo_and_replace_value",
+      "newValue": 600
+    },
+    "priority": "P1",
+    "note": "취소 + 새 값 (원 생략)"
+  },
+  {
+    "id": "CORR-004",
+    "category": "교정",
+    "input": "500 아니고 600",
+    "expected": {
+      "correction_type": "undo_and_replace_value",
+      "newValue": 600
+    },
+    "priority": "P1",
+    "note": "X 아니고 Y 패턴"
+  },
+  {
+    "id": "CORR-005",
+    "category": "교정",
+    "input": "아니 재료비",
+    "expected": {
+      "correction_type": "undo_and_replace_field",
+      "newField": "mat"
+    },
+    "priority": "P1",
+    "note": "취소 + 필드 변경"
+  },
+  {
+    "id": "CORR-006",
+    "category": "교정",
+    "input": "아니 노무비",
+    "expected": {
+      "correction_type": "undo_and_replace_field",
+      "newField": "labor"
+    },
+    "priority": "P1",
+    "note": "취소 + 노무비로 변경"
+  },
+  {
+    "id": "CORR-007",
+    "category": "교정",
+    "input": "아니야",
+    "expected": {
+      "correction_type": "undo_only"
+    },
+    "priority": "P1",
+    "note": "아니야 변형"
+  },
+  {
+    "id": "CORR-008",
+    "category": "교정",
+    "input": "아니 5만원",
+    "expected": {
+      "correction_type": "undo_and_replace_value",
+      "newValue": 50000
+    },
+    "priority": "P1",
+    "note": "만원 단위 교정"
+  },
+  {
+    "id": "BULK-001",
+    "category": "일괄조정",
+    "input": "전체 재료비 10% 올려",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "mat",
+      "percent": 10,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "기본 일괄 인상"
+  },
+  {
+    "id": "BULK-002",
+    "category": "일괄조정",
+    "input": "전체 노무비 5% 내려",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "labor",
+      "percent": -5,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "일괄 인하"
+  },
+  {
+    "id": "BULK-003",
+    "category": "일괄조정",
+    "input": "전체 재 10%",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "mat",
+      "percent": 10,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "줄임말 재"
+  },
+  {
+    "id": "BULK-004",
+    "category": "일괄조정",
+    "input": "전체 노 15% 인상",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "labor",
+      "percent": 15,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "줄임말 노 + 인상"
+  },
+  {
+    "id": "BULK-005",
+    "category": "일괄조정",
+    "input": "전체 경비 20% 인하",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "exp",
+      "percent": -20,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "경비 인하"
+  },
+  {
+    "id": "BULK-006",
+    "category": "일괄조정",
+    "input": "전체 -10%",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "all",
+      "percent": -10,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "전체 음수 비율"
+  },
+  {
+    "id": "BULK-007",
+    "category": "일괄조정",
+    "input": "전체 5%",
+    "expected": {
+      "action": "bulk_adjust",
+      "category": "all",
+      "percent": 5,
+      "position": null
+    },
+    "priority": "P1",
+    "note": "전체 양수 비율 (카테고리 생략)"
+  },
+  {
+    "id": "MULTI-001",
+    "category": "복합명령",
+    "input": "바탕 500 1000 200",
+    "expected": {
+      "action": "multi_update",
+      "item_name": "바탕정리",
+      "mat": 500,
+      "labor": 1000,
+      "exp": 200
+    },
+    "priority": "P1",
+    "note": "다중 숫자 → 재/노/경"
+  },
+  {
+    "id": "MULTI-002",
+    "category": "복합명령",
+    "input": "시트 3000 1500",
+    "expected": {
+      "action": "multi_update",
+      "item_name": "복합 시트",
+      "mat": 3000,
+      "labor": 1500
+    },
+    "priority": "P1",
+    "note": "2개 숫자 → 재/노"
+  },
+  {
+    "id": "MULTI-003",
+    "category": "복합명령",
+    "input": "하도 프라이머 800 600 0",
+    "expected": {
+      "action": "multi_update",
+      "item_name": "하도 프라이머",
+      "mat": 800,
+      "labor": 600,
+      "exp": 0
+    },
+    "priority": "P1",
+    "note": "0 포함 다중 숫자"
+  },
+  {
+    "id": "MULTI-004",
+    "category": "복합명령",
+    "input": "노출 우레탄 2500 3000 500",
+    "expected": {
+      "action": "multi_update",
+      "item_name": "노출 우레탄",
+      "mat": 2500,
+      "labor": 3000,
+      "exp": 500
+    },
+    "priority": "P1",
+    "note": "공백 포함 공종명 + 다중 숫자"
+  },
+  {
+    "id": "CTX-001",
+    "category": "컨텍스트계승",
+    "input": "미장도 300",
+    "context": {
+      "lastCommand": {
+        "action": "update_item",
+        "target": "바탕정리",
+        "field": "mat",
+        "value": 500,
+        "confidence": 0.95
+      }
+    },
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕조정제미장",
+      "field": "mat",
+      "value": 300,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "도 패턴 — 직전 필드 계승"
+  },
+  {
+    "id": "CTX-002",
+    "category": "컨텍스트계승",
+    "input": "시트도 올려",
+    "context": {
+      "lastCommand": {
+        "action": "update_item",
+        "target": "바탕정리",
+        "field": "mat",
+        "delta": 500,
+        "confidence": 0.95
+      }
+    },
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "fieldInferred": true
+    },
+    "priority": "P2",
+    "note": "도 패턴 + 올려 — 값 없음은 LLM 필요할 수 있음"
+  },
+  {
+    "id": "UNDO-001",
+    "category": "되돌리기",
+    "input": "취소",
+    "expected": {
+      "action": "undo"
+    },
+    "priority": "P1",
+    "note": "기본 취소"
+  },
+  {
+    "id": "UNDO-002",
+    "category": "되돌리기",
+    "input": "되돌려",
+    "expected": {
+      "action": "undo"
+    },
+    "priority": "P1",
+    "note": "되돌려 키워드"
+  },
+  {
+    "id": "UNDO-003",
+    "category": "되돌리기",
+    "input": "되돌려줘",
+    "expected": {
+      "action": "undo"
+    },
+    "priority": "P1",
+    "note": "되돌려줘 변형"
+  },
+  {
+    "id": "UNDO-004",
+    "category": "되돌리기",
+    "input": "언두",
+    "expected": {
+      "action": "undo"
+    },
+    "priority": "P1",
+    "note": "영어 변형"
+  },
+  {
+    "id": "POS-001",
+    "category": "위치지정",
+    "input": "사다리차 3번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "position": 3,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "N번에 위치 — 숫자가 위치임"
+  },
+  {
+    "id": "POS-002",
+    "category": "위치지정",
+    "input": "폐기물 1번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "폐기물처리",
+      "position": 1,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "1번에 = 맨 위"
+  },
+  {
+    "id": "POS-003",
+    "category": "위치지정",
+    "input": "크랙보수 7번에 추가해줘",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "position": 7,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "N번에 + 추가해줘"
+  },
+  {
+    "id": "POS-004",
+    "category": "위치지정",
+    "input": "실리콘 10개 3번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "실리콘",
+      "qty": 10,
+      "unit": "개",
+      "position": 3,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "수량 + 위치 동시 — 10은 수량, 3은 위치"
+  },
+  {
+    "id": "NUM-001",
+    "category": "숫자파싱",
+    "input": "바탕 재료비 3만5천 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 35000
+    },
+    "priority": "P1",
+    "note": "3만5천 → 35000"
+  },
+  {
+    "id": "NUM-002",
+    "category": "숫자파싱",
+    "input": "시트 재료비 5천원 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "value": 5000
+    },
+    "priority": "P1",
+    "note": "5천원 → 5000"
+  },
+  {
+    "id": "NUM-003",
+    "category": "숫자파싱",
+    "input": "바탕 재료비 3만 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 30000
+    },
+    "priority": "P1",
+    "note": "3만 → 30000"
+  },
+  {
+    "id": "NUM-004",
+    "category": "숫자파싱",
+    "input": "사다리차 단가 12만원 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "사다리차",
+      "field": "labor",
+      "value": 120000
+    },
+    "priority": "P1",
+    "note": "12만원 → 120000"
+  },
+  {
+    "id": "NUM-005",
+    "category": "숫자파싱",
+    "input": "바탕 재료비 500원 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "500원 → 500 (원 단위 그대로)"
+  },
+  {
+    "id": "EDGE-001",
+    "category": "엣지케이스",
+    "input": "",
+    "expected": {
+      "action": null,
+      "needsLlm": false
+    },
+    "priority": "P2",
+    "note": "빈 입력"
+  },
+  {
+    "id": "EDGE-002",
+    "category": "엣지케이스",
+    "input": "바탕정리",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "공종명만 — 명령 불완전"
+  },
+  {
+    "id": "EDGE-003",
+    "category": "엣지케이스",
+    "input": "500",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "숫자만 — 공종명 없음"
+  },
+  {
+    "id": "EDGE-004",
+    "category": "엣지케이스",
+    "input": "올려",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "동작어만"
+  },
+  {
+    "id": "EDGE-005",
+    "category": "엣지케이스",
+    "input": "재료비 500 넣어",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "공종명 없이 필드+값 — 컨텍스트 없으면 LLM"
+  },
+  {
+    "id": "EDGE-006",
+    "category": "엣지케이스",
+    "input": "  바탕정리 재료비 500 넣어  ",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P2",
+    "note": "앞뒤 공백 있는 입력"
+  },
+  {
+    "id": "EDGE-007",
+    "category": "엣지케이스",
+    "input": "1차 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄 1차",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "숫자 포함 줄임말 — 1차 → 노출 우레탄 1차"
+  },
+  {
+    "id": "EDGE-008",
+    "category": "엣지케이스",
+    "input": "2차 재료비 800 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄 2차",
+      "field": "mat",
+      "value": 800
+    },
+    "priority": "P1",
+    "note": "숫자 포함 줄임말 — 2차 → 노출 우레탄 2차"
+  },
+  {
+    "id": "EDGE-009",
+    "category": "엣지케이스",
+    "input": "추가",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "동작어만 — 공종명 없음"
+  },
+  {
+    "id": "EDGE-010",
+    "category": "엣지케이스",
+    "input": "9번에 추가",
+    "expected": {
+      "needsLlm": true
+    },
+    "priority": "P2",
+    "note": "위치만 — 공종명 없음"
+  },
+  {
+    "id": "QUERY-001",
+    "category": "조회",
+    "input": "현재 상태 알려줘",
+    "expected": {
+      "action": "read_summary"
+    },
+    "priority": "P2",
+    "note": "상태 요약 — summaryBuilder에서 처리"
+  },
+  {
+    "id": "QUERY-002",
+    "category": "조회",
+    "input": "마진 얼마야",
+    "expected": {
+      "action": "read_margin"
+    },
+    "priority": "P2",
+    "note": "마진 조회"
+  },
+  {
+    "id": "QUERY-003",
+    "category": "조회",
+    "input": "총액",
+    "expected": {
+      "action": "read_summary"
+    },
+    "priority": "P2",
+    "note": "총액 조회"
+  },
+  {
+    "id": "DICT-001",
+    "category": "동음이의어",
+    "input": "바탕 이계소 추가",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "바탕 2개소 추가"
+    },
+    "priority": "P2",
+    "note": "동음이의어 사전 적용"
+  },
+  {
+    "id": "DICT-002",
+    "category": "동음이의어",
+    "input": "삼계소 추가",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "3개소 추가"
+    },
+    "priority": "P2",
+    "note": "삼계소 → 3개소"
+  },
+  {
+    "id": "KNUM-001",
+    "category": "한글숫자",
+    "input": "바탕 재료비 오백 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "순한글 오백 → 500"
+  },
+  {
+    "id": "KNUM-002",
+    "category": "한글숫자",
+    "input": "바탕 재료비 삼천 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 3000
+    },
+    "priority": "P2",
+    "note": "순한글 삼천 → 3000"
+  },
+  {
+    "id": "ADD-014",
+    "category": "공종추가",
+    "input": "보강포 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "쪼인트 실란트\n보강포 부착",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 수량 없음 추가"
+  },
+  {
+    "id": "ADD-015",
+    "category": "공종추가",
+    "input": "하도 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "하도 프라이머",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 수량 없음 추가"
+  },
+  {
+    "id": "ADD-016",
+    "category": "공종추가",
+    "input": "중도 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "노출 우레탄",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 수량 없음 추가"
+  },
+  {
+    "id": "ADD-017",
+    "category": "공종추가",
+    "input": "상도 추가해",
+    "expected": {
+      "action": "add_item",
+      "item_name": "우레탄 상도",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 추가해 변형"
+  },
+  {
+    "id": "SET-011",
+    "category": "값설정",
+    "input": "바탕정리 재료비 500으로",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "으로 종결 절대값"
+  },
+  {
+    "id": "SET-012",
+    "category": "값설정",
+    "input": "바탕정리 재료비 500으로 바꿔줘",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "으로 + 바꿔줘 이중 종결"
+  },
+  {
+    "id": "DEL-007",
+    "category": "삭제",
+    "input": "노출 우레탄 1차 삭제해줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "노출 우레탄 1차"
+    },
+    "priority": "P1",
+    "note": "숫자 포함 공종명 삭제 — 1이 공종명에 포함"
+  },
+  {
+    "id": "DEL-008",
+    "category": "삭제",
+    "input": "1차 빼줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "노출 우레탄 1차"
+    },
+    "priority": "P1",
+    "note": "숫자 포함 줄임말 삭제"
+  },
+  {
+    "id": "DEL-009",
+    "category": "삭제",
+    "input": "2차 삭제",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "노출 우레탄 2차"
+    },
+    "priority": "P1",
+    "note": "숫자 포함 줄임말 삭제"
+  },
+  {
+    "id": "POS-005",
+    "category": "위치지정",
+    "input": "크랙보수 10미터 5번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "qty": 10,
+      "unit": "m",
+      "position": 5
+    },
+    "priority": "P0",
+    "note": "수량 + 위치 혼합 — 10은 수량, 5는 위치"
+  },
+  {
+    "id": "POS-006",
+    "category": "위치지정",
+    "input": "사다리차 2일 8번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "qty": 2,
+      "unit": "일",
+      "position": 8
+    },
+    "priority": "P0",
+    "note": "수량(일) + 위치 혼합"
+  },
+  {
+    "id": "ADD-018",
+    "category": "공종추가",
+    "input": "바탕 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "바탕정리",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 수량 없음"
+  },
+  {
+    "id": "ADD-019",
+    "category": "공종추가",
+    "input": "미장 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "바탕조정제미장",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 수량 없음"
+  },
+  {
+    "id": "DELTA-006",
+    "category": "증감변경",
+    "input": "바탕정리 재료비 3만원 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "delta": 30000
+    },
+    "priority": "P1",
+    "note": "만원 단위 증감"
+  },
+  {
+    "id": "DELTA-007",
+    "category": "증감변경",
+    "input": "시트 재료비 1000 올려줘",
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "delta": 1000
+    },
+    "priority": "P1",
+    "note": "줄임말 + 올려줘"
+  },
+  {
+    "id": "REALTIME-001",
+    "category": "실시간감지",
+    "input": "바탕정리 재료비",
+    "expected": {
+      "itemName": "바탕정리",
+      "field": "mat",
+      "isComplete": false
+    },
+    "priority": "P2",
+    "note": "detectRealtime — 공종+필드 감지"
+  },
+  {
+    "id": "REALTIME-002",
+    "category": "실시간감지",
+    "input": "바탕정리 재료비 500",
+    "expected": {
+      "itemName": "바탕정리",
+      "field": "mat",
+      "previewValue": 500,
+      "isComplete": false
+    },
+    "priority": "P2",
+    "note": "detectRealtime — 미리보기 값"
+  },
+  {
+    "id": "REALTIME-003",
+    "category": "실시간감지",
+    "input": "바탕정리 재료비 500 넣어",
+    "expected": {
+      "itemName": "바탕정리",
+      "field": "mat",
+      "previewValue": 500,
+      "isComplete": true
+    },
+    "priority": "P2",
+    "note": "detectRealtime — 종결 어미 감지"
+  },
+  {
+    "id": "ALIAS-001",
+    "category": "줄임말매칭",
+    "input": "바정 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "바정 → 바탕정리"
+  },
+  {
+    "id": "ALIAS-002",
+    "category": "줄임말매칭",
+    "input": "바미 재료비 300 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕조정제미장",
+      "field": "mat",
+      "value": 300
+    },
+    "priority": "P1",
+    "note": "바미 → 바탕조정제미장"
+  },
+  {
+    "id": "ALIAS-003",
+    "category": "줄임말매칭",
+    "input": "탑코트 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "우레탄 상도",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "탑코트 → 우레탄 상도"
+  },
+  {
+    "id": "ALIAS-004",
+    "category": "줄임말매칭",
+    "input": "프라이머 경비 200 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "하도 프라이머",
+      "field": "exp",
+      "value": 200
+    },
+    "priority": "P1",
+    "note": "프라이머 → 하도 프라이머"
+  },
+  {
+    "id": "ALIAS-005",
+    "category": "줄임말매칭",
+    "input": "드비 빼줘",
+    "expected": {
+      "action": "remove_item",
+      "item_name": "드라이비트하부절개"
+    },
+    "priority": "P1",
+    "note": "드비 → 드라이비트하부절개"
+  },
+  {
+    "id": "ADD-020",
+    "category": "공종추가",
+    "input": "탑코트 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "우레탄 상도",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 추가 수량 없음"
+  },
+  {
+    "id": "ADD-021",
+    "category": "공종추가",
+    "input": "바미 추가해줘",
+    "expected": {
+      "action": "add_item",
+      "item_name": "바탕조정제미장",
+      "position": null,
+      "field": null,
+      "value": null
+    },
+    "priority": "P0",
+    "note": "줄임말 + 추가해줘"
+  },
+  {
+    "id": "BUF-001",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "바탕정리",
+      "재료비 500 넣어"
+    ],
+    "expected": {
+      "action": "update_item",
+      "item_name": "바탕정리",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "끊긴 명령 합쳐서 처리 — 공종명 + 필드+값"
+  },
+  {
+    "id": "BUF-002",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "사다리차",
+      "추가"
+    ],
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차"
+    },
+    "priority": "P1",
+    "note": "끊긴 추가 명령 — 공종명 + 동작어"
+  },
+  {
+    "id": "BUF-003",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "바탕",
+      "500 1000 200"
+    ],
+    "expected": {
+      "action": "multi_update",
+      "item_name": "바탕정리",
+      "mat": 500,
+      "labor": 1000,
+      "exp": 200
+    },
+    "priority": "P1",
+    "note": "끊긴 다중 숫자 — 공종명 + 재/노/경"
+  },
+  {
+    "id": "BUF-004",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "시트",
+      "노무비 1500 넣어"
+    ],
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "labor",
+      "value": 1500
+    },
+    "priority": "P1",
+    "note": "줄임말 공종명 + 필드+값+동작어"
+  },
+  {
+    "id": "BUF-005",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "크랙보수",
+      "10미터",
+      "5번에 추가"
+    ],
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "qty": 10,
+      "unit": "m",
+      "position": 5
+    },
+    "priority": "P1",
+    "note": "3단 끊김 — 공종명 + 수량 + 위치+동작어"
+  },
+  {
+    "id": "BUF-006",
+    "category": "버퍼축적",
+    "input_sequence": [
+      "하도",
+      "300 올려"
+    ],
+    "expected": {
+      "action": "update_item",
+      "item_name": "하도 프라이머",
+      "field": "mat",
+      "delta": 300,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "줄임말 + 증감 — 필드 추론"
+  },
+  {
+    "id": "CTX-003",
+    "category": "컨텍스트계승",
+    "input": "시트도 500",
+    "context": {
+      "lastCommand": {
+        "action": "update_item",
+        "target": "바탕정리",
+        "field": "mat",
+        "value": 300,
+        "confidence": 0.95
+      }
+    },
+    "expected": {
+      "action": "update_item",
+      "item_name": "복합 시트",
+      "field": "mat",
+      "value": 500,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "도 패턴 — 직전 필드(mat) 계승 + 새 값"
+  },
+  {
+    "id": "CTX-004",
+    "category": "컨텍스트계승",
+    "input": "하도도 올려",
+    "context": {
+      "lastCommand": {
+        "action": "update_item",
+        "target": "바탕정리",
+        "field": "labor",
+        "delta": 500,
+        "confidence": 0.95
+      }
+    },
+    "expected": {
+      "action": "update_item",
+      "item_name": "하도 프라이머",
+      "field": "labor",
+      "fieldInferred": true
+    },
+    "priority": "P2",
+    "note": "도 패턴 — 직전 필드(labor) 계승 + 값 없음(LLM 가능)"
+  },
+  {
+    "id": "CTX-005",
+    "category": "컨텍스트계승",
+    "input": "우레탄도 300 넣어",
+    "context": {
+      "lastCommand": {
+        "action": "update_item",
+        "target": "바탕정리",
+        "field": "exp",
+        "value": 200,
+        "confidence": 0.95
+      }
+    },
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄",
+      "field": "exp",
+      "value": 300,
+      "fieldInferred": true
+    },
+    "priority": "P1",
+    "note": "도 패턴 — 직전 필드(exp) 계승"
+  },
+  {
+    "id": "DICT-003",
+    "category": "동음이의어",
+    "input": "사계소 추가",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "4개소 추가"
+    },
+    "priority": "P2",
+    "note": "사계소 → 4개소"
+  },
+  {
+    "id": "DICT-004",
+    "category": "동음이의어",
+    "input": "오계소 추가",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "5개소 추가"
+    },
+    "priority": "P2",
+    "note": "오계소 → 5개소"
+  },
+  {
+    "id": "DICT-005",
+    "category": "동음이의어",
+    "input": "바탕 수량 이계소 넣어",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "바탕 수량 2개소 넣어"
+    },
+    "priority": "P2",
+    "note": "문장 내 동음이의어 치환"
+  },
+  {
+    "id": "DICT-006",
+    "category": "동음이의어",
+    "input": "면적 50헤베",
+    "expected": {
+      "dictionary_applied": true,
+      "corrected_text": "면적 50m²"
+    },
+    "priority": "P2",
+    "note": "헤베 → m²"
+  },
+  {
+    "id": "POSVAL-001",
+    "category": "위치값설정혼합",
+    "input": "사다리차 2일 3번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "사다리차",
+      "qty": 2,
+      "unit": "일",
+      "position": 3
+    },
+    "priority": "P0",
+    "note": "수량(2일) + 위치(3번) — 숫자 역할 구분 필수"
+  },
+  {
+    "id": "POSVAL-002",
+    "category": "위치값설정혼합",
+    "input": "크랙보수 15미터 1번에 추가",
+    "expected": {
+      "action": "add_item",
+      "item_name": "크랙보수",
+      "qty": 15,
+      "unit": "m",
+      "position": 1
+    },
+    "priority": "P0",
+    "note": "수량(15미터) + 위치(1번) — 맨 위"
+  },
+  {
+    "id": "POSVAL-003",
+    "category": "위치값설정혼합",
+    "input": "실리콘 20개 7번에 추가해줘",
+    "expected": {
+      "action": "add_item",
+      "item_name": "실리콘",
+      "qty": 20,
+      "unit": "개",
+      "position": 7
+    },
+    "priority": "P0",
+    "note": "수량(20개) + 위치(7번) + 추가해줘"
+  },
+  {
+    "id": "EDGE-011",
+    "category": "엣지케이스",
+    "input": "노출 우레탄 1차 재료비 500 넣어",
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄 1차",
+      "field": "mat",
+      "value": 500
+    },
+    "priority": "P1",
+    "note": "숫자 포함 공종명 + 필드 + 값 — 1이 공종명에 포함"
+  },
+  {
+    "id": "EDGE-012",
+    "category": "엣지케이스",
+    "input": "노출 우레탄 2차 노무비 1000 올려",
+    "expected": {
+      "action": "update_item",
+      "item_name": "노출 우레탄 2차",
+      "field": "labor",
+      "delta": 1000
+    },
+    "priority": "P1",
+    "note": "숫자 포함 공종명 + 증감"
+  }
+]
