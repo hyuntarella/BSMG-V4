@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarEvent } from '@/lib/notion/calendar';
+import { CalendarEvent } from '@/lib/supabase/calendar-types';
 import TimeGrid, { TimeGridColumn } from '@/components/calendar/TimeGrid';
 
 interface Member {

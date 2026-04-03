@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { CalendarEvent } from '@/lib/notion/calendar';
+import { CalendarEvent } from '@/lib/supabase/calendar-types';
 import Link from 'next/link';
 
 interface EventDetailProps {

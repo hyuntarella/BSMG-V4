@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CalendarEvent } from '@/lib/notion/calendar';
+import { CalendarEvent } from '@/lib/supabase/calendar-types';
 
 export interface TimeGridColumn {
   key: string;

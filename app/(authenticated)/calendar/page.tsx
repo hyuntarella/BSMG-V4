@@ -10,7 +10,7 @@ import DayView from '@/components/calendar/DayView';
 import EventModal from '@/components/calendar/EventModal';
 import EventDetail from '@/components/calendar/EventDetail';
 import SettingsModal from '@/components/calendar/SettingsModal';
-import { CalendarEvent } from '@/lib/notion/calendar';
+import { CalendarEvent } from '@/lib/supabase/calendar-types';
 
 type CalendarView = 'month' | 'week' | 'day';
 

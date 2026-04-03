@@ -2,7 +2,7 @@
 // 오늘 날짜의 캘린더 이벤트 최대 5건 반환
 
 import { NextResponse } from 'next/server';
-import { getEventsForDate } from '@/lib/notion/calendar';
+import { getEventsForDate } from '@/lib/supabase/calendar';
 
 export async function GET() {
   try {

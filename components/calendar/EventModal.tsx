@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarEvent, CreateEventInput } from '@/lib/notion/calendar';
+import { CalendarEvent, CreateEventInput } from '@/lib/supabase/calendar-types';
 
 interface Member {
   id: string;

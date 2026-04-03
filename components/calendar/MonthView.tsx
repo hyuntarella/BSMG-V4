@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarEvent } from '@/lib/notion/calendar';
+import { CalendarEvent } from '@/lib/supabase/calendar-types';
 
 interface MonthViewProps {
   events: CalendarEvent[];

@@ -2,7 +2,7 @@
 // 캘린더 이벤트 수정 및 삭제
 
 import { NextRequest, NextResponse } from 'next/server';
-import { updateEvent, deleteEvent } from '@/lib/notion/calendar';
+import { updateEvent, deleteEvent } from '@/lib/supabase/calendar';
 
 // PATCH /api/calendar/[id]
 export async function PATCH(

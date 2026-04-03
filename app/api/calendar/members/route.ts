@@ -2,7 +2,7 @@
 // 캘린더 팀원 목록 조회
 
 import { NextResponse } from 'next/server';
-import { getMembers } from '@/lib/notion/calendar';
+import { getMembers } from '@/lib/supabase/calendar';
 
 export async function GET() {
   try {

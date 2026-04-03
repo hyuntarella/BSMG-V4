@@ -2,7 +2,7 @@
 // 캘린더 이벤트 목록 조회 및 생성
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getEvents, createEvent } from '@/lib/notion/calendar';
+import { getEvents, createEvent } from '@/lib/supabase/calendar';
 
 // GET /api/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
 export async function GET(req: NextRequest) {
