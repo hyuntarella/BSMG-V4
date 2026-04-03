@@ -6,6 +6,7 @@ import type { CrmRecord } from '@/lib/supabase/crm-types';
 import { PIPELINE_TO_STAGE } from '@/lib/supabase/crm-types';
 import KanbanBoard from './KanbanBoard';
 import DetailModal from './DetailModal';
+import { CrmSkeleton } from '@/components/ui/Skeleton';
 
 // ── CrmPageClient ──
 
@@ -53,8 +54,13 @@ export default function CrmPageClient({ initialRecords }: CrmPageClientProps) {
     );
   };
 
+  // 초기 로딩 시 스켈레톤
+  if (loading && filteredRecords.length === 0) {
+    return <CrmSkeleton />;
+  }
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" data-testid="kanban-board">
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-2 bg-white px-4 py-3 shadow-card">
         <div className="relative">

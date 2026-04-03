@@ -11,6 +11,7 @@ import EventModal from '@/components/calendar/EventModal';
 import EventDetail from '@/components/calendar/EventDetail';
 import SettingsModal from '@/components/calendar/SettingsModal';
 import { CalendarEvent } from '@/lib/supabase/calendar-types';
+import { CalendarSkeleton } from '@/components/ui/Skeleton';
 
 type CalendarView = 'month' | 'week' | 'day';
 
@@ -277,7 +278,10 @@ export default function CalendarPage() {
           </div>
 
           {/* 로딩 표시 */}
-          {loading && (
+          {loading && events.length === 0 && (
+            <CalendarSkeleton />
+          )}
+          {loading && events.length > 0 && (
             <div className="py-2 px-4 text-xs text-gray-400 bg-gray-50 border-b border-gray-100">
               이벤트 불러오는 중...
             </div>

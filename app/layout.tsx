@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ServiceWorkerRegister from './sw-register'
+import MobileTabBar from '@/components/layout/MobileTabBar'
 
 export const metadata: Metadata = {
   title: '방수명가 견적서 v4',
@@ -37,6 +38,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-surface font-sans text-ink antialiased">
         {children}
+        <MobileTabBar />
         <ServiceWorkerRegister />
       </body>
     </html>

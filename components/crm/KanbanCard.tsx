@@ -92,7 +92,20 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
         <p className="mt-1 text-xs text-ink-muted">{record.area}</p>
       )}
 
-      {/* 하단: 담당자 아바타 + 문의채널 + 견적금액 */}
+      {/* 날짜 정보 */}
+      {(record.estimateSentDate || record.estimateViewedDate) && (
+        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-ink-muted">
+          {record.estimateSentDate && <span>발송 {record.estimateSentDate.slice(5)}</span>}
+          {record.estimateViewedDate && <span className="text-emerald-600 font-medium">열람 {record.estimateViewedDate.slice(5)}</span>}
+        </div>
+      )}
+
+      {/* 메모 미리보기 */}
+      {record.memo && (
+        <p className="mt-1 truncate text-[11px] text-ink-muted leading-tight">{record.memo}</p>
+      )}
+
+      {/* 하단: 담당자 아바타 + 링크 아이콘 + 견적금액 */}
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* 담당자 아바타 */}
@@ -100,10 +113,39 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
             {managerInitial}
           </div>
 
-          {/* 문의채널 */}
-          {record.inquiryChannel && (
-            <span className="text-xs text-ink-muted">{record.inquiryChannel}</span>
-          )}
+          {/* 바로가기 아이콘 */}
+          <div className="flex items-center gap-1">
+            {record.estimateWebUrl && (
+              <a
+                href={record.estimateWebUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex h-5 w-5 items-center justify-center rounded text-ink-muted hover:text-brand hover:bg-brand-50 transition-colors"
+                title="견적서"
+                data-testid="kanban-card-estimate-link"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </a>
+            )}
+            {record.driveUrl && (
+              <a
+                href={record.driveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex h-5 w-5 items-center justify-center rounded text-ink-muted hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                title="Google Drive"
+                data-testid="kanban-card-drive-link"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </a>
+            )}
+          </div>
         </div>
 
         {/* 견적금액 */}

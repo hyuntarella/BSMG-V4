@@ -141,6 +141,27 @@ export default function WorkSheet({
         </div>
       </div>
 
+      {/* 총합계 / 평단가 / 헤베당단가 고정 바 */}
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-surface-muted px-4 py-2.5" data-testid="estimate-summary-bar">
+        <div className="flex items-baseline gap-1">
+          <span className="text-xs text-gray-500">총 합계</span>
+          <span className="text-lg font-bold font-mono tabular-nums text-right text-ink">{fm(calcResult.grandTotal)}</span>
+          <span className="text-xs text-gray-400">원</span>
+        </div>
+        <div className="h-4 w-px bg-ink-faint/30" />
+        <div className="flex items-baseline gap-1">
+          <span className="text-xs text-gray-500">평단가</span>
+          <span className="text-sm font-bold font-mono tabular-nums text-right text-brand">{fm(externalPpp)}</span>
+          <span className="text-xs text-gray-400">원/평</span>
+        </div>
+        <div className="h-4 w-px bg-ink-faint/30" />
+        <div className="flex items-baseline gap-1">
+          <span className="text-xs text-gray-500">헤베당</span>
+          <span className="text-sm font-semibold font-mono tabular-nums text-right text-ink">{m2 > 0 ? fm(Math.round(calcResult.grandTotal / m2)) : '-'}</span>
+          <span className="text-xs text-gray-400">원/m²</span>
+        </div>
+      </div>
+
       {/* 공종 테이블 — Figma 가로형 */}
       <div className="overflow-x-auto rounded border border-gray-800">
         <table className="w-full text-[11px]">

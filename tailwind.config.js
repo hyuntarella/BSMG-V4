@@ -7,6 +7,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      borderRadius: {
+        xl: 'var(--radius)',
+        '2xl': 'calc(var(--radius) + 0.25rem)',
+      },
       colors: {
         brand: {
           50: '#FEF2F2',

@@ -3,9 +3,73 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 30 20% 97%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --primary: 0 72% 38%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 30 10% 94%;
+    --muted-foreground: 220 9% 46%;
+    --border: 220 13% 91%;
+    --ring: 0 72% 38%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --accent-yellow: 38 92% 50%;
+    --radius: 0.75rem;
+  }
+
   body {
     @apply bg-surface text-ink antialiased;
     scroll-padding-bottom: 80px;
+  }
+}
+
+@layer components {
+  /* 공통 카드 */
+  .card {
+    @apply rounded-xl bg-white shadow-card;
+  }
+  .card-hover {
+    @apply rounded-xl bg-white shadow-card transition-shadow hover:shadow-card-hover;
+  }
+
+  /* 공통 버튼 */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark active:scale-[0.98] disabled:opacity-40;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-ink-faint/30 bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface-muted active:scale-[0.98] disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-ink-secondary transition-colors hover:bg-surface-muted active:scale-[0.98];
+  }
+
+  /* 공통 인풋 */
+  .input {
+    @apply w-full rounded-lg border border-ink-faint/30 bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+
+  /* 공통 뱃지 */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+
+  /* 토스트 */
+  .toast {
+    @apply fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl px-5 py-3.5 shadow-elevated;
+  }
+  .toast-success {
+    @apply toast bg-emerald-600 text-white;
+  }
+  .toast-error {
+    @apply toast bg-red-600 text-white;
+  }
+
+  /* 금액 표시 */
+  .amount {
+    @apply font-mono tabular-nums text-right;
   }
 }
 

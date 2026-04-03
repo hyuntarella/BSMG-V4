@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface KpiData {
   csCount: number
@@ -56,9 +57,13 @@ export default function DashboardKpi() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-ink-secondary">{kpi.label}</p>
-                  <p className={`text-2xl font-bold tabular-nums ${loading ? 'text-ink-faint' : value > 0 ? kpi.color : 'text-ink-faint'}`}>
-                    {loading ? '-' : value}
-                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-10 mt-0.5" />
+                  ) : (
+                    <p className={`text-2xl font-bold tabular-nums ${value > 0 ? kpi.color : 'text-ink-faint'}`}>
+                      {value}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
