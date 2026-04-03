@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { queryCrmByPipeline } from '@/lib/notion/crm';
-import type { CrmRecord } from '@/lib/notion/types';
+import { queryCrmByPipeline } from '@/lib/supabase/crm';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
 
 export interface UnsentRecord {
   id: string;

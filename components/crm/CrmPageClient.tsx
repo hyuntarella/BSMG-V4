@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useCrm } from '@/hooks/useCrm';
-import type { CrmRecord } from '@/lib/notion/types';
-import { PIPELINE_TO_STAGE } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
+import { PIPELINE_TO_STAGE } from '@/lib/supabase/crm-types';
 import KanbanBoard from './KanbanBoard';
 import DetailModal from './DetailModal';
 

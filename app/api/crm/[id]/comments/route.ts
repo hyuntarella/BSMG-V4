@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPageComments, addComment } from '@/lib/notion/crm';
+import { getPageComments, addComment } from '@/lib/supabase/crm';
 
 /**
  * GET /api/crm/[id]/comments

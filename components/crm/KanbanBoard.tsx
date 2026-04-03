@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { CrmRecord } from '@/lib/notion/types';
-import { STAGE_MAP, PIPELINE_TO_STAGE } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
+import { STAGE_MAP, PIPELINE_TO_STAGE } from '@/lib/supabase/crm-types';
 import KanbanCard from './KanbanCard';
 import PerformanceTab from './PerformanceTab';
 import CreateRecordModal from './CreateRecordModal';

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { CrmRecord } from '@/lib/notion/types';
-import { PIPELINE_TO_STAGE } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
+import { PIPELINE_TO_STAGE } from '@/lib/supabase/crm-types';
 
 // ── useCrm ──
 

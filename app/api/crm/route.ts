@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllRecords, createRecord } from '@/lib/notion/crm';
-import type { CrmRecordCreate } from '@/lib/notion/types';
+import { getAllRecords, createRecord } from '@/lib/supabase/crm';
+import type { CrmRecordCreate } from '@/lib/supabase/crm-types';
 
 /**
  * GET /api/crm

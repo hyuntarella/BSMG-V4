@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { CrmRecord } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
 
 // ── CreateRecordModal ──
 

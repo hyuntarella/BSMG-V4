@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { CrmComment } from '@/lib/notion/types';
+import type { CrmComment } from '@/lib/supabase/crm-types';
 
 // ── CommentSection ──
 

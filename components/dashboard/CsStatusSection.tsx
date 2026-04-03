@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { CrmRecord } from '@/lib/notion/types'
+import type { CrmRecord } from '@/lib/supabase/crm-types'
 import { getDismissed, addDismissed } from '@/lib/utils/dismissed'
 
 const DISMISSED_KEY = 'dismissed_cs'

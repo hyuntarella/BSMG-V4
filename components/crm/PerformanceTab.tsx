@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { CrmRecord } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
 import PerformanceCard from './PerformanceCard';
 
 // ── PerformanceTab ──

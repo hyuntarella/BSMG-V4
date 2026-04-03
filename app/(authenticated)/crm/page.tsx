@@ -1,7 +1,7 @@
 import Header from '@/components/layout/Header';
 import CrmPageClient from '@/components/crm/CrmPageClient';
-import { getAllRecords } from '@/lib/notion/crm';
-import type { CrmRecord } from '@/lib/notion/types';
+import { getAllRecords } from '@/lib/supabase/crm';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
 
 export default async function CrmPage() {
   let records: CrmRecord[] = [];

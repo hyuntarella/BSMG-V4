@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryCrmByPipeline, updateCrmPipeline } from '@/lib/notion/crm';
+import { queryCrmByPipeline, updateCrmPipeline } from '@/lib/supabase/crm';
 
 /**
  * GET /api/crm/cs-status

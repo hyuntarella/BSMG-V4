@@ -1,4 +1,4 @@
-import type { CrmRecord } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
 
 // ── ProgressTimeline ──
 

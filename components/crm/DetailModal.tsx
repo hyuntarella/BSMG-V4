@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { CrmRecord } from '@/lib/notion/types';
-import { STAGE_MAP } from '@/lib/notion/types';
+import type { CrmRecord } from '@/lib/supabase/crm-types';
+import { STAGE_MAP } from '@/lib/supabase/crm-types';
 import DetailField from './DetailField';
 import CommentSection from './CommentSection';
 import ProgressTimeline from './ProgressTimeline';

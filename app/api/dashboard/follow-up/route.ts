@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryCrmFollowUp } from '@/lib/notion/crm';
+import { queryCrmFollowUp } from '@/lib/supabase/crm';
 
 // ── FollowUpRecord type ──
 

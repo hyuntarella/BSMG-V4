@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getPageById, updateRecord, archiveRecord } from '@/lib/notion/crm';
-import type { CrmRecordUpdate } from '@/lib/notion/types';
+import { getPageById, updateRecord, archiveRecord } from '@/lib/supabase/crm';
+import type { CrmRecordUpdate } from '@/lib/supabase/crm-types';
 
 /**
  * GET /api/crm/[id]
