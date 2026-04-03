@@ -1,0 +1,66 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "←" [ref=e6] [cursor=pointer]:
+            - /url: /estimates
+          - heading "방수명가 견적서" [level=1] [ref=e7]
+          - generic [ref=e8]: BS-260403-WMIG
+          - button "설정" [ref=e9] [cursor=pointer]:
+            - img [ref=e10]
+        - generic [ref=e13]:
+          - button "저장" [ref=e14] [cursor=pointer]
+          - button "엑셀" [ref=e15] [cursor=pointer]
+          - button "+ 복합" [ref=e16] [cursor=pointer]
+          - button "+ 우레탄" [ref=e17] [cursor=pointer]
+          - button "더보기" [ref=e19] [cursor=pointer]:
+            - img [ref=e20]
+    - generic [ref=e24]:
+      - button "복합-표지" [disabled] [ref=e25]
+      - button "복합-세부" [disabled] [ref=e26]
+      - button "우레탄-표지" [disabled] [ref=e27]
+      - button "우레탄-세부" [disabled] [ref=e28]
+      - button "비교" [disabled] [ref=e29]
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - img [ref=e34]
+          - heading "음성으로 시작하세요" [level=2] [ref=e37]
+          - paragraph [ref=e38]: 아래 4가지 정보를 말해주시면 견적서가 자동 생성됩니다
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]: "1"
+            - paragraph [ref=e42]: 면적
+            - paragraph [ref=e43]: "\"150헤베\" 또는 \"50평\""
+          - generic [ref=e44]:
+            - generic [ref=e45]: "2"
+            - paragraph [ref=e46]: 벽체 면적
+            - paragraph [ref=e47]: "\"벽체 30미터\" 또는 \"없어\""
+          - generic [ref=e48]:
+            - generic [ref=e49]: "3"
+            - paragraph [ref=e50]: 복합 평단가
+            - paragraph [ref=e51]: "\"3만5천\" 또는 \"마진 50%에 맞춰줘\""
+          - generic [ref=e52]:
+            - generic [ref=e53]: "4"
+            - paragraph [ref=e54]: 우레탄 평단가
+            - paragraph [ref=e55]: "\"3만\" 또는 마진 기반"
+        - button "복합+우레탄 바로 생성" [ref=e56] [cursor=pointer]
+        - button "음성 조작 방법" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]: 음성 조작 방법
+          - img [ref=e60]
+    - generic:
+      - 'button "모드 전환: 현장" [ref=e63] [cursor=pointer]':
+        - img [ref=e64]
+        - generic [ref=e67]: 현장
+      - generic [ref=e69]:
+        - button "녹음 시작" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+        - generic [ref=e74]:
+          - paragraph [ref=e75]: 탭하여 음성 연결
+          - paragraph [ref=e76]: 탭하여 음성 연결 · Space
+  - alert [ref=e77]
+```
