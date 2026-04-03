@@ -742,7 +742,13 @@ export default function ProposalEditor() {
   const [renderAll, setRA] = useState(false);
   const [expertVals, setExpertVals] = useState<Record<string, string>>({});
   const [showP4, setShowP4] = useState(true);
+  const [mainToast, setMainToast] = useState('');
   const pgRef = useRef<HTMLDivElement>(null);
+
+  const showMainToast = useCallback((msg: string, duration = 3000) => {
+    setMainToast(msg);
+    setTimeout(() => setMainToast(''), duration);
+  }, []);
 
   // ── 견적서→제안서 URL params 자동 채움 ──
   useEffect(() => {
@@ -833,8 +839,11 @@ export default function ProposalEditor() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(n),
-    }).catch(err => console.error('proposal/config save error:', err));
-  }, [cfg]);
+    }).catch(err => {
+      console.error('proposal/config save error:', err);
+      showMainToast('설정 저장 실패');
+    });
+  }, [cfg, showMainToast]);
 
   const updateCfg = useCallback((k: keyof ProposalConfig, val: unknown) => {
     const n = { ...cfg, [k]: val };
@@ -843,8 +852,11 @@ export default function ProposalEditor() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(n),
-    }).catch(err => console.error('proposal/config save error:', err));
-  }, [cfg]);
+    }).catch(err => {
+      console.error('proposal/config save error:', err);
+      showMainToast('설정 저장 실패');
+    });
+  }, [cfg, showMainToast]);
 
   const handlePhoto = useCallback((key: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -858,12 +870,15 @@ export default function ProposalEditor() {
         const formData = new FormData();
         formData.append('file', blob, f.name);
         fetch('/api/proposal/photo', { method: 'POST', body: formData })
-          .then(r2 => r2.ok ? r2.json() : Promise.reject(r2.statusText))
-          .catch(err => console.error('proposal/photo upload error:', err));
+          .then(r2 => r2.ok ? r2.json() : r2.json().then(d => Promise.reject(d.error || r2.statusText)))
+          .catch(err => {
+            console.error('proposal/photo upload error:', err);
+            showMainToast(`사진 업로드 실패: ${err}`);
+          });
       });
     };
     r.readAsDataURL(f);
-  }, [sp]);
+  }, [sp, showMainToast]);
 
   const mgr = cfg.mgr.find(m => m.name === v['담당자']) || cfg.mgr[0] || { name: '', phone: '' };
   const meth = MDB[mid];
@@ -907,19 +922,33 @@ export default function ProposalEditor() {
       const fn = '방수명가_제안서_' + addr + '_' + (v['제출일'] || '').replace(/[\.\-]/g, '');
       const pdfBase64 = pdf.output('datauristring');
 
-      // API route로 Storage + Drive에 저장
+      // API route로 Storage + Drive에 저장 + DB 레코드 생성
       try {
         const res = await fetch('/api/proposal/pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdfBase64, fileName: fn + '.pdf' }),
+          body: JSON.stringify({
+            pdfBase64,
+            fileName: fn + '.pdf',
+            address: addr,
+            customerName: v['고객명'] || '',
+            configSnapshot: { mid, pv, showP4 },
+          }),
         });
+        const resData = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          console.error('PDF 저장 실패:', errData);
+          console.error('PDF 저장 실패:', resData);
+          showMainToast(`PDF 저장 실패: ${resData.error || '알 수 없는 오류'}`);
+        } else {
+          if (resData.drive_error) {
+            showMainToast(`Drive 업로드 실패: ${resData.drive_error} (Storage 저장 완료)`);
+          } else {
+            showMainToast('제안서 저장 완료');
+          }
         }
       } catch (saveErr) {
-        console.error('PDF 저장 오류 (무시):', saveErr);
+        console.error('PDF 저장 오류:', saveErr);
+        showMainToast(`PDF 저장 오류: ${saveErr instanceof Error ? saveErr.message : String(saveErr)}`);
       }
 
       pdf.save(fn + '.pdf');
@@ -931,7 +960,7 @@ export default function ProposalEditor() {
       setGenLoading(false);
       alert('PDF 생성 오류: ' + (e instanceof Error ? e.message : String(e)));
     }
-  }, [addr, v]);
+  }, [addr, v, mid, pv, showP4, showMainToast]);
 
   // ── Config load ──
   useEffect(() => {
@@ -942,8 +971,11 @@ export default function ProposalEditor() {
           setCfg(prev => ({ ...prev, ...d }));
         }
       })
-      .catch(err => console.error('proposal/config load error:', err));
-  }, []);
+      .catch(err => {
+        console.error('proposal/config load error:', err);
+        showMainToast('설정 불러오기 실패');
+      });
+  }, [showMainToast]);
 
   const mgrOpts = [{ v: '', l: '선택' }, ...cfg.mgr.map(m => ({ v: m.name, l: m.name }))];
   const visPages = showP4 ? [0, 1, 2, 3, 4] : [0, 1, 2, 4];
@@ -1219,6 +1251,18 @@ export default function ProposalEditor() {
 
       {/* Settings panel */}
       {showCfg && <Settings cfg={cfg} onUpdate={updateCfg} onClose={() => setShowCfg(false)} />}
+
+      {/* Main toast */}
+      {mainToast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          background: '#333', color: '#fff', padding: '10px 20px', borderRadius: 8,
+          fontSize: 14, zIndex: 9999, maxWidth: '90vw', textAlign: 'center',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+        }}>
+          {mainToast}
+        </div>
+      )}
     </div>
   );
 }
