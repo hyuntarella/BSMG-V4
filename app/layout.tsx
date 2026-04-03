@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ServiceWorkerRegister from './sw-register'
 import MobileTabBar from '@/components/layout/MobileTabBar'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata: Metadata = {
   title: '방수명가 견적서 v4',
@@ -37,8 +38,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body className="min-h-screen bg-surface font-sans text-ink antialiased">
-        {children}
-        <MobileTabBar />
+        <ToastProvider>
+          {children}
+          <MobileTabBar />
+        </ToastProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -62,6 +62,14 @@ export default function EventModal({
 
   const crmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ESC로 닫기
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [isOpen, onClose]);
+
   // 폼 초기화
   useEffect(() => {
     if (!isOpen) return;

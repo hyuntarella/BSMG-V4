@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Header from '@/components/layout/Header'
 import FollowUpCard from '@/components/dashboard/FollowUpCard'
 import CsStatusSection from '@/components/dashboard/CsStatusSection'
@@ -9,9 +9,13 @@ import ViewedCard from '@/components/dashboard/ViewedCard'
 import TodaySchedule from '@/components/dashboard/TodaySchedule'
 import DashboardKpi from '@/components/dashboard/DashboardKpi'
 import LoadEstimateModal from '@/components/estimate/LoadEstimateModal'
+import CrmSidePanel from '@/components/dashboard/CrmSidePanel'
 
 export default function DashboardPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
+  const [selectedCrmId, setSelectedCrmId] = useState<string | null>(null)
+  const handleCrmOpen = useCallback((id: string) => setSelectedCrmId(id), [])
+  const handleCrmClose = useCallback(() => setSelectedCrmId(null), [])
 
   return (
     <div className="min-h-screen bg-surface">
@@ -44,7 +48,7 @@ export default function DashboardPage() {
           {/* 우측 컬럼 */}
           <div className="space-y-5">
             {/* 3. 연락해야 할 곳 */}
-            <FollowUpCard />
+            <FollowUpCard onCrmOpen={handleCrmOpen} />
 
             {/* 4. 오늘 일정 */}
             <TodaySchedule />
@@ -71,6 +75,9 @@ export default function DashboardPage() {
         isOpen={showLoadModal}
         onClose={() => setShowLoadModal(false)}
       />
+
+      {/* CRM 사이드패널 */}
+      <CrmSidePanel crmId={selectedCrmId} onClose={handleCrmClose} />
     </div>
   )
 }

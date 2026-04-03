@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CrmRecord } from '@/lib/supabase/crm-types';
 import { STAGE_MAP } from '@/lib/supabase/crm-types';
@@ -25,6 +26,14 @@ interface DetailModalProps {
 
 export default function DetailModal({ record, isOpen, onClose, onUpdate }: DetailModalProps) {
   const router = useRouter();
+
+  // ESC로 닫기
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !record) return null;
 

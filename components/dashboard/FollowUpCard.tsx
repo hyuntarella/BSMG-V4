@@ -20,7 +20,11 @@ const DEFAULT_VISIBLE = 3
 
 // ── Component ──
 
-export default function FollowUpCard() {
+interface FollowUpCardProps {
+  onCrmOpen?: (id: string) => void
+}
+
+export default function FollowUpCard({ onCrmOpen }: FollowUpCardProps = {}) {
   const [records, setRecords] = useState<FollowUpRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +99,7 @@ export default function FollowUpCard() {
 
       <div className="space-y-2">
         {shown.map((record) => (
-          <FollowUpItem key={record.id} record={record} onDismiss={handleDismiss} />
+          <FollowUpItem key={record.id} record={record} onDismiss={handleDismiss} onCrmOpen={onCrmOpen} />
         ))}
       </div>
 
@@ -116,13 +120,17 @@ export default function FollowUpCard() {
 interface FollowUpItemProps {
   record: FollowUpRecord
   onDismiss: (id: string) => void
+  onCrmOpen?: (id: string) => void
 }
 
-function FollowUpItem({ record, onDismiss }: FollowUpItemProps) {
+function FollowUpItem({ record, onDismiss, onCrmOpen }: FollowUpItemProps) {
   const isUrgent = record.daysSince >= 7
 
   return (
-    <div className={`rounded-lg border-l-4 bg-surface-muted p-3 transition-shadow hover:shadow-card ${
+    <div
+      data-testid="dashboard-crm-item"
+      onClick={() => onCrmOpen?.(record.id)}
+      className={`cursor-pointer rounded-lg border-l-4 bg-surface-muted p-3 transition-shadow hover:shadow-card ${
       isUrgent ? 'border-l-red-400' : 'border-l-accent-200'
     }`}>
       <div className="flex items-start justify-between gap-2">

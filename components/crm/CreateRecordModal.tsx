@@ -24,6 +24,14 @@ export default function CreateRecordModal({ isOpen, onClose, onCreate }: CreateR
   const [addressError, setAddressError] = useState(false);
   const addressRef = useRef<HTMLInputElement>(null);
 
+  // ESC로 닫기
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [isOpen, onClose]);
+
   // 모달 열릴 때 폼 초기화 + 포커스
   useEffect(() => {
     if (isOpen) {
