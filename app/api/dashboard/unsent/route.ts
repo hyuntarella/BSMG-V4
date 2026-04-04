@@ -22,7 +22,7 @@ function calcDaysSince(dateStr: string | null): number {
  */
 export async function GET() {
   try {
-    const records: CrmRecord[] = await queryCrmByPipeline('견적 방문 완료');
+    const records: CrmRecord[] = await queryCrmByPipeline('견적방문완료');
 
     // 견적서 미발송 건만 필터링
     const unsent: UnsentRecord[] = records

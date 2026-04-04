@@ -1,20 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { CrmRecord } from '@/lib/supabase/crm-types'
+import { STAGE_MAP, type CrmRecord } from '@/lib/supabase/crm-types'
 import { getDismissed, addDismissed } from '@/lib/utils/dismissed'
 
 const DISMISSED_KEY = 'dismissed_cs'
 
-const PIPELINE_OPTIONS = [
-  '정보 입력 완료',
-  '견적 방문 예정',
-  '견적 방문 완료',
-  '견적서 전송',
-  '계약',
-  '계약 실패',
-  '보류',
-]
+const PIPELINE_OPTIONS = Object.values(STAGE_MAP).flat()
 
 export default function CsStatusSection() {
   const [records, setRecords] = useState<CrmRecord[]>([])
@@ -156,7 +148,7 @@ function CsCard({ record, onDismiss, onPipelineChange }: CsCardProps) {
       </div>
       <div className="mt-3">
         <select
-          defaultValue="정보 입력 완료"
+          defaultValue="정보입력단계"
           onChange={(e) => onPipelineChange(record.id, e.target.value)}
           className="w-full rounded-lg border border-ink-faint/30 bg-white px-3 py-2 text-xs text-ink font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors"
         >

@@ -7,7 +7,7 @@ import { queryCrmByPipeline, updateCrmPipeline } from '@/lib/supabase/crm';
  */
 export async function GET() {
   try {
-    const records = await queryCrmByPipeline('정보 입력 완료');
+    const records = await queryCrmByPipeline('정보입력단계');
     return NextResponse.json(records);
   } catch (err) {
     console.error('CS 현황 조회 실패:', err);

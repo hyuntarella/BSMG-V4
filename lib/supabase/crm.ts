@@ -255,7 +255,7 @@ export async function queryCrmFollowUp(): Promise<CrmRecord[]> {
   const { data, error } = await supabase
     .from('crm_customers')
     .select('*')
-    .eq('pipeline', '견적서 전송')
+    .in('pipeline', ['견적서전송', '연락대기'])
     .order('estimate_sent_date', { ascending: true });
 
   if (error) throw new Error(`CRM 후속 조회 실패: ${error.message}`);
