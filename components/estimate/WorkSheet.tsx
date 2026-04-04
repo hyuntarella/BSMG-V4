@@ -76,14 +76,15 @@ export default function WorkSheet({
     <div className="mx-auto max-w-[1100px] bg-white p-4 text-[12px]">
       {/* 상단: 공사명 + 로고 */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-base font-extrabold text-gray-900">
-          방수명가<span className="ml-0.5 text-[10px] text-brand">防水</span>
+        <div className="flex items-center gap-1 text-base font-extrabold text-gray-900">
+          방수명가
+          <span className="inline-flex items-center rounded-sm bg-[#c83030] px-1 py-0.5 text-[7px] font-bold text-white leading-none">防水</span>
         </div>
       </div>
 
       {/* 공사명 */}
       <div className="mb-3 flex items-center gap-2 border-b border-gray-900 pb-2">
-        <span className="bg-gray-900 px-2 py-1 text-xs font-semibold text-white">공 사 명</span>
+        <span className="bg-[#121212] px-3 py-1.5 text-xs font-semibold text-white">공 사 명</span>
         <span className="text-sm">
           {sheet.title ?? (sheet.type === '복합' ? '복합방수' : '우레탄방수')}
         </span>
@@ -167,7 +168,7 @@ export default function WorkSheet({
         <table className="w-full text-[11px]">
           <thead>
             {/* 대분류 헤더 */}
-            <tr className="bg-gray-900 text-white">
+            <tr className="bg-[#121212] text-white">
               <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-center w-8">#</th>
               <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[100px]">품 명</th>
               <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[80px]">규 격</th>
@@ -180,7 +181,7 @@ export default function WorkSheet({
               <th rowSpan={2} className="px-2 py-1.5 text-center w-14">비 고</th>
             </tr>
             {/* 소분류 헤더 */}
-            <tr className="bg-gray-900 text-white text-[10px]">
+            <tr className="bg-[#121212] text-white text-[10px]">
               <th className="border-r border-gray-600 px-1 py-1 text-right w-14">단 가</th>
               <th className="border-r border-gray-600 px-1 py-1 text-right w-18">금 액</th>
               <th className="border-r border-gray-600 px-1 py-1 text-right w-14">단 가</th>
