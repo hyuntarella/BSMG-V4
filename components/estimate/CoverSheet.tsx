@@ -38,7 +38,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
       {/* 좌측: 방수명가 로고 + 기본정보 / 우측: 공급자 정보 */}
       <div className="mb-6 flex gap-6">
         {/* 좌측 블록 */}
-        <div className="w-[40%]">
+        <div className="w-[35%]">
           {/* 방수명가 로고 */}
           <div data-testid="cover-logo" className="mb-3 flex items-center gap-1">
             <span className="text-xl font-extrabold tracking-tight text-gray-900">방수명가</span>
@@ -152,7 +152,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
       <div data-testid="cover-brands" className="flex items-center justify-center gap-3 border-t border-gray-200 pt-4">
         <span className="text-[10px] text-gray-300 tracking-wide">Brand Collaborations</span>
         {['SAMSUNG', 'RAEMIAN', '우정사업본부', '서울종로', '서울중구', 'GIMPO'].map(b => (
-          <span key={b} className="rounded border border-gray-300 px-2.5 py-1.5 text-[9px] font-medium text-gray-400">
+          <span key={b} className="rounded border border-gray-300 px-3 py-1.5 text-[10px] font-medium text-gray-500">
             {b}
           </span>
         ))}
@@ -175,7 +175,7 @@ function CoverRow({
   last?: boolean
 }) {
   return (
-    <div className={`grid grid-cols-[80px_1fr] ${!last ? 'border-b border-gray-300' : ''}`}>
+    <div className={`grid grid-cols-[70px_1fr] ${!last ? 'border-b border-gray-300' : ''}`}>
       <div className="bg-[#121212] px-2 py-1.5 text-center text-xs font-semibold text-white">
         {label}
       </div>
@@ -188,7 +188,7 @@ function CoverRow({
 
 function Cell({ head, children }: { head?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`px-2 py-1.5 text-xs ${head ? 'bg-gray-50 font-semibold text-gray-700' : ''}`}>
+    <div className={`px-2 py-1.5 text-xs ${head ? 'font-semibold text-black' : ''}`}>
       {children}
     </div>
   )
