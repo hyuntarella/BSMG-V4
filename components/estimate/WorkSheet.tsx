@@ -218,8 +218,8 @@ export default function WorkSheet({
                   item.is_equipment ? 'bg-amber-50/50' : ''
                 } ${hasChange ? 'bg-yellow-50' : ''} ${isRealtimeRow ? 'bg-yellow-100/60' : ''}`}
               >
-                <td className="px-2 py-2 text-center text-gray-400">{item.sort_order}</td>
-                <td className="px-2 py-2 font-medium">
+                <td className="px-2 py-2.5 text-center text-gray-400">{item.sort_order}</td>
+                <td className="px-2 py-2.5 font-medium">
                   <InlineCell
                     value={item.name}
                     type="text"
@@ -229,7 +229,7 @@ export default function WorkSheet({
                     className="text-left font-medium"
                   />
                 </td>
-                <td className="px-2 py-2 text-gray-500">
+                <td className="px-2 py-2.5 text-gray-500">
                   <InlineCell
                     value={item.spec}
                     type="text"
@@ -239,7 +239,7 @@ export default function WorkSheet({
                     className="text-left text-gray-500"
                   />
                 </td>
-                <td className="px-2 py-2 text-center text-gray-500">
+                <td className="px-2 py-2.5 text-center text-gray-500">
                   <InlineCell
                     value={item.unit}
                     type="text"
@@ -249,36 +249,36 @@ export default function WorkSheet({
                     className="text-center text-gray-500"
                   />
                 </td>
-                <td className={`px-1 py-2 text-right transition-colors ${hlClass('qty')}`}>
+                <td className={`px-1 py-2.5 text-right transition-colors ${hlClass('qty')}`}>
                   <InlineCell value={item.qty} onSave={v => onItemChange(idx, 'qty', v as number)} />
                 </td>
                 {/* 재료비 단가/금액 */}
-                <td className={`px-1 py-2 text-right transition-colors ${hlClass('mat')} ${isRealtimeCell('mat') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
+                <td className={`px-1 py-2.5 text-right transition-colors ${hlClass('mat')} ${isRealtimeCell('mat') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.mat} onSave={v => onItemChange(idx, 'mat', v as number)} />
                   {realtimePreview('mat') !== undefined && (
                     <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('mat')!)}</span>
                   )}
                 </td>
-                <td className={`px-1 py-2 text-right tabular-nums text-gray-600 transition-colors ${hlClass('mat')}`}>{fm(item.mat_amount)}</td>
+                <td className={`px-1 py-2.5 text-right tabular-nums text-gray-600 transition-colors ${hlClass('mat')}`}>{fm(item.mat_amount)}</td>
                 {/* 노무비 단가/금액 */}
-                <td className={`px-1 py-2 text-right transition-colors ${hlClass('labor')} ${isRealtimeCell('labor') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
+                <td className={`px-1 py-2.5 text-right transition-colors ${hlClass('labor')} ${isRealtimeCell('labor') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.labor} onSave={v => onItemChange(idx, 'labor', v as number)} />
                   {realtimePreview('labor') !== undefined && (
                     <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('labor')!)}</span>
                   )}
                 </td>
-                <td className={`px-1 py-2 text-right tabular-nums text-gray-600 transition-colors ${hlClass('labor')}`}>{fm(item.labor_amount)}</td>
+                <td className={`px-1 py-2.5 text-right tabular-nums text-gray-600 transition-colors ${hlClass('labor')}`}>{fm(item.labor_amount)}</td>
                 {/* 경비 단가/금액 */}
-                <td className={`px-1 py-2 text-right transition-colors ${hlClass('exp')} ${isRealtimeCell('exp') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
+                <td className={`px-1 py-2.5 text-right transition-colors ${hlClass('exp')} ${isRealtimeCell('exp') ? 'ring-2 ring-dashed ring-accent/50' : ''}`}>
                   <InlineCell value={item.exp} onSave={v => onItemChange(idx, 'exp', v as number)} />
                   {realtimePreview('exp') !== undefined && (
                     <span className="ml-1 text-accent/50 text-[10px]">{fm(realtimePreview('exp')!)}</span>
                   )}
                 </td>
-                <td className={`px-1 py-2 text-right tabular-nums text-gray-600 transition-colors ${hlClass('exp')}`}>{fm(item.exp_amount)}</td>
+                <td className={`px-1 py-2.5 text-right tabular-nums text-gray-600 transition-colors ${hlClass('exp')}`}>{fm(item.exp_amount)}</td>
                 {/* 합계 금액 */}
-                <td className="px-1 py-2 text-right font-semibold tabular-nums">{fm(item.total)}</td>
-                <td className="px-1 py-2 text-center">
+                <td className="px-1 py-2.5 text-right font-semibold font-mono tabular-nums">{fm(item.total)}</td>
+                <td className="px-1 py-2.5 text-center">
                   <div className="flex items-center justify-center gap-0.5">
                     {onMoveItem && idx > 0 && (
                       <button
@@ -320,14 +320,16 @@ export default function WorkSheet({
           <SumRow label="소 계" value={calcResult.subtotal} />
           <SumRow label="공과 잡비" value={calcResult.overhead} suffix="3%" />
           <SumRow label="기업 이윤" value={calcResult.profit} suffix="6%" />
+          {/* 빈 행 스페이서 — Figma: 기업이윤 아래 빈 줄 */}
+          <div className="border-b border-gray-200 h-4" />
           <SumRow label="계" value={calcResult.totalBeforeRound} />
-          {/* 빈 행 스페이서 — Figma 기준 */}
-          <div className="border-b border-gray-200 px-3 py-2" />
+          {/* 빈 행 스페이서 — Figma: 계 아래 빈 줄 */}
+          <div className="border-b border-gray-200 h-4" />
           <div className="flex items-center justify-between border-t border-gray-900 px-3 py-2">
             <span className="text-sm font-bold">합 계</span>
             <div className="flex items-center gap-3">
               <span className="text-xs text-gray-500">(단수정리)</span>
-              <span className="text-base font-bold tabular-nums">{fm(calcResult.grandTotal)}</span>
+              <span className="text-base font-bold font-mono tabular-nums">{fm(calcResult.grandTotal)}</span>
             </div>
           </div>
         </div>
@@ -363,7 +365,7 @@ function SumRow({ label, value, suffix }: { label: string; value: number; suffix
         {label}
         {suffix && <span className="ml-1 text-gray-400">({suffix})</span>}
       </span>
-      <span className="tabular-nums">{fm(value)}</span>
+      <span className="font-mono tabular-nums">{fm(value)}</span>
     </div>
   )
 }
