@@ -188,6 +188,25 @@ export default function KanbanBoard({
         </div>
       </div>
 
+      {/* 서브 파이프라인 요약 바 (활성 탭) */}
+      {!isPerformanceTab && pipelines.length > 0 && (
+        <div data-testid="pipeline-summary-bar" className="flex flex-wrap items-center gap-1 border-b border-ink-faint/20 bg-surface-muted px-4 py-2">
+          {pipelines.map((pipeline) => {
+            const count = records.filter((r) => r.pipeline === pipeline).length;
+            return (
+              <span
+                key={pipeline}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                  count > 0 ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'
+                }`}
+              >
+                {pipeline} <span className="font-bold">{count}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {/* 실적 탭 */}
       {isPerformanceTab && (
         <PerformanceTab records={records} onCardClick={onCardClick} />
@@ -215,9 +234,21 @@ export default function KanbanBoard({
               >
                 {/* 컬럼 헤더 */}
                 <div className="flex items-center justify-between px-3 py-3">
-                  <span className="text-xs font-bold text-ink tracking-wide uppercase">
-                    {pipeline}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-ink tracking-wide uppercase">
+                      {pipeline}
+                    </span>
+                    {(() => {
+                      const totalAmount = pipelineCards.reduce((sum, r) => sum + (r.estimateAmount ?? 0), 0);
+                      if (totalAmount === 0) return null;
+                      const man = Math.round(totalAmount / 10000);
+                      return (
+                        <span className="text-[10px] text-ink-muted font-medium tabular-nums">
+                          {man.toLocaleString()}���
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <span className={`min-w-[1.5rem] rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
                     pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-ink-faint/30 text-ink-muted'
                   }`}>
