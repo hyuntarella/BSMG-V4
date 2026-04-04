@@ -150,7 +150,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
 
       {/* Brand Collaborations */}
       <div data-testid="cover-brands" className="flex items-center justify-center gap-3 border-t border-gray-200 pt-4">
-        <span className="text-[10px] text-gray-300 tracking-wide">Brand Collaborations</span>
+        <span className="text-[10px] text-black/30 tracking-wide">Brand Collaborations</span>
         {['SAMSUNG', 'RAEMIAN', '우정사업본부', '서울종로', '서울중구', 'GIMPO'].map(b => (
           <span key={b} className="rounded border border-gray-300 px-3 py-1.5 text-[10px] font-medium text-gray-500">
             {b}
