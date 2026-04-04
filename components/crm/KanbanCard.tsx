@@ -63,6 +63,14 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
   const viewedDate = fmtDate(record.estimateViewedDate);
   const visitDate = fmtDate(record.visitDate);
 
+  // 정체 경고: 최근 활동 기준 7일 이상 경과
+  const stagnantDays = (() => {
+    const refDate = record.estimateSentDate ?? record.visitDate ?? record.inquiryDate;
+    if (!refDate) return 0;
+    return Math.floor((Date.now() - new Date(refDate).getTime()) / 86400000);
+  })();
+  const isStagnant = stagnantDays >= 7;
+
   return (
     <div
       data-testid="kanban-card"
@@ -74,13 +82,25 @@ export default function KanbanCard({ record, onClick }: KanbanCardProps) {
         isDragging ? 'opacity-50 scale-95' : 'opacity-100'
       }`}
     >
+      {/* 정체 경고 바 */}
+      {isStagnant && (
+        <div data-testid="stagnant-badge" className="absolute top-0 left-0 right-0 h-0.5 bg-red-500" />
+      )}
+
       {/* hover 시 좌측 브랜드 바 */}
       <div className="absolute left-0 top-0 bottom-0 w-0 bg-brand transition-all group-hover:w-1" />
 
-      {/* 1행: 주소 (가장 눈에 띄게) */}
-      <p data-testid="kanban-card-address" className="truncate text-sm font-semibold text-ink leading-tight">
-        {record.address}
-      </p>
+      {/* 1행: 주소 + 정체 뱃지 */}
+      <div className="flex items-center gap-1.5">
+        <p data-testid="kanban-card-address" className="flex-1 truncate text-sm font-semibold text-ink leading-tight">
+          {record.address}
+        </p>
+        {isStagnant && (
+          <span className="flex-shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+            {stagnantDays}일
+          </span>
+        )}
+      </div>
 
       {/* 2행: 고객명 + 담당자 뱃지 */}
       <div className="mt-1 flex items-center gap-1.5 text-xs text-ink-secondary">

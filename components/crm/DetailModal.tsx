@@ -97,12 +97,15 @@ export default function DetailModal({ record, isOpen, onClose, onUpdate }: Detai
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50"
       onClick={onClose}
     >
+      {/* 오버레이 */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      {/* 우측 슬라이드 패널 */}
       <div
-        data-testid="detail-modal"
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl"
+        data-testid="detail-panel"
+        className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
