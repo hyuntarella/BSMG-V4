@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryCrmByPipeline } from '@/lib/supabase/crm';
-import type { CrmRecord } from '@/lib/supabase/crm-types';
+import { queryUnsent } from '@/lib/supabase/inquiry';
 
 export interface UnsentRecord {
   id: string;
@@ -18,25 +17,22 @@ function calcDaysSince(dateStr: string | null): number {
 
 /**
  * GET /api/dashboard/unsent
- * 파이프라인 = '견적 방문 완료' + 견적서발송일 null 건 조회
+ * pipeline_stage = '문의접수' + estimate_amount IS NULL 건 조회
  */
 export async function GET() {
   try {
-    const records: CrmRecord[] = await queryCrmByPipeline('견적방문완료');
+    const inquiries = await queryUnsent();
 
-    // 견적서 미발송 건만 필터링
-    const unsent: UnsentRecord[] = records
-      .filter((r) => r.estimateSentDate === null)
-      .map((r) => ({
-        id: r.id,
-        name: r.customerName,
-        address: r.address,
-        daysSince: calcDaysSince(r.inquiryDate),
-        manager: r.manager,
-        phone: r.phone,
-      }));
+    const records: UnsentRecord[] = inquiries.map((r) => ({
+      id: r.id,
+      name: r.client_name,
+      address: r.address,
+      daysSince: calcDaysSince(r.created_at),
+      manager: r.manager,
+      phone: r.phone,
+    }));
 
-    return NextResponse.json({ records: unsent });
+    return NextResponse.json({ records });
   } catch (err) {
     console.error('미발송 조회 실패:', err);
     return NextResponse.json({ error: '미발송 조회 실패' }, { status: 500 });

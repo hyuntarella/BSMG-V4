@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryCrmFollowUp } from '@/lib/supabase/crm';
+import { queryFollowUp } from '@/lib/supabase/inquiry';
 
 // ── FollowUpRecord type ──
 
@@ -20,15 +20,15 @@ function calcDaysSince(dateStr: string | null | undefined): number {
 
 export async function GET() {
   try {
-    const crmRecords = await queryCrmFollowUp();
+    const inquiries = await queryFollowUp();
 
-    const records: FollowUpRecord[] = crmRecords.map((r) => ({
+    const records: FollowUpRecord[] = inquiries.map((r) => ({
       id: r.id,
       address: r.address,
-      customerName: r.customerName,
-      // 견적서발송일 기준, 없으면 문의일자 기준
-      daysSince: calcDaysSince(r.estimateSentDate ?? r.inquiryDate),
-      estimateAmount: r.estimateAmount,
+      customerName: r.client_name,
+      // stage_changed_at 기준 정체 일수
+      daysSince: calcDaysSince(r.stage_changed_at),
+      estimateAmount: r.estimate_amount,
       manager: r.manager,
     }));
 
