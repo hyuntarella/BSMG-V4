@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 interface InitialGuideProps {
   onCreateSheets: () => void
+  onMicClick?: () => void
 }
 
 const GUIDE_ITEMS = [
@@ -13,14 +14,18 @@ const GUIDE_ITEMS = [
   { num: '4', label: '우레탄 평단가', example: '"3만" 또는 마진 기반' },
 ]
 
-export default function InitialGuide({ onCreateSheets }: InitialGuideProps) {
+export default function InitialGuide({ onCreateSheets, onMicClick }: InitialGuideProps) {
   const [helpOpen, setHelpOpen] = useState(false)
 
   return (
     <div className="mx-auto max-w-lg py-12 px-4">
       {/* 히어로 — 마이크 아이콘 */}
       <div className="flex flex-col items-center text-center mb-8">
-        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
+        <div
+          data-testid="initial-mic-button"
+          onClick={onMicClick}
+          className="mb-5 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full bg-accent/10 transition-transform hover:scale-110 hover:bg-accent/20 active:scale-95"
+        >
           <svg className="h-10 w-10 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2" />

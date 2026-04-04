@@ -250,7 +250,7 @@ export default function EstimateEditor({
       <main className="flex-1 px-3 py-4 mx-auto w-full max-w-5xl">
         {/* 시트 없을 때 — 음성 가이드 안내 */}
         {!hasComplex && !hasUrethane && (
-          <InitialGuide onCreateSheets={() => { addSheet('복합'); addSheet('우레탄'); setActiveTab('complex-detail') }} />
+          <InitialGuide onCreateSheets={() => { addSheet('복합'); addSheet('우레탄'); setActiveTab('complex-detail') }} onMicClick={voice.toggleRecording} />
         )}
 
         {(activeTab === 'complex-cover' || activeTab === 'urethane-cover') && activeSheetIndex >= 0 && (
