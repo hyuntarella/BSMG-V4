@@ -2,7 +2,7 @@
 
 import type { CrmRecord } from '@/lib/supabase/crm-types';
 
-// ── PerformanceCard ──
+// ── PerformanceCard (축소 버전) ──
 
 interface PerformanceCardProps {
   record: CrmRecord;
@@ -13,58 +13,41 @@ interface PerformanceCardProps {
 /** 만원 단위 금액 포맷 */
 function formatAmount(amount: number): string {
   const man = Math.round(amount / 10000);
-  return `${man.toLocaleString()}만원`;
+  return `${man.toLocaleString()}만`;
+}
+
+/** MM/DD 형식 날짜 */
+function fmtDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) return `${parts[1]}/${parts[2]}`;
+  return dateStr.slice(5);
 }
 
 export default function PerformanceCard({ record, isSuccess, onClick }: PerformanceCardProps) {
   const amount = record.contractAmount ?? record.estimateAmount;
-  const managerColor =
-    record.manager === '이창엽'
-      ? 'bg-blue-100 text-blue-700'
-      : record.manager === '박민우'
-        ? 'bg-green-100 text-green-700'
-        : 'bg-gray-100 text-gray-500';
+  const completedDate = fmtDate(record.balanceCompleteDate ?? record.inquiryDate);
 
   return (
     <div
+      data-testid="performance-card"
       onClick={onClick}
-      className={`cursor-pointer rounded-lg border p-3 transition-shadow hover:shadow-md ${
+      className={`cursor-pointer rounded-lg border px-3 py-2 transition-shadow hover:shadow-md ${
         isSuccess
-          ? 'border-blue-200 bg-blue-50'
-          : 'border-red-200 bg-red-50'
+          ? 'border-blue-200 bg-blue-50/60'
+          : 'border-red-200 bg-red-50/60'
       }`}
     >
-      {/* 주소 */}
-      <p className="truncate text-sm font-medium text-gray-800">{record.address}</p>
-
-      {/* 고객명 */}
-      {record.customerName && (
-        <p className="mt-0.5 text-xs text-gray-600">{record.customerName}</p>
-      )}
-
-      {/* 시공분야 */}
-      {record.workTypes.length > 0 && (
-        <p className="mt-1 text-xs text-gray-500">{record.workTypes.join(', ')}</p>
-      )}
-
-      {/* 시공평수 */}
-      {record.area && (
-        <p className="mt-0.5 text-xs text-gray-500">{record.area}</p>
-      )}
-
-      {/* 금액 */}
-      {amount != null && (
-        <p className="mt-1.5 text-sm font-semibold text-gray-800">{formatAmount(amount)}</p>
-      )}
-
-      {/* 담당자 칩 */}
-      {record.manager && (
-        <div className="mt-1.5">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${managerColor}`}>
-            {record.manager}
-          </span>
-        </div>
-      )}
+      {/* 1줄: 주소 + 계약금액 + 완료일 */}
+      <div className="flex items-center gap-2">
+        <p className="flex-1 truncate text-xs font-medium text-gray-800">{record.address}</p>
+        {amount != null && (
+          <span className="flex-shrink-0 text-xs font-bold tabular-nums text-gray-700">{formatAmount(amount)}</span>
+        )}
+        {completedDate && (
+          <span className="flex-shrink-0 text-[10px] text-gray-400">{completedDate}</span>
+        )}
+      </div>
     </div>
   );
 }

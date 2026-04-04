@@ -203,6 +203,7 @@ export default function KanbanBoard({
             return (
               <div
                 key={pipeline}
+                data-testid="kanban-column"
                 className={`flex min-w-[280px] max-w-[320px] flex-shrink-0 flex-col rounded-xl transition-colors ${
                   isDragOver
                     ? 'border-2 border-dashed border-brand-200 bg-brand-50'

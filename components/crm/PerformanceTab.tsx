@@ -145,8 +145,8 @@ export default function PerformanceTab({ records, onCardClick }: PerformanceTabP
                     {month}월
                   </div>
 
-                  {/* 카드 그리드 */}
-                  <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-2 sm:grid-cols-3">
+                  {/* 카드 — 가로 배치, gap-1 */}
+                  <div className="flex flex-wrap gap-1 px-4 pb-3 pt-1.5">
                     {monthRecords.map((record) => (
                       <PerformanceCard
                         key={record.id}
