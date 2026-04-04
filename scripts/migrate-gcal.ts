@@ -185,14 +185,16 @@ async function main() {
     .select('*', { count: 'exact', head: true });
   console.log(`  → 기존 calendar_events: ${existingCount ?? 0}건`);
 
-  // 3. Google Calendar에서 최근 6개월 이벤트 수집
-  console.log('\n[2/5] Google Calendar 이벤트 수집 중 (6개월)...');
+  // 3. Google Calendar에서 과거 6개월 + 미래 1개월 이벤트 수집
+  console.log('\n[2/5] Google Calendar 이벤트 수집 중 (과거6개월+미래1개월)...');
   const now = new Date();
   const sixMonthsAgo = new Date(now);
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const oneMonthLater = new Date(now);
+  oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 
   const timeMin = sixMonthsAgo.toISOString();
-  const timeMax = now.toISOString();
+  const timeMax = oneMonthLater.toISOString();
 
   const allEvents: EventRow[] = [];
   const seenGcalIds = new Set<string>();
