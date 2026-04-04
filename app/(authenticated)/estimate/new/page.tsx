@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import EstimateEditor from '@/components/estimate/EstimateEditor'
+import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 
 /**
- * 새 견적서 생성 → /estimate/[id]로 리디렉트
+ * 새 견적서 생성 → EstimateEditor 직접 렌더링 (redirect 제거로 로딩 개선)
  */
 export default async function NewEstimatePage() {
   const supabase = createClient()
@@ -61,7 +63,7 @@ export default async function NewEstimatePage() {
       })()
     : supabase
 
-  const { data: estimate, error } = await insertClient
+  const { data: estimateRow, error } = await insertClient
     .from('estimates')
     .insert({
       company_id: userData.company_id,
@@ -74,9 +76,53 @@ export default async function NewEstimatePage() {
     .select()
     .single()
 
-  if (error || !estimate) {
+  if (error || !estimateRow) {
     redirect('/dashboard')
   }
 
-  redirect(`/estimate/${estimate.id}`)
+  // P매트릭스 로드
+  const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+  const { data: matrixRows } = await serviceClient
+    .from('price_matrix')
+    .select('*')
+    .eq('company_id', userData.company_id)
+
+  const priceMatrix: PriceMatrixRaw = {}
+  for (const row of matrixRows ?? []) {
+    if (!priceMatrix[row.area_range]) priceMatrix[row.area_range] = {}
+    if (!priceMatrix[row.area_range][row.method]) priceMatrix[row.area_range][row.method] = {}
+    const key = String(row.price_per_pyeong)
+    if (!priceMatrix[row.area_range][row.method][key]) {
+      priceMatrix[row.area_range][row.method][key] = []
+    }
+    priceMatrix[row.area_range][row.method][key][row.item_index] = [
+      Number(row.mat),
+      Number(row.labor),
+      Number(row.exp),
+    ]
+  }
+
+  const estimate: Estimate = {
+    id: estimateRow.id,
+    company_id: estimateRow.company_id,
+    customer_id: estimateRow.customer_id,
+    created_by: estimateRow.created_by,
+    mgmt_no: estimateRow.mgmt_no,
+    status: estimateRow.status,
+    date: estimateRow.date,
+    customer_name: estimateRow.customer_name,
+    site_name: estimateRow.site_name,
+    m2: Number(estimateRow.m2),
+    wall_m2: Number(estimateRow.wall_m2),
+    manager_name: estimateRow.manager_name,
+    manager_phone: estimateRow.manager_phone,
+    memo: estimateRow.memo,
+    sheets: [],
+  }
+
+  return <EstimateEditor initialEstimate={estimate} priceMatrix={priceMatrix} />
 }

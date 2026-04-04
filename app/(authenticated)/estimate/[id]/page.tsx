@@ -64,48 +64,49 @@ export default async function EstimatePage({ params }: Props) {
     .eq('estimate_id', params.id)
     .order('sort_order')
 
-  const sheets: EstimateSheet[] = []
-  for (const sr of sheetRows ?? []) {
-    const { data: itemRows } = await queryClient
-      .from('estimate_items')
-      .select('*')
-      .eq('sheet_id', sr.id)
-      .order('sort_order')
+  const sheets: EstimateSheet[] = await Promise.all(
+    (sheetRows ?? []).map(async (sr) => {
+      const { data: itemRows } = await queryClient
+        .from('estimate_items')
+        .select('*')
+        .eq('sheet_id', sr.id)
+        .order('sort_order')
 
-    const items: EstimateItem[] = (itemRows ?? []).map((ir) => ({
-      id: ir.id,
-      sheet_id: ir.sheet_id,
-      sort_order: ir.sort_order,
-      name: ir.name,
-      spec: ir.spec,
-      unit: ir.unit,
-      qty: Number(ir.qty),
-      mat: ir.mat,
-      labor: ir.labor,
-      exp: ir.exp,
-      mat_amount: Number(ir.mat_amount),
-      labor_amount: Number(ir.labor_amount),
-      exp_amount: Number(ir.exp_amount),
-      total: Number(ir.total),
-      is_base: ir.is_base,
-      is_equipment: ir.is_equipment,
-      is_fixed_qty: ir.is_fixed_qty,
-    }))
+      const items: EstimateItem[] = (itemRows ?? []).map((ir) => ({
+        id: ir.id,
+        sheet_id: ir.sheet_id,
+        sort_order: ir.sort_order,
+        name: ir.name,
+        spec: ir.spec,
+        unit: ir.unit,
+        qty: Number(ir.qty),
+        mat: ir.mat,
+        labor: ir.labor,
+        exp: ir.exp,
+        mat_amount: Number(ir.mat_amount),
+        labor_amount: Number(ir.labor_amount),
+        exp_amount: Number(ir.exp_amount),
+        total: Number(ir.total),
+        is_base: ir.is_base,
+        is_equipment: ir.is_equipment,
+        is_fixed_qty: ir.is_fixed_qty,
+      }))
 
-    sheets.push({
-      id: sr.id,
-      estimate_id: sr.estimate_id,
-      type: sr.type as '복합' | '우레탄',
-      title: sr.title,
-      plan: sr.plan,
-      price_per_pyeong: sr.price_per_pyeong,
-      warranty_years: sr.warranty_years,
-      warranty_bond: sr.warranty_bond,
-      grand_total: Number(sr.grand_total),
-      sort_order: sr.sort_order,
-      items,
+      return {
+        id: sr.id,
+        estimate_id: sr.estimate_id,
+        type: sr.type as '복합' | '우레탄',
+        title: sr.title,
+        plan: sr.plan,
+        price_per_pyeong: sr.price_per_pyeong,
+        warranty_years: sr.warranty_years,
+        warranty_bond: sr.warranty_bond,
+        grand_total: Number(sr.grand_total),
+        sort_order: sr.sort_order,
+        items,
+      }
     })
-  }
+  )
 
   const estimate: Estimate = {
     id: estimateRow.id,
