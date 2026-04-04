@@ -2,7 +2,7 @@
 
 import type { CrmRecord } from '@/lib/supabase/crm-types';
 
-// ── PerformanceCard (축소 버전) ──
+// ── PerformanceCard (2줄 카드) ──
 
 interface PerformanceCardProps {
   record: CrmRecord;
@@ -32,20 +32,26 @@ export default function PerformanceCard({ record, isSuccess, onClick }: Performa
     <div
       data-testid="performance-card"
       onClick={onClick}
-      className={`cursor-pointer rounded-lg border px-3 py-2 transition-shadow hover:shadow-md ${
-        isSuccess
-          ? 'border-blue-200 bg-blue-50/60'
-          : 'border-red-200 bg-red-50/60'
+      className={`cursor-pointer rounded-xl bg-white p-3 shadow-card transition-all hover:shadow-card-hover hover:-translate-y-0.5 border-l-4 ${
+        isSuccess ? 'border-l-blue-400' : 'border-l-red-400'
       }`}
     >
-      {/* 1줄: 주소 + 계약금액 + 완료일 */}
-      <div className="flex items-center gap-2">
-        <p className="flex-1 truncate text-xs font-medium text-gray-800">{record.address}</p>
+      {/* 1행: 주소 */}
+      <p className="truncate text-sm font-semibold text-ink leading-tight">
+        {record.address}
+      </p>
+      {/* 2행: 금액 + 날짜 */}
+      <div className="mt-1 flex items-center gap-2">
         {amount != null && (
-          <span className="flex-shrink-0 text-xs font-bold tabular-nums text-gray-700">{formatAmount(amount)}</span>
+          <span className="text-xs font-bold tabular-nums text-ink">
+            {formatAmount(amount)}
+          </span>
         )}
         {completedDate && (
-          <span className="flex-shrink-0 text-[10px] text-gray-400">{completedDate}</span>
+          <span className="text-[10px] text-ink-muted">{completedDate}</span>
+        )}
+        {record.manager && (
+          <span className="ml-auto text-[10px] text-ink-muted">{record.manager}</span>
         )}
       </div>
     </div>

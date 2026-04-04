@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { CrmRecord } from '@/lib/supabase/crm-types';
 import PerformanceCard from './PerformanceCard';
 
-// ── PerformanceTab ──
+// ── PerformanceTab (2컬럼 칸반) ──
 
 interface PerformanceTabProps {
   records: CrmRecord[];
@@ -20,40 +20,10 @@ function isFailRecord(r: CrmRecord): boolean {
   return r.contractStatus === '계약실패' || r.pipeline === '재연락금지';
 }
 
-/** 그룹핑에 사용할 날짜 파싱 */
-function getRecordDate(r: CrmRecord): Date {
-  const raw = r.inquiryDate ?? r.createdTime;
-  return new Date(raw);
-}
-
-/** 연도→월→레코드 구조로 그룹핑 (최신 먼저) */
-function groupByYearMonth(records: CrmRecord[]): [number, [number, CrmRecord[]][]][] {
-  const yearMap = new Map<number, Map<number, CrmRecord[]>>();
-
-  for (const r of records) {
-    const d = getRecordDate(r);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1; // 1-based
-
-    if (!yearMap.has(year)) yearMap.set(year, new Map());
-    const monthMap = yearMap.get(year)!;
-    if (!monthMap.has(month)) monthMap.set(month, []);
-    monthMap.get(month)!.push(r);
-  }
-
-  // 연도 내림차순
-  const yearsSorted = Array.from(yearMap.keys()).sort((a, b) => b - a);
-
-  return yearsSorted.map((year) => {
-    const monthMap = yearMap.get(year)!;
-    // 월 내림차순
-    const monthsSorted = Array.from(monthMap.keys()).sort((a, b) => b - a);
-    const monthEntries: [number, CrmRecord[]][] = monthsSorted.map((month) => [
-      month,
-      monthMap.get(month)!,
-    ]);
-    return [year, monthEntries] as [number, [number, CrmRecord[]][]];
-  });
+/** 만원 단위 포맷 */
+function fmtMan(amount: number): string {
+  const man = Math.round(amount / 10000);
+  return `${man.toLocaleString()}만`;
 }
 
 export default function PerformanceTab({ records, onCardClick }: PerformanceTabProps) {
@@ -80,24 +50,26 @@ export default function PerformanceTab({ records, onCardClick }: PerformanceTabP
     });
   }, [performanceRecords, searchQuery, managerFilter]);
 
-  // 통계
-  const successCount = useMemo(
-    () => performanceRecords.filter(isSuccessRecord).length,
-    [performanceRecords]
+  // 성공/실패 분리
+  const successRecords = useMemo(() => filteredRecords.filter(isSuccessRecord), [filteredRecords]);
+  const failRecords = useMemo(() => filteredRecords.filter(isFailRecord), [filteredRecords]);
+
+  // 금액 합계
+  const successTotal = useMemo(
+    () => successRecords.reduce((sum, r) => sum + (r.contractAmount ?? r.estimateAmount ?? 0), 0),
+    [successRecords]
   );
-  const failCount = useMemo(
-    () => performanceRecords.filter(isFailRecord).length,
-    [performanceRecords]
+  const failTotal = useMemo(
+    () => failRecords.reduce((sum, r) => sum + (r.contractAmount ?? r.estimateAmount ?? 0), 0),
+    [failRecords]
   );
+
   const successRate = performanceRecords.length > 0
-    ? Math.round((successCount / performanceRecords.length) * 100)
+    ? Math.round((successRecords.length / performanceRecords.length) * 100)
     : 0;
 
-  // 그룹핑
-  const grouped = useMemo(() => groupByYearMonth(filteredRecords), [filteredRecords]);
-
   return (
-    <div className="flex flex-col">
+    <div data-testid="performance-tab" className="flex flex-col">
       {/* 검색 + 필터 */}
       <div className="flex flex-wrap items-center gap-2 border-b bg-white px-4 py-2">
         <input
@@ -106,61 +78,86 @@ export default function PerformanceTab({ records, onCardClick }: PerformanceTabP
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/20"
+          data-testid="performance-search"
         />
         <select
           value={managerFilter}
           onChange={(e) => setManagerFilter(e.target.value)}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand"
+          data-testid="performance-manager-filter"
         >
           <option value="전체">담당자 전체</option>
           <option value="이창엽">이창엽</option>
           <option value="박민우">박민우</option>
         </select>
+        <span className="ml-auto text-xs text-gray-500">
+          성공률 <strong className="text-gray-800">{successRate}%</strong>
+        </span>
       </div>
 
-      {/* 통계 요약 */}
-      <div className="flex gap-4 bg-gray-50 px-4 py-2 text-xs text-gray-600">
-        <span>전체 <strong className="text-gray-800">{performanceRecords.length}</strong>건</span>
-        <span>성공 <strong className="text-blue-700">{successCount}</strong>건</span>
-        <span>실패 <strong className="text-red-600">{failCount}</strong>건</span>
-        <span>성공률 <strong className="text-gray-800">{successRate}%</strong></span>
-      </div>
-
-      {/* 갤러리 */}
-      <div className="overflow-y-auto">
-        {filteredRecords.length === 0 ? (
-          <p className="py-12 text-center text-sm text-gray-400">실적 데이터가 없습니다</p>
-        ) : (
-          grouped.map(([year, monthEntries]) => (
-            <div key={year}>
-              {/* 연도 헤더 */}
-              <div className="sticky top-0 z-10 bg-gray-100 px-4 py-2 text-lg font-bold text-gray-700">
-                {year}년
-              </div>
-
-              {monthEntries.map(([month, monthRecords]) => (
-                <div key={month}>
-                  {/* 월 헤더 */}
-                  <div className="sticky top-10 z-[9] bg-gray-50 px-4 py-1.5 text-sm font-semibold text-gray-600">
-                    {month}월
-                  </div>
-
-                  {/* 카드 — 가로 배치, gap-1 */}
-                  <div className="flex flex-wrap gap-1 px-4 pb-3 pt-1.5">
-                    {monthRecords.map((record) => (
-                      <PerformanceCard
-                        key={record.id}
-                        record={record}
-                        isSuccess={isSuccessRecord(record)}
-                        onClick={() => onCardClick(record)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+      {/* 2컬럼 칸반 */}
+      <div className="flex gap-3 overflow-x-auto p-4">
+        {/* 성공 컬럼 */}
+        <div data-testid="performance-success-column" className="flex min-w-[280px] max-w-[320px] flex-shrink-0 flex-col rounded-xl bg-blue-50/50">
+          <div className="flex items-center justify-between px-3 py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-blue-700">성공</span>
+              {successTotal > 0 && (
+                <span className="text-[10px] text-blue-500 font-medium tabular-nums">
+                  {fmtMan(successTotal)}
+                </span>
+              )}
             </div>
-          ))
-        )}
+            <span className="min-w-[1.5rem] rounded-full bg-blue-100 px-1.5 py-0.5 text-center text-xs font-bold text-blue-700">
+              {successRecords.length}
+            </span>
+          </div>
+          <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto px-2 pb-3">
+            {successRecords.length === 0 ? (
+              <p className="py-8 text-center text-xs text-gray-400">성공 건 없음</p>
+            ) : (
+              successRecords.map((record) => (
+                <PerformanceCard
+                  key={record.id}
+                  record={record}
+                  isSuccess={true}
+                  onClick={() => onCardClick(record)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* 실패 컬럼 */}
+        <div data-testid="performance-fail-column" className="flex min-w-[280px] max-w-[320px] flex-shrink-0 flex-col rounded-xl bg-red-50/50">
+          <div className="flex items-center justify-between px-3 py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-red-700">실패</span>
+              {failTotal > 0 && (
+                <span className="text-[10px] text-red-500 font-medium tabular-nums">
+                  {fmtMan(failTotal)}
+                </span>
+              )}
+            </div>
+            <span className="min-w-[1.5rem] rounded-full bg-red-100 px-1.5 py-0.5 text-center text-xs font-bold text-red-700">
+              {failRecords.length}
+            </span>
+          </div>
+          <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto px-2 pb-3">
+            {failRecords.length === 0 ? (
+              <p className="py-8 text-center text-xs text-gray-400">실패 건 없음</p>
+            ) : (
+              failRecords.map((record) => (
+                <PerformanceCard
+                  key={record.id}
+                  record={record}
+                  isSuccess={false}
+                  onClick={() => onCardClick(record)}
+                />
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
