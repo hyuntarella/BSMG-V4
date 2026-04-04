@@ -149,24 +149,23 @@ export default function EstimateEditor({
 
   return (
     <div data-testid="estimate-editor" className="flex min-h-screen flex-col bg-surface pb-20">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-40 border-b border-brand-800/20 bg-brand-900 px-3 py-2.5 shadow-md">
+      {/* 서브 툴바 (전체 Header 아래에 위치) */}
+      <div data-testid="estimate-toolbar" className="sticky top-[49px] z-30 border-b border-ink-faint/20 bg-white px-3 py-2 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 shrink-0">
             {/* 햄버거 메뉴 */}
             <button
               data-testid="estimate-menu-button"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted hover:text-ink transition-colors"
               aria-label="메뉴"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-sm font-bold text-white">방수명가 견적서</h1>
             {estimate.mgmt_no && (
-              <span className="hidden sm:inline text-xs text-brand-300">{estimate.mgmt_no}</span>
+              <span className="text-xs font-semibold text-ink-secondary">{estimate.mgmt_no}</span>
             )}
             {isDirty && <span className="ml-1 h-2 w-2 rounded-full bg-accent animate-pulse" title="변경됨" />}
           </div>
@@ -174,7 +173,7 @@ export default function EstimateEditor({
             <button
               onClick={handleSave}
               disabled={saving || !estimate.id}
-              className="rounded-lg bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-white/25 disabled:opacity-40 transition-colors"
+              className="rounded-lg bg-brand px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-40 transition-colors"
             >
               {saving ? '저장 중...' : '저장'}
             </button>
@@ -187,7 +186,7 @@ export default function EstimateEditor({
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* 햄버거 사이드 패널 */}
       {menuOpen && (
