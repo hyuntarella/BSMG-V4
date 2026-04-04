@@ -91,7 +91,7 @@ describe('CRM API 응답 형식 호환성', () => {
     const record = await createRecord({
       address: 'API호환테스트 주소',
       customerName: 'API호환고객',
-      pipeline: '정보입력완료',
+      pipeline: '정보입력단계',
     });
 
     assertCrmRecordShape(record);
@@ -138,11 +138,11 @@ describe('CRM API 응답 형식 호환성', () => {
 
   test('updateCrmPipeline → void (에러 없음)', async () => {
     await expect(
-      updateCrmPipeline(testRecordId, '성공확률↑')
+      updateCrmPipeline(testRecordId, '성공확률50▲')
     ).resolves.toBeUndefined();
 
     const updated = await getPageById(testRecordId);
-    expect(updated.pipeline).toBe('성공확률↑');
+    expect(updated.pipeline).toBe('성공확률50▲');
   });
 
   test('addComment → CrmComment 반환', async () => {

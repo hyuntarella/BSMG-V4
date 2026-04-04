@@ -53,7 +53,7 @@ describe('CRM Supabase CRUD', () => {
         address: '테스트 주소 123',
         customer_name: '테스트고객',
         phone: '010-0000-0000',
-        pipeline: '정보입력완료',
+        pipeline: '정보입력단계',
         work_types: ['옥상방수', '외벽방수'],
       })
       .select()
@@ -76,7 +76,7 @@ describe('CRM Supabase CRUD', () => {
 
     expect(error).toBeNull();
     expect(data!.customer_name).toBe('테스트고객');
-    expect(data!.pipeline).toBe('정보입력완료');
+    expect(data!.pipeline).toBe('정보입력단계');
   });
 
   test('고객 수정', async () => {
@@ -157,7 +157,7 @@ describe('CRM Supabase CRUD', () => {
   test('파이프라인 수정', async () => {
     const { error } = await supabase
       .from('crm_customers')
-      .update({ pipeline: '성공확률↑' })
+      .update({ pipeline: '성공확률50▲' })
       .eq('id', testCustomerId);
 
     expect(error).toBeNull();
@@ -168,7 +168,7 @@ describe('CRM Supabase CRUD', () => {
       .eq('id', testCustomerId)
       .single();
 
-    expect(data!.pipeline).toBe('성공확률↑');
+    expect(data!.pipeline).toBe('성공확률50▲');
   });
 
   test('CASCADE 삭제 — 고객 삭제 시 댓글도 삭제', async () => {

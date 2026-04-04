@@ -13,7 +13,7 @@ test.describe('CRM 칸반보드', () => {
   test('탭 전환이 동작한다', async ({ page }) => {
     await page.goto('/crm');
     await page.getByText('영업').click();
-    await expect(page.getByText('먼저연락X')).toBeVisible();
+    await expect(page.getByText('연락대기')).toBeVisible();
   });
 
   // P0: CR-03
