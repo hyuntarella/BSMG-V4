@@ -51,6 +51,7 @@ export default function KanbanBoard({
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [dragOverPipeline, setDragOverPipeline] = useState<string | null>(null);
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [undoInfo, setUndoInfo] = useState<UndoInfo | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -218,12 +219,24 @@ export default function KanbanBoard({
           {pipelines.map((pipeline) => {
             const pipelineCards = records.filter((r) => r.pipeline === pipeline);
             const isDragOver = dragOverPipeline === pipeline;
+            const isCollapsed = collapsedColumns.has(pipeline);
+
+            const toggleCollapse = () => {
+              setCollapsedColumns(prev => {
+                const next = new Set(prev);
+                if (next.has(pipeline)) next.delete(pipeline);
+                else next.add(pipeline);
+                return next;
+              });
+            };
 
             return (
               <div
                 key={pipeline}
                 data-testid="kanban-column"
-                className={`flex min-w-[280px] max-w-[320px] flex-shrink-0 flex-col rounded-xl transition-colors ${
+                className={`flex flex-shrink-0 flex-col rounded-xl transition-all ${
+                  isCollapsed ? 'min-w-[48px] max-w-[48px]' : 'min-w-[280px] max-w-[320px]'
+                } ${
                   isDragOver
                     ? 'border-2 border-dashed border-brand-200 bg-brand-50'
                     : 'bg-surface-muted'
@@ -233,31 +246,56 @@ export default function KanbanBoard({
                 onDrop={(e) => handleDrop(e, pipeline)}
               >
                 {/* 컬럼 헤더 */}
-                <div className="flex items-center justify-between px-3 py-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-ink tracking-wide uppercase">
-                      {pipeline}
+                {isCollapsed ? (
+                  <button
+                    data-testid="column-expand"
+                    onClick={toggleCollapse}
+                    className="flex flex-col items-center gap-2 px-2 py-3"
+                    aria-label={`${pipeline} 펼치기`}
+                  >
+                    <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="text-[10px] font-bold text-ink [writing-mode:vertical-lr]">{pipeline}</span>
+                    <span className="rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">{pipelineCards.length}</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between px-3 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        data-testid="column-collapse"
+                        onClick={toggleCollapse}
+                        className="text-ink-muted hover:text-ink transition-colors"
+                        aria-label={`${pipeline} 접기`}
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <span className="text-xs font-bold text-ink tracking-wide uppercase">
+                        {pipeline}
+                      </span>
+                      {(() => {
+                        const totalAmount = pipelineCards.reduce((sum, r) => sum + (r.estimateAmount ?? 0), 0);
+                        if (totalAmount === 0) return null;
+                        const man = Math.round(totalAmount / 10000);
+                        return (
+                          <span className="text-[10px] text-ink-muted font-medium tabular-nums">
+                            {man.toLocaleString()}만
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <span className={`min-w-[1.5rem] rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
+                      pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-ink-faint/30 text-ink-muted'
+                    }`}>
+                      {pipelineCards.length}
                     </span>
-                    {(() => {
-                      const totalAmount = pipelineCards.reduce((sum, r) => sum + (r.estimateAmount ?? 0), 0);
-                      if (totalAmount === 0) return null;
-                      const man = Math.round(totalAmount / 10000);
-                      return (
-                        <span className="text-[10px] text-ink-muted font-medium tabular-nums">
-                          {man.toLocaleString()}���
-                        </span>
-                      );
-                    })()}
                   </div>
-                  <span className={`min-w-[1.5rem] rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
-                    pipelineCards.length > 0 ? 'bg-brand/10 text-brand' : 'bg-ink-faint/30 text-ink-muted'
-                  }`}>
-                    {pipelineCards.length}
-                  </span>
-                </div>
+                )}
 
                 {/* 카드 목록 */}
-                <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto px-2 pb-3">
+                {!isCollapsed && <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto px-2 pb-3">
                   {pipelineCards.length === 0 ? (
                     <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-ink-faint/40 py-8 text-center">
                       <svg className="h-8 w-8 text-ink-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -274,7 +312,7 @@ export default function KanbanBoard({
                       />
                     ))
                   )}
-                </div>
+                </div>}
               </div>
             );
           })}
