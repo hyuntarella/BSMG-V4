@@ -31,7 +31,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
   return (
     <div data-testid="cover-sheet" className="mx-auto max-w-[900px] bg-white p-8 text-[13px] leading-relaxed">
       {/* "견 적 서" 타이틀 — 중앙 상단 */}
-      <h1 data-testid="cover-title" className="mb-6 text-center text-3xl font-bold tracking-[0.3em]">
+      <h1 data-testid="cover-title" className="mb-6 text-center text-3xl font-semibold tracking-[0.3em]">
         견 적 서
       </h1>
 
@@ -42,7 +42,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
           {/* 방수명가 로고 */}
           <div data-testid="cover-logo" className="mb-3 flex items-center gap-1">
             <span className="text-xl font-extrabold tracking-tight text-gray-900">방수명가</span>
-            <span className="inline-flex items-center rounded-sm bg-[#c83030] px-1 py-0.5 text-[8px] font-bold text-white leading-none">
+            <span className="inline-flex items-center rounded-sm bg-[#c83030] px-1 py-0.5 text-[6px] font-bold text-white leading-none">
               防水
             </span>
           </div>
@@ -60,7 +60,7 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
 
         {/* 우측: 공급자 */}
         <div className="flex-1">
-          <div className="mb-1 text-xs font-semibold text-gray-500">공급자</div>
+          <div className="mb-1 text-[13px] font-semibold text-gray-500">공급자</div>
           <div className="border border-gray-800">
             <div className="grid grid-cols-[70px_1fr_80px_1fr_40px_auto] border-b border-gray-300">
               <Cell head>등록 번호</Cell>
@@ -92,17 +92,17 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
 
       {/* 공사금액 — 검은 뱃지 + 일금 */}
       <div data-testid="cover-amount" className="mb-6 flex items-center gap-4">
-        <div className="rounded bg-[#121212] px-4 py-2 text-center text-xs font-bold text-white leading-tight">
+        <div className="rounded bg-[#121212] px-4 py-2 text-center text-[13px] font-semibold text-white leading-tight">
           공사금액<br />(부가세 별도)
         </div>
-        <div className="text-xl font-bold tracking-tight">
+        <div className="text-lg font-semibold tracking-tight">
           {koreanAmount} ({fm(grandTotal)})
         </div>
       </div>
 
       {/* 품명 테이블 — 검은 헤더 */}
       <div data-testid="cover-table" className="mb-6 border border-gray-800">
-        <table className="w-full text-xs">
+        <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-[#121212] text-white">
               <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">품 명</th>
@@ -141,18 +141,18 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
       {/* 특기사항 — 빨간 라벨 */}
       <div data-testid="cover-notes" className="mb-8">
         <span className="font-bold text-[#a11d1f]">특기사항</span>
-        <div className="mt-2 space-y-1 text-xs text-gray-800">
+        <div className="mt-2 space-y-1 text-[13px] text-gray-800">
           <p>1. 하자보수기간 {sheet.warranty_years}년 (하자이행증권 {sheet.warranty_bond}년)</p>
           <p>2. 견적서 제출 30일 유효</p>
-          <p className="text-[11px] text-gray-500">* 부가가치세별도</p>
+          <p className="text-[11px] text-gray-400">* 부가가치세별도</p>
         </div>
       </div>
 
       {/* Brand Collaborations */}
       <div data-testid="cover-brands" className="flex items-center justify-center gap-3 border-t border-gray-200 pt-4">
-        <span className="text-[10px] text-black/30 tracking-wide">Brand Collaborations</span>
+        <span className="text-[11px] text-black/30 tracking-wide font-semibold">Brand Collaborations</span>
         {['SAMSUNG', 'RAEMIAN', '우정사업본부', '서울종로', '서울중구', 'GIMPO'].map(b => (
-          <span key={b} className="rounded border border-gray-300 px-3 py-1.5 text-[10px] font-medium text-gray-500">
+          <span key={b} className="rounded border border-gray-300 px-3 py-1.5 text-[11px] font-medium text-gray-500">
             {b}
           </span>
         ))}
@@ -176,7 +176,7 @@ function CoverRow({
 }) {
   return (
     <div className={`grid grid-cols-[70px_1fr] ${!last ? 'border-b border-gray-300' : ''}`}>
-      <div className="bg-[#121212] px-2 py-1.5 text-center text-xs font-semibold text-white">
+      <div className="bg-[#121212] px-2 py-1.5 text-center text-[13px] font-semibold text-white">
         {label}
       </div>
       <div className="px-3 py-1.5">
@@ -188,7 +188,7 @@ function CoverRow({
 
 function Cell({ head, children }: { head?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`px-2 py-1.5 text-xs ${head ? 'font-semibold text-black' : ''}`}>
+    <div className={`px-2 py-1.5 text-[13px] ${head ? 'bg-[rgba(217,217,217,0.53)] font-semibold text-black' : ''}`}>
       {children}
     </div>
   )
@@ -209,7 +209,7 @@ function EditableField({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-transparent text-xs outline-none placeholder:text-gray-300"
+      className="w-full bg-transparent text-[13px] outline-none placeholder:text-gray-300"
     />
   )
 }
