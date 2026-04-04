@@ -115,12 +115,18 @@ interface EventRow {
   gcal_id: string;
 }
 
+// 무의미/반복 이벤트 필터 목록
+const SKIP_TITLES = ['사무실', '휴무', '퇴근', '출근', '점심'];
+
 function parseGCalEvent(
   event: calendar_v3.Schema$Event,
   memberName: string,
   memberIdMap: Record<string, string>,
 ): EventRow | null {
   const summary = event.summary ?? '(제목 없음)';
+
+  // 무의미 이벤트 스킵
+  if (SKIP_TITLES.some(skip => summary.trim() === skip)) return null;
 
   // start 필수
   const startDate = event.start?.dateTime ?? event.start?.date;
@@ -250,13 +256,30 @@ async function main() {
     return;
   }
 
-  // 4. Supabase 삽입
-  console.log('\n[3/5] Supabase 삽입 중...');
+  // 3-1. 기존 이벤트와 중복 체크 (title+start_at 조합)
+  console.log('\n[3/5] 중복 체크 + Supabase 삽입 중...');
+  const { data: existing } = await supabase
+    .from('calendar_events')
+    .select('title, start_at');
+  const existingKeys = new Set(
+    (existing ?? []).map((e: { title: string; start_at: string }) => `${e.title}|${e.start_at}`)
+  );
+
+  const newEvents = allEvents.filter(
+    e => !existingKeys.has(`${e.title}|${e.start_at}`)
+  );
+  console.log(`  → 중복 제외: ${allEvents.length - newEvents.length}건, 신규: ${newEvents.length}건`);
+
+  if (newEvents.length === 0) {
+    console.log('  ⚠ 신규 이벤트 없음. 종료.');
+    return;
+  }
+
   const BATCH = 50;
   let inserted = 0;
 
-  for (let i = 0; i < allEvents.length; i += BATCH) {
-    const batch = allEvents.slice(i, i + BATCH);
+  for (let i = 0; i < newEvents.length; i += BATCH) {
+    const batch = newEvents.slice(i, i + BATCH);
     // gcal_id는 DB 컬럼에 없으므로 제거
     const rows = batch.map(({ gcal_id, ...rest }) => rest);
 
@@ -266,7 +289,7 @@ async function main() {
       throw error;
     }
     inserted += batch.length;
-    console.log(`  → ${inserted}/${allEvents.length} 삽입`);
+    console.log(`  → ${inserted}/${newEvents.length} 삽입`);
   }
 
   // 5. 검증
@@ -278,7 +301,7 @@ async function main() {
   const newCount = (afterCount ?? 0) - (existingCount ?? 0);
   console.log(`  삽입 전: ${existingCount ?? 0}건`);
   console.log(`  삽입 후: ${afterCount ?? 0}건`);
-  console.log(`  신규: ${newCount}건 ${newCount === allEvents.length ? '✅' : '❌ (불일치)'}`);
+  console.log(`  신규: ${newCount}건 ${newCount === newEvents.length ? '✅' : '❌ (불일치)'}`);
 
   // 샘플 출력
   console.log('\n[5/5] 샘플 3건:');
