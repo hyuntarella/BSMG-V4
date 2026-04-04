@@ -11,7 +11,7 @@ interface CoverSheetProps {
   onUpdate: (field: keyof Estimate, value: string | number) => void
 }
 
-/** 공급자 정보 (설정으로 뺄 수 있음) */
+/** 공급자 정보 */
 const SUPPLIER = {
   regNo: '642-87-03286',
   company: '(주)부성에이티',
@@ -29,79 +29,70 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
   const koreanAmount = `일금 ${n2k(grandTotal)}원`
 
   return (
-    <div className="mx-auto max-w-[900px] bg-white p-6 text-[13px] leading-relaxed">
-      {/* 로고 + 제목 */}
-      <div className="mb-4 flex items-start justify-between">
-        <div className="text-lg font-extrabold text-gray-900">
-          방수명가<span className="ml-0.5 text-xs text-brand">防水</span>
-        </div>
-        <h1 className="text-2xl font-bold tracking-widest">견 적 서</h1>
-      </div>
+    <div data-testid="cover-sheet" className="mx-auto max-w-[900px] bg-white p-8 text-[13px] leading-relaxed">
+      {/* "견 적 서" 타이틀 — 중앙 상단 */}
+      <h1 data-testid="cover-title" className="mb-6 text-center text-3xl font-bold tracking-[0.3em]">
+        견 적 서
+      </h1>
 
-      {/* 좌측: 견적 기본정보 / 우측: 공급자 정보 */}
-      <div className="mb-4 flex gap-4">
-        {/* 좌측 */}
-        <div className="w-[45%] border border-gray-800">
-          <CoverRow label="관리번호" value={estimate.mgmt_no ?? ''} />
-          <CoverRow label="견 적 일" value={estimate.date} />
-          <CoverRow label="주 소">
-            <EditableField
-              value={estimate.site_name ?? ''}
-              onChange={v => onUpdate('site_name', v)}
-              placeholder="현장 주소"
-            />
-          </CoverRow>
-          <CoverRow label="공 사 명" value="방수공사" />
-          <CoverRow label="고 객 명">
-            <EditableField value={estimate.customer_name ?? ''} onChange={v => onUpdate('customer_name', v)} placeholder="고객명" />
-          </CoverRow>
-          <CoverRow label="담 당 자">
-            <EditableField value={estimate.manager_name ?? ''} onChange={v => onUpdate('manager_name', v)} placeholder="담당자" />
-          </CoverRow>
-          <CoverRow label="연 락 처">
-            <EditableField value={estimate.manager_phone ?? ''} onChange={v => onUpdate('manager_phone', v)} placeholder="연락처" />
-          </CoverRow>
-          <CoverRow label="메    모" last>
-            <EditableField value={estimate.memo ?? ''} onChange={v => onUpdate('memo', v)} placeholder="특이사항" />
-          </CoverRow>
+      {/* 좌측: 방수명가 로고 + 기본정보 / 우측: 공급자 정보 */}
+      <div className="mb-6 flex gap-6">
+        {/* 좌측 블록 */}
+        <div className="w-[40%]">
+          {/* 방수명가 로고 */}
+          <div data-testid="cover-logo" className="mb-3 flex items-center gap-1">
+            <span className="text-xl font-extrabold tracking-tight text-gray-900">방수명가</span>
+            <span className="inline-flex items-center rounded-sm bg-[#c83030] px-1 py-0.5 text-[8px] font-bold text-white leading-none">
+              防水
+            </span>
+          </div>
+
+          {/* 기본정보 테이블 */}
+          <div className="border border-gray-800">
+            <CoverRow label="관리번호" value={estimate.mgmt_no ?? ''} />
+            <CoverRow label="견 적 일" value={estimate.date} />
+            <CoverRow label="주 소">
+              <EditableField value={estimate.site_name ?? ''} onChange={v => onUpdate('site_name', v)} placeholder="현장 주소" />
+            </CoverRow>
+            <CoverRow label="공 사 명" value="방수공사" last />
+          </div>
         </div>
 
         {/* 우측: 공급자 */}
         <div className="flex-1">
           <div className="mb-1 text-xs font-semibold text-gray-500">공급자</div>
           <div className="border border-gray-800">
-            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+            <div className="grid grid-cols-[70px_1fr_80px_1fr_40px_auto] border-b border-gray-300">
               <Cell head>등록 번호</Cell>
               <Cell>{SUPPLIER.regNo}</Cell>
               <Cell head>상호(법인명)</Cell>
               <Cell>{SUPPLIER.company}</Cell>
+              <Cell head>성명</Cell>
+              <Cell>{SUPPLIER.ceo}</Cell>
             </div>
-            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+            <div className="grid grid-cols-[70px_1fr_70px_1fr] border-b border-gray-300">
               <Cell head>업 태</Cell>
               <Cell>{SUPPLIER.bizType}</Cell>
               <Cell head>종 목</Cell>
               <Cell>{SUPPLIER.bizItem}</Cell>
             </div>
-            <div className="grid grid-cols-[auto_1fr_auto_1fr] border-b border-gray-400">
+            <div className="grid grid-cols-[70px_1fr_70px_1fr] border-b border-gray-300">
               <Cell head>전화번호</Cell>
               <Cell>{SUPPLIER.phone}</Cell>
               <Cell head>FAX</Cell>
               <Cell>{SUPPLIER.fax}</Cell>
             </div>
-            <div className="grid grid-cols-[auto_1fr]">
+            <div className="grid grid-cols-[70px_1fr]">
               <Cell head>사업장 주소</Cell>
               <Cell>{SUPPLIER.address}</Cell>
             </div>
           </div>
-          <div className="mt-1 text-right text-xs text-gray-500">
-            성명: {SUPPLIER.ceo}
-          </div>
         </div>
       </div>
 
-      {/* 공사금액 */}
-      <div className="mb-4 flex items-center gap-4">
-        <div className="rounded bg-gray-900 px-3 py-1.5 text-center text-xs font-semibold text-white leading-tight">
+      {/* 공사금액 — 검은 뱃지 + 일금 */}
+      <div data-testid="cover-amount" className="mb-6 flex items-center gap-4">
+        <div className="rounded bg-[#121212] px-4 py-2 text-center text-xs font-bold text-white leading-tight">
           공사금액<br />(부가세 별도)
         </div>
         <div className="text-xl font-bold tracking-tight">
@@ -109,48 +100,48 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
         </div>
       </div>
 
-      {/* 1행 요약 테이블 */}
-      <div className="mb-4 overflow-hidden rounded border border-gray-800">
+      {/* 품명 테이블 — 검은 헤더 */}
+      <div data-testid="cover-table" className="mb-6 border border-gray-800">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-gray-900 text-white">
-              <th className="border-r border-gray-600 px-3 py-2">품 명</th>
-              <th className="border-r border-gray-600 px-3 py-2">규 격</th>
-              <th className="border-r border-gray-600 px-3 py-2">수 량</th>
-              <th className="border-r border-gray-600 px-3 py-2">단 가</th>
-              <th className="border-r border-gray-600 px-3 py-2">금 액</th>
-              <th className="px-3 py-2">비 고</th>
+            <tr className="bg-[#121212] text-white">
+              <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">품 명</th>
+              <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">규 격</th>
+              <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">수 량</th>
+              <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">단 가</th>
+              <th className="border-r border-gray-600 px-3 py-2 text-center font-semibold">금 액</th>
+              <th className="px-3 py-2 text-center font-semibold">비 고</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b">
+            <tr className="border-b border-gray-200">
               <td className="px-3 py-2">
-                {sheet.type === '복합' ? '복합방수' : '우레탄방수'}
+                {sheet.title ?? (sheet.type === '복합' ? '복합방수' : '우레탄방수')}
               </td>
               <td className="px-3 py-2 text-center">식</td>
               <td className="px-3 py-2 text-center">1</td>
               <td className="px-3 py-2 text-right" />
-              <td className="px-3 py-2 text-right tabular-nums">{fm(calcResult.totalBeforeRound)}</td>
+              <td className="px-3 py-2 text-right tabular-nums font-medium">{fm(calcResult.totalBeforeRound)}</td>
               <td className="px-3 py-2" />
             </tr>
             {/* 빈 행 */}
-            <tr className="border-b"><td colSpan={6} className="h-6" /></tr>
-            <tr className="border-b"><td colSpan={6} className="h-6" /></tr>
+            <tr className="border-b border-gray-200"><td colSpan={6} className="h-7" /></tr>
+            <tr className="border-b border-gray-200"><td colSpan={6} className="h-7" /></tr>
             {/* 합계 */}
             <tr className="font-semibold">
-              <td className="px-3 py-2">합 계</td>
+              <td className="px-3 py-2 text-center">합 계</td>
               <td colSpan={3} />
-              <td className="px-3 py-2 text-right tabular-nums">{fm(grandTotal)}</td>
+              <td className="px-3 py-2 text-right tabular-nums font-bold">{fm(grandTotal)}</td>
               <td className="px-3 py-2 text-xs text-gray-500">(단수정리)</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* 특기사항 */}
-      <div className="mb-6">
-        <span className="font-semibold text-brand">특기사항</span>
-        <div className="mt-1 space-y-0.5 text-xs text-gray-700">
+      {/* 특기사항 — 빨간 라벨 */}
+      <div data-testid="cover-notes" className="mb-8">
+        <span className="font-bold text-[#a11d1f]">특기사항</span>
+        <div className="mt-2 space-y-1 text-xs text-gray-800">
           <p>1. 하자보수기간 {sheet.warranty_years}년 (하자이행증권 {sheet.warranty_bond}년)</p>
           <p>2. 견적서 제출 30일 유효</p>
           <p className="text-[11px] text-gray-500">* 부가가치세별도</p>
@@ -158,10 +149,10 @@ export default function CoverSheet({ estimate, sheet, onUpdate }: CoverSheetProp
       </div>
 
       {/* Brand Collaborations */}
-      <div className="flex items-center justify-center gap-3 border-t pt-3">
-        <span className="text-[10px] text-gray-300">Brand Collaborations</span>
+      <div data-testid="cover-brands" className="flex items-center justify-center gap-3 border-t border-gray-200 pt-4">
+        <span className="text-[10px] text-gray-300 tracking-wide">Brand Collaborations</span>
         {['SAMSUNG', 'RAEMIAN', '우정사업본부', '서울종로', '서울중구', 'GIMPO'].map(b => (
-          <span key={b} className="rounded border border-gray-200 px-2 py-1 text-[9px] text-gray-400">
+          <span key={b} className="rounded border border-gray-300 px-2.5 py-1.5 text-[9px] font-medium text-gray-400">
             {b}
           </span>
         ))}
@@ -184,8 +175,8 @@ function CoverRow({
   last?: boolean
 }) {
   return (
-    <div className={`grid grid-cols-[80px_1fr] ${!last ? 'border-b border-gray-400' : ''}`}>
-      <div className="bg-gray-900 px-2 py-1.5 text-center text-xs font-semibold text-white">
+    <div className={`grid grid-cols-[80px_1fr] ${!last ? 'border-b border-gray-300' : ''}`}>
+      <div className="bg-[#121212] px-2 py-1.5 text-center text-xs font-semibold text-white">
         {label}
       </div>
       <div className="px-3 py-1.5">
@@ -197,7 +188,7 @@ function CoverRow({
 
 function Cell({ head, children }: { head?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`px-2 py-1 text-xs ${head ? 'font-semibold text-gray-700 bg-gray-50 min-w-[70px]' : ''}`}>
+    <div className={`px-2 py-1.5 text-xs ${head ? 'bg-gray-50 font-semibold text-gray-700' : ''}`}>
       {children}
     </div>
   )
