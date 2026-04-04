@@ -21,6 +21,8 @@ const TYPE_COLOR_MAP: Record<string, string> = {
   방문: '#3B82F6',
   시공: '#10B981',
   미팅: '#8B5CF6',
+  하자: '#EF4444',
+  내부: '#9CA3AF',
   기타: '#6B7280',
 };
 
