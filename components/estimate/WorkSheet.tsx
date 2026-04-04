@@ -84,7 +84,7 @@ export default function WorkSheet({
 
       {/* 공사명 */}
       <div className="mb-3 flex items-center gap-2 border-b border-gray-900 pb-2">
-        <span className="bg-[#121212] px-3 py-1.5 text-xs font-semibold text-white">공 사 명</span>
+        <span className="bg-[#121212] px-3 py-1.5 text-sm font-semibold text-white">공 사 명</span>
         <span className="text-sm">
           {sheet.title ?? (sheet.type === '복합' ? '복합방수' : '우레탄방수')}
         </span>
@@ -165,29 +165,29 @@ export default function WorkSheet({
 
       {/* 공종 테이블 — Figma 가로형 */}
       <div className="overflow-x-auto rounded border border-gray-800">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-[12px]">
           <thead>
             {/* 대분류 헤더 */}
-            <tr className="bg-[#121212] text-white">
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-center w-8">#</th>
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[100px]">품 명</th>
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[80px]">규 격</th>
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-center w-10">단위</th>
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-14">수 량</th>
-              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center">재료비</th>
-              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center">노무비</th>
-              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center">경비</th>
-              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-20">금 액</th>
-              <th rowSpan={2} className="px-2 py-1.5 text-center w-14">비 고</th>
+            <tr className="bg-[#121212] text-white font-normal">
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-center w-8 font-normal">#</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[100px] font-normal">품 명</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-left min-w-[80px] font-normal">규 격</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-center w-10 font-normal">단위</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-14 font-normal">수 량</th>
+              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">재료비</th>
+              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">노무비</th>
+              <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">경비</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-20 font-normal">금 액</th>
+              <th rowSpan={2} className="px-2 py-1.5 text-center w-14 font-normal">비 고</th>
             </tr>
             {/* 소분류 헤더 */}
-            <tr className="bg-[#121212] text-white text-[10px]">
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-14">단 가</th>
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-18">금 액</th>
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-14">단 가</th>
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-18">금 액</th>
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-14">단 가</th>
-              <th className="border-r border-gray-600 px-1 py-1 text-right w-18">금 액</th>
+            <tr className="bg-[#121212] text-white text-[12px] font-normal">
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-14 font-normal">단 가</th>
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-18 font-normal">금 액</th>
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-14 font-normal">단 가</th>
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-18 font-normal">금 액</th>
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-14 font-normal">단 가</th>
+              <th className="border-r border-gray-600 px-1 py-1 text-right w-18 font-normal">금 액</th>
             </tr>
           </thead>
           <tbody>
@@ -328,8 +328,8 @@ export default function WorkSheet({
           <div className="flex items-center justify-between border-t border-gray-900 px-3 py-2">
             <span className="text-sm font-bold">합 계</span>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">(단수정리)</span>
-              <span className="text-base font-bold font-mono tabular-nums">{fm(calcResult.grandTotal)}</span>
+              <span className="text-[11px] text-gray-500">(단수정리)</span>
+              <span className="text-base font-semibold font-mono tabular-nums">{fm(calcResult.grandTotal)}</span>
             </div>
           </div>
         </div>
