@@ -43,13 +43,15 @@ export default function InitialGuide({ onCreateSheets }: InitialGuideProps) {
         ))}
       </div>
 
-      {/* CTA 버튼 */}
-      <button
-        onClick={onCreateSheets}
-        className="w-full rounded-xl bg-gradient-to-r from-brand to-brand-dark py-4 text-sm font-bold text-white shadow-elevated hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99]"
-      >
-        복합+우레탄 바로 생성
-      </button>
+      {/* CTA — 작은 텍스트 링크 */}
+      <div className="text-center">
+        <button
+          onClick={onCreateSheets}
+          className="text-sm text-brand hover:text-brand-dark hover:underline transition-colors"
+        >
+          복합+우레탄 템플릿으로 시작하기 &rarr;
+        </button>
+      </div>
 
       {/* 음성 조작 방법 — 접이식 */}
       <div className="mt-6">

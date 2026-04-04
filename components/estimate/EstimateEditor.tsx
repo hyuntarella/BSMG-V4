@@ -16,6 +16,7 @@ import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
 import InitialGuide from './InitialGuide'
 import SettingsPanel from './SettingsPanel'
+import LoadEstimateModal from './LoadEstimateModal'
 
 interface EstimateEditorProps {
   initialEstimate: Estimate
@@ -143,33 +144,33 @@ export default function EstimateEditor({
   const hasComplex = estimate.sheets.some((s) => s.type === '복합')
   const hasUrethane = estimate.sheets.some((s) => s.type === '우레탄')
 
-  const [moreOpen, setMoreOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [loadModalOpen, setLoadModalOpen] = useState(false)
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface pb-20">
+    <div data-testid="estimate-editor" className="flex min-h-screen flex-col bg-surface pb-20">
       {/* 헤더 */}
       <header className="sticky top-0 z-40 border-b border-brand-800/20 bg-brand-900 px-3 py-2.5 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 shrink-0">
-            <a href="/estimates" className="p-1 text-brand-300 hover:text-white transition-colors">&larr;</a>
+            {/* 햄버거 메뉴 */}
+            <button
+              data-testid="estimate-menu-button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="메뉴"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <h1 className="text-sm font-bold text-white">방수명가 견적서</h1>
             {estimate.mgmt_no && (
               <span className="hidden sm:inline text-xs text-brand-300">{estimate.mgmt_no}</span>
             )}
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="rounded-md p-1.5 text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
-              aria-label="설정"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-              </svg>
-            </button>
             {isDirty && <span className="ml-1 h-2 w-2 rounded-full bg-accent animate-pulse" title="변경됨" />}
           </div>
           <div className="flex items-center gap-2">
-            {/* 주요 액션 */}
             <button
               onClick={handleSave}
               disabled={saving || !estimate.id}
@@ -184,78 +185,64 @@ export default function EstimateEditor({
             >
               {downloading ? '생성 중...' : '엑셀'}
             </button>
-
-            {/* 시트 추가 버튼 — 시트 없을 때 직접 노출 */}
-            {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail') }} className="rounded-lg bg-blue-500/20 px-2.5 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-500/30 transition-colors">+ 복합</button>}
-            {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail') }} className="rounded-lg bg-purple-500/20 px-2.5 py-1.5 text-xs font-semibold text-purple-200 hover:bg-purple-500/30 transition-colors">+ 우레탄</button>}
-
-            {/* 더보기 드롭다운 */}
-            <div className="relative">
-              <button
-                onClick={() => setMoreOpen(!moreOpen)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-brand-300 hover:bg-white/10 hover:text-white transition-colors"
-                aria-label="더보기"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
-              </button>
-              {moreOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
-                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-xl bg-white py-1 shadow-elevated">
-                    <button
-                      onClick={() => { handlePdfDownload(); setMoreOpen(false) }}
-                      disabled={pdfDownloading || !estimate.id}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
-                    >
-                      <span className="text-brand">PDF</span> {pdfDownloading ? '생성 중...' : 'PDF 다운로드'}
-                    </button>
-                    <button
-                      onClick={() => { setEmailOpen(true); setMoreOpen(false) }}
-                      disabled={!estimate.id}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
-                    >
-                      이메일 발송
-                    </button>
-                    <button
-                      onClick={() => {
-                        const params = new URLSearchParams();
-                        if (estimate.site_name) params.set('address', estimate.site_name);
-                        if (estimate.manager_name) params.set('manager', estimate.manager_name);
-                        router.push(`/proposal${params.toString() ? '?' + params.toString() : ''}`);
-                        setMoreOpen(false)
-                      }}
-                      disabled={!estimate.id}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
-                    >
-                      제안서 작성
-                    </button>
-                    <hr className="my-1 border-surface-muted" />
-                    {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail'); setMoreOpen(false) }} className="flex w-full px-3 py-2 text-xs text-blue-600 hover:bg-surface-muted">+ 복합 시트</button>}
-                    {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail'); setMoreOpen(false) }} className="flex w-full px-3 py-2 text-xs text-purple-600 hover:bg-surface-muted">+ 우레탄 시트</button>}
-                    {activeSheetIndex >= 0 && (
-                      <button
-                        onClick={() => {
-                          const type = estimate.sheets[activeSheetIndex]?.type
-                          if (window.confirm(`${type} 시트를 삭제하시겠습니까?`)) {
-                            removeSheet(activeSheetIndex)
-                            setActiveTab('compare')
-                          }
-                          setMoreOpen(false)
-                        }}
-                        className="flex w-full px-3 py-2 text-xs text-red-500 hover:bg-surface-muted"
-                      >시트 삭제</button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </header>
+
+      {/* 햄버거 사이드 패널 */}
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setMenuOpen(false)} />
+          <div data-testid="estimate-menu-panel" className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-white shadow-elevated flex flex-col">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <span className="text-sm font-bold text-ink">견적서 메뉴</span>
+              <button onClick={() => setMenuOpen(false)} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              <button onClick={() => { setLoadModalOpen(true); setMenuOpen(false) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                불러오기
+              </button>
+              <button onClick={() => { handleSave(); setMenuOpen(false) }} disabled={saving || !estimate.id} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted disabled:opacity-40">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                {saving ? '저장 중...' : '저장'}
+              </button>
+              <button onClick={() => { handleDownload(); setMenuOpen(false) }} disabled={downloading || !estimate.id} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted disabled:opacity-40">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                엑셀 다운로드
+              </button>
+              <button onClick={() => { handlePdfDownload(); setMenuOpen(false) }} disabled={pdfDownloading || !estimate.id} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted disabled:opacity-40">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                PDF 다운로드
+              </button>
+              <button onClick={() => { setEmailOpen(true); setMenuOpen(false) }} disabled={!estimate.id} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted disabled:opacity-40">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                이메일 발송
+              </button>
+              <button onClick={() => { const params = new URLSearchParams(); if (estimate.site_name) params.set('address', estimate.site_name); if (estimate.manager_name) params.set('manager', estimate.manager_name); router.push(`/proposal${params.toString() ? '?' + params.toString() : ''}`); setMenuOpen(false) }} disabled={!estimate.id} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted disabled:opacity-40">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                제안서 작성
+              </button>
+              <hr className="my-2 border-surface-muted" />
+              <p className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">시트 관리</p>
+              {!hasComplex && <button onClick={() => { addSheet('복합'); setActiveTab('complex-detail'); setMenuOpen(false) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-surface-muted">+ 복합 시트</button>}
+              {!hasUrethane && <button onClick={() => { addSheet('우레탄'); setActiveTab('urethane-detail'); setMenuOpen(false) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-purple-600 hover:bg-surface-muted">+ 우레탄 시트</button>}
+              {activeSheetIndex >= 0 && (
+                <button onClick={() => { const type = estimate.sheets[activeSheetIndex]?.type; if (window.confirm(`${type} 시트를 삭제하시겠습니까?`)) { removeSheet(activeSheetIndex); setActiveTab('compare') } setMenuOpen(false) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-surface-muted">현재 시트 삭제</button>
+              )}
+              <hr className="my-2 border-surface-muted" />
+              <button onClick={() => { setSettingsOpen(true); setMenuOpen(false) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted">
+                <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                설정
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 탭 */}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} hasComplex={hasComplex} hasUrethane={hasUrethane} />
@@ -318,6 +305,7 @@ export default function EstimateEditor({
         commandHistory={commandHistory}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <LoadEstimateModal isOpen={loadModalOpen} onClose={() => setLoadModalOpen(false)} />
     </div>
   )
 }
