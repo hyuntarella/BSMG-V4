@@ -177,6 +177,7 @@ export default function WorkSheet({
               <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">재료비</th>
               <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">노무비</th>
               <th colSpan={2} className="border-r border-gray-600 px-2 py-1 text-center font-normal">경비</th>
+              <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-16 font-normal">단가합</th>
               <th rowSpan={2} className="border-r border-gray-600 px-2 py-1.5 text-right w-20 font-normal">금 액</th>
               <th rowSpan={2} className="px-2 py-1.5 text-center w-14 font-normal">비 고</th>
             </tr>
@@ -276,6 +277,8 @@ export default function WorkSheet({
                   )}
                 </td>
                 <td className={`px-1 py-2.5 text-right tabular-nums text-gray-600 transition-colors ${hlClass('exp')}`}>{fm(item.exp_amount)}</td>
+                {/* 단가합 */}
+                <td className="px-1 py-2.5 text-right font-mono tabular-nums text-gray-700">{fm((item.mat ?? 0) + (item.labor ?? 0) + (item.exp ?? 0))}</td>
                 {/* 합계 금액 */}
                 <td className="px-1 py-2.5 text-right font-semibold font-mono tabular-nums">{fm(item.total)}</td>
                 <td className="px-1 py-2.5 text-center">
@@ -312,30 +315,6 @@ export default function WorkSheet({
               </tr>
               )
             })}
-            {/* 단가합 행 */}
-            {(() => {
-              const sumMat = sheet.items.reduce((s, it) => s + (it.mat ?? 0), 0)
-              const sumMatAmt = sheet.items.reduce((s, it) => s + (it.mat_amount ?? 0), 0)
-              const sumLabor = sheet.items.reduce((s, it) => s + (it.labor ?? 0), 0)
-              const sumLaborAmt = sheet.items.reduce((s, it) => s + (it.labor_amount ?? 0), 0)
-              const sumExp = sheet.items.reduce((s, it) => s + (it.exp ?? 0), 0)
-              const sumExpAmt = sheet.items.reduce((s, it) => s + (it.exp_amount ?? 0), 0)
-              const sumTotal = sheet.items.reduce((s, it) => s + (it.total ?? 0), 0)
-              return (
-                <tr className="border-t-2 border-gray-900 bg-gray-100 font-semibold">
-                  <td className="px-2 py-2 text-center" />
-                  <td className="px-2 py-2 text-left" colSpan={4}>단가합</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumMat)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumMatAmt)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumLabor)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumLaborAmt)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumExp)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumExpAmt)}</td>
-                  <td className="px-1 py-2 text-right font-mono tabular-nums font-bold">{fm(sumTotal)}</td>
-                  <td />
-                </tr>
-              )
-            })()}
           </tbody>
         </table>
 
