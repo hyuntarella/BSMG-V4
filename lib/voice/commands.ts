@@ -129,6 +129,23 @@ function updateItem(items: EstimateItem[], cmd: VoiceCommand): CommandResult {
   }
 
   const item = { ...items[idx] }
+
+  // 식 항목 (장비 제외): 단가 비움, 금액에 직접 입력
+  const isShikItem = item.unit === '식' && !item.is_equipment
+  if (isShikItem && (cmd.field === 'mat' || cmd.field === 'labor' || cmd.field === 'exp')) {
+    const amountField = `${cmd.field}_amount` as keyof EstimateItem
+    const value = cmd.delta !== undefined
+      ? (item[amountField] as number) + cmd.delta
+      : (cmd.value ?? 0)
+    ;(item[amountField] as number) = value
+    // 단가는 0, 수량은 1 고정
+    ;(item[cmd.field as 'mat' | 'labor' | 'exp'] as number) = 0
+    item.qty = 1
+    item.total = (item.mat_amount ?? 0) + (item.labor_amount ?? 0) + (item.exp_amount ?? 0)
+    items[idx] = item
+    return { success: true, message: `${cmd.target} ${cmd.field} 수정`, updatedItems: items }
+  }
+
   const field = cmd.field as keyof Pick<EstimateItem, 'mat' | 'labor' | 'exp' | 'qty'>
 
   if (!(field in item)) {

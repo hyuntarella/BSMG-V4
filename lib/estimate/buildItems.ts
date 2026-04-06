@@ -47,7 +47,15 @@ export function buildItems(input: BuildItemsInput): {
     } else if (b.isWall) {
       qty = wallM2
     } else if (b.isArea) {
-      qty = m2
+      // 하도 프라이머, 우레탄 상도: 면적 + 벽체면적
+      if (b.name === '하도 프라이머' || b.name === '우레탄 상도') {
+        qty = m2 + wallM2
+      } else {
+        qty = m2
+      }
+    } else if (b.unit === '식') {
+      // 식 항목: 수량 고정 1
+      qty = 1
     }
 
     // 장비류에 P매트릭스 단가가 0이면 기본 단가 사용
@@ -57,9 +65,11 @@ export function buildItems(input: BuildItemsInput): {
       else if (b.name === '폐기물처리') finalLabor = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
     }
 
-    const matAmount = Math.round(qty * mat)
-    const laborAmount = Math.round(qty * finalLabor)
-    const expAmount = Math.round(qty * exp)
+    // 식 항목 (장비 제외): 단가 비움, 금액에 직접 (P매트릭스 값 = 금액)
+    const isShikItem = b.unit === '식' && !b.isEquipment
+    const matAmount = isShikItem ? mat : Math.round(qty * mat)
+    const laborAmount = isShikItem ? finalLabor : Math.round(qty * finalLabor)
+    const expAmount = isShikItem ? exp : Math.round(qty * exp)
 
     return {
       sort_order: i + 1,
@@ -67,9 +77,9 @@ export function buildItems(input: BuildItemsInput): {
       spec: b.spec,
       unit: b.unit,
       qty,
-      mat,
-      labor: finalLabor,
-      exp,
+      mat: isShikItem ? 0 : mat,
+      labor: isShikItem ? 0 : finalLabor,
+      exp: isShikItem ? 0 : exp,
       mat_amount: matAmount,
       labor_amount: laborAmount,
       exp_amount: expAmount,
