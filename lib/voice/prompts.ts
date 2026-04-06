@@ -127,7 +127,8 @@ ${recentCommands}${correctionSection}${itemsSection}
 
 가능한 action:
 - update_item: 공종 필드 수정 {target, field, value 또는 delta, confidence}
-- add_item: 공종 추가 {name, spec?, unit, qty?, mat?, labor?, exp?, confidence}
+- add_item: 공종 추가 {name, spec?, unit, qty?, mat?, labor?, exp?, position?, confidence}
+  ★ 금액이 함께 언급되면 반드시 mat/labor/exp에 포함! "폐기물처리 식1 재료비20만 노무비10만 경비25만 추가" → {name:"폐기물처리", unit:"식", qty:1, mat:200000, labor:100000, exp:250000}
 - remove_item: 공종 삭제 {target, confidence}
 - bulk_adjust: 일괄 비율 {category: "mat"|"labor"|"exp"|"all", percent, confidence}
 - set_grand_total: 총액 역산 {value, confidence}

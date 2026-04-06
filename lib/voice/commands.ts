@@ -26,6 +26,10 @@ export interface VoiceCommand {
   snapshotIndex?: number
   /** 마진율 (%) */
   marginPercent?: number
+  /** add_item 시 금액 */
+  mat?: number
+  labor?: number
+  exp?: number
   confidence: number
 }
 
@@ -167,25 +171,45 @@ function addItem(items: EstimateItem[], cmd: VoiceCommand): CommandResult {
     return { success: false, message: '추가할 공종명이 필요합니다' }
   }
 
-  const newItem = recalcItem({
+  const unit = cmd.unit ?? 'm²'
+  const qty = cmd.qty ?? (unit === '식' ? 1 : 0)
+  const isShikItem = unit === '식'
+  const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
+  const isEquipment = equipmentNames.some(eq => (cmd.name ?? '').includes(eq))
+
+  // 식 항목: mat/labor/exp → 금액에 직접, 단가 비움
+  const matVal = cmd.mat ?? 0
+  const laborVal = cmd.labor ?? 0
+  const expVal = cmd.exp ?? 0
+
+  const newItem: EstimateItem = {
     sort_order: items.length + 1,
     name: cmd.name,
     spec: cmd.spec ?? '',
-    unit: cmd.unit ?? 'm²',
-    qty: cmd.qty ?? 0,
-    mat: 0,
-    labor: 0,
-    exp: 0,
-    mat_amount: 0,
-    labor_amount: 0,
-    exp_amount: 0,
+    unit,
+    qty,
+    mat: (isShikItem && !isEquipment) ? 0 : matVal,
+    labor: (isShikItem && !isEquipment) ? 0 : laborVal,
+    exp: (isShikItem && !isEquipment) ? 0 : expVal,
+    mat_amount: (isShikItem && !isEquipment) ? matVal : Math.round(qty * matVal),
+    labor_amount: (isShikItem && !isEquipment) ? laborVal : Math.round(qty * laborVal),
+    exp_amount: (isShikItem && !isEquipment) ? expVal : Math.round(qty * expVal),
     total: 0,
     is_base: false,
-    is_equipment: false,
-    is_fixed_qty: false,
-  })
+    is_equipment: isEquipment,
+    is_fixed_qty: isEquipment,
+  }
+  newItem.total = newItem.mat_amount + newItem.labor_amount + newItem.exp_amount
 
-  items.push(newItem)
+  // 위치 지정
+  if (cmd.position !== undefined) {
+    const pos = cmd.position === -1 ? items.length : Math.max(0, cmd.position - 1)
+    items.splice(pos, 0, newItem)
+    // sort_order 재정렬
+    items.forEach((it, i) => { it.sort_order = i + 1 })
+  } else {
+    items.push(newItem)
+  }
   return { success: true, message: `${cmd.name} 추가`, updatedItems: items }
 }
 
