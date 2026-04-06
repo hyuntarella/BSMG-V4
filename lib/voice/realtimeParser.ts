@@ -770,17 +770,20 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
   }
 
   // ── 다중 숫자 패턴: "[공종명] [숫자] [숫자] [숫자]" ──
-  // 1개=재, 2개=재+노, 3개=재+노+경
+  // 1개=���, 2개=재+노, 3개=재+노+경
+  // 단, 필드명(재료비/노무비/경비)이 포함되어 있으면 이 패턴 스킵 → LLM으로
   {
+    const hasExplicitField = /재료비|재료|자재|노무비|노��|인건비|경비/.test(trimmed)
+    if (!hasExplicitField) {
     const words = trimmed.split(/\s+/)
-    // 공종명을 앞에서부터 매칭 (공백 제거 + 공백 포함 둘 다)
+    // 공종명을 앞에���부터 매칭 (공백 제거 + 공백 포함 둘 다)
     for (let i = 0; i < Math.min(words.length, 3); i++) {
       const candidateNoSpace = words.slice(0, i + 1).join('')
       const candidateWithSpace = words.slice(0, i + 1).join(' ')
       const itemName = matchItemName(candidateWithSpace, sheetItems) ?? matchItemName(candidateNoSpace, sheetItems)
       if (itemName) {
         const rest = words.slice(i + 1)
-        // 나머지에서 숫자만 추출
+        // 나머지에��� 숫자만 추출
         const numbers: number[] = []
         for (const w of rest) {
           const val = parseKoreanNumber(w, true)
@@ -829,6 +832,7 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
         break
       }
     }
+    } // hasExplicitField guard
   }
 
   // ── 매칭 실패 → LLM 필요 ──
