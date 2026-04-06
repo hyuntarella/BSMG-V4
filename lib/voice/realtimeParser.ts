@@ -148,7 +148,16 @@ const ADD_TRIGGER = /(추가|추가해|추가해줘)$/
 
 // ── 위치 패턴 ──
 
-/** "N번에", "N번째에", "맨 위에", "맨 아래에" 등에서 위치를 추출하고 제거한 텍스트를 반환 */
+/** 한국어 숫자 → 아라비아 숫자 (위치 전용) */
+const KR_NUM_MAP: Record<string, number> = {
+  '일': 1, '이': 2, '삼': 3, '사': 4, '오': 5,
+  '육': 6, '칠': 7, '팔': 8, '구': 9, '십': 10,
+  '하나': 1, '둘': 2, '셋': 3, '넷': 4, '다섯': 5,
+  '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9, '열': 10,
+  '한': 1, '두': 2, '세': 3, '네': 4,
+}
+
+/** "N번에", "N번째에", "맨 위에", "맨 아래에", "구번에" 등에서 위치를 추출하고 제거한 텍스트를 반환 */
 export function extractPosition(text: string): { position: number | null; cleaned: string } {
   // "맨 위에" / "맨 위" → position 1
   const topMatch = text.match(/맨\s*위(에)?\s*/)
@@ -162,10 +171,20 @@ export function extractPosition(text: string): { position: number | null; cleane
     return { position: -1, cleaned: text.replace(bottomMatch[0], '').trim() }
   }
 
-  // "N번째에" / "N번째" / "N번에" / "N번"
+  // 아라비아 숫자: "N번째에" / "N번째" / "N번에" / "N번"
   const posMatch = text.match(/(\d+)\s*번(째)?(에)?\s*/)
   if (posMatch) {
     return { position: parseInt(posMatch[1]), cleaned: text.replace(posMatch[0], '').trim() }
+  }
+
+  // 한국어 숫자: "구번에", "열번째" 등
+  const krKeys = Object.keys(KR_NUM_MAP).join('|')
+  const krPosMatch = text.match(new RegExp(`(${krKeys})\\s*번(째)?(에)?\\s*`))
+  if (krPosMatch) {
+    const num = KR_NUM_MAP[krPosMatch[1]]
+    if (num !== undefined) {
+      return { position: num, cleaned: text.replace(krPosMatch[0], '').trim() }
+    }
   }
 
   return { position: null, cleaned: text }
@@ -326,8 +345,12 @@ export function inferField(
     return { field: 'mat', confidence: 'high' }
   }
 
-  // Priority 4: value range
-  if (value !== null) {
+  // Priority 4: value range — 장비류는 항상 exp
+  if (value !== null && itemName) {
+    const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
+    if (equipmentNames.some(eq => itemName.includes(eq))) {
+      return { field: 'exp', confidence: 'low' }
+    }
     if (value >= 100000) return { field: 'labor', confidence: 'low' }
     if (value >= 100 && value <= 10000) return { field: 'mat', confidence: 'low' }
   }
@@ -344,11 +367,11 @@ export function inferField(
     }
   }
 
-  // Priority 6: category default
+  // Priority 6: category default — 장비류는 경비(exp), 일반은 재료비(mat)
   if (itemName) {
     const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
     if (equipmentNames.some(eq => itemName.includes(eq))) {
-      return { field: 'labor', confidence: 'low' }
+      return { field: 'exp', confidence: 'low' }
     }
     return { field: 'mat', confidence: 'low' }
   }
@@ -765,15 +788,35 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
         }
         if (numbers.length >= 2) {
           const commands: VoiceCommand[] = []
-          const fields = ['mat', 'labor', 'exp']
-          for (let j = 0; j < Math.min(numbers.length, 3); j++) {
+          // 장비류: 경비단가 + 수량(일수) / 일반: 재료비→노무비→경비
+          const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
+          const isEquipment = equipmentNames.some(eq => itemName.includes(eq))
+          if (isEquipment) {
             commands.push({
               action: 'update_item',
               target: itemName,
-              field: fields[j],
-              value: numbers[j],
-              confidence: 0.90,
+              field: 'exp',
+              value: numbers[0],
+              confidence: 0.92,
             })
+            commands.push({
+              action: 'update_item',
+              target: itemName,
+              field: 'qty',
+              value: numbers[1],
+              confidence: 0.92,
+            })
+          } else {
+            const fields = ['mat', 'labor', 'exp']
+            for (let j = 0; j < Math.min(numbers.length, 3); j++) {
+              commands.push({
+                action: 'update_item',
+                target: itemName,
+                field: fields[j],
+                value: numbers[j],
+                confidence: 0.90,
+              })
+            }
           }
           return {
             success: true,

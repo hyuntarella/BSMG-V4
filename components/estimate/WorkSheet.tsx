@@ -312,6 +312,30 @@ export default function WorkSheet({
               </tr>
               )
             })}
+            {/* 단가합 행 */}
+            {(() => {
+              const sumMat = sheet.items.reduce((s, it) => s + (it.mat ?? 0), 0)
+              const sumMatAmt = sheet.items.reduce((s, it) => s + (it.mat_amount ?? 0), 0)
+              const sumLabor = sheet.items.reduce((s, it) => s + (it.labor ?? 0), 0)
+              const sumLaborAmt = sheet.items.reduce((s, it) => s + (it.labor_amount ?? 0), 0)
+              const sumExp = sheet.items.reduce((s, it) => s + (it.exp ?? 0), 0)
+              const sumExpAmt = sheet.items.reduce((s, it) => s + (it.exp_amount ?? 0), 0)
+              const sumTotal = sheet.items.reduce((s, it) => s + (it.total ?? 0), 0)
+              return (
+                <tr className="border-t-2 border-gray-900 bg-gray-100 font-semibold">
+                  <td className="px-2 py-2 text-center" />
+                  <td className="px-2 py-2 text-left" colSpan={4}>단가합</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumMat)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumMatAmt)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumLabor)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumLaborAmt)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumExp)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums">{fm(sumExpAmt)}</td>
+                  <td className="px-1 py-2 text-right font-mono tabular-nums font-bold">{fm(sumTotal)}</td>
+                  <td />
+                </tr>
+              )
+            })()}
           </tbody>
         </table>
 

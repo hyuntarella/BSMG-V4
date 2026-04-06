@@ -5,6 +5,8 @@ import { useState } from 'react'
 interface InitialGuideProps {
   onCreateSheets: () => void
   onMicClick?: () => void
+  interimPreview?: string
+  isRecording?: boolean
 }
 
 const GUIDE_ITEMS = [
@@ -14,7 +16,7 @@ const GUIDE_ITEMS = [
   { num: '4', label: '우레탄 평단가', example: '"3만" 또는 마진 기반' },
 ]
 
-export default function InitialGuide({ onCreateSheets, onMicClick }: InitialGuideProps) {
+export default function InitialGuide({ onCreateSheets, onMicClick, interimPreview, isRecording }: InitialGuideProps) {
   const [helpOpen, setHelpOpen] = useState(false)
 
   return (
@@ -35,6 +37,17 @@ export default function InitialGuide({ onCreateSheets, onMicClick }: InitialGuid
         </div>
         <h2 className="text-xl font-bold text-ink">음성으로 시작하세요</h2>
         <p className="mt-2 text-sm text-ink-secondary">아래 4가지 정보를 말해주시면 견적서가 자동 생성됩니다</p>
+
+        {/* 실시간 음성 인식 미리보기 */}
+        {isRecording && (
+          <div className="mt-4 w-full max-w-md rounded-xl bg-brand/5 border border-brand/20 px-4 py-3 min-h-[48px]">
+            {interimPreview ? (
+              <p className="text-sm text-ink leading-relaxed">{interimPreview}</p>
+            ) : (
+              <p className="text-sm text-ink-muted animate-pulse">듣고 있습니다...</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 4단계 카드 */}

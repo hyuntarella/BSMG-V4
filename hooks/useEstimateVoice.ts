@@ -431,7 +431,13 @@ export function useEstimateVoice({
 
   // ── Layer 1: Web Speech API interim result 처리 (실시간 피드백) ──
   const handleInterim = useCallback((text: string) => {
-    if (estimateRef.current.sheets.length === 0) return // 최초 모드에서는 무시
+    // 최초 모드: 축적 텍스트 미리보기만 표시
+    if (estimateRef.current.sheets.length === 0) {
+      const accumulated = accumulatedTextRef.current.join(' ')
+      const preview = accumulated ? `${accumulated} ${text}` : text
+      setBufferHint(preview)
+      return
+    }
 
     // 빠른 교정 루프: "아니" 계열 감지
     const correction = detectCorrection(text)
@@ -479,7 +485,15 @@ export function useEstimateVoice({
 
   // ── Layer 1: 종결 어미 감지 시 규칙 파서로 즉시 실행 ──
   const handleEndingDetected = useCallback((interimText: string) => {
-    if (estimateRef.current.sheets.length === 0) return // 최초 모드 제외
+    // 최초 모드: 종결 어미가 감지되면 축적 텍스트에 추가 (파서 실행 없음)
+    if (estimateRef.current.sheets.length === 0) {
+      if (interimText.trim()) {
+        accumulatedTextRef.current.push(interimText.trim())
+        const preview = accumulatedTextRef.current.join(' ')
+        setBufferHint(preview)
+      }
+      return
+    }
 
     // 실시간 하이라이트 초기화
     setRealtimeHighlight({})
@@ -834,6 +848,7 @@ export function useEstimateVoice({
   // ── 녹음 종료 시 미처리 축적 텍스트 처리 ──
   const stopRecording = useCallback(() => {
     setRealtimeHighlight({})
+    setBufferHint('')
     if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
       const combined = accumulatedTextRef.current.join(' ')
       accumulatedTextRef.current = []
@@ -845,6 +860,15 @@ export function useEstimateVoice({
     voiceHook.stopRecording()
   }, [voiceHook])
 
+  // ── 토글 (커스텀 stop 경유) ──
+  const toggleRecording = useCallback(() => {
+    if (voiceHook.status === 'recording') {
+      stopRecording()
+    } else if (voiceHook.status === 'idle') {
+      startRecording()
+    }
+  }, [voiceHook.status, stopRecording, startRecording])
+
   return {
     voice: {
       status: voiceHook.status,
@@ -853,7 +877,7 @@ export function useEstimateVoice({
       interimText: voiceHook.interimText,
       audioLevel: voiceHook.audioLevel,
       processingCount: voiceHook.processingCount,
-      toggleRecording: voiceHook.toggleRecording,
+      toggleRecording,
       startRecording,
       stopRecording,
     },
