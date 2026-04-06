@@ -640,12 +640,15 @@ export function useEstimateVoice({
         accumulatedTextRef.current.push(processedText)
       }
 
+      console.log('[Voice] handleSegment initial mode — hadSkip:', hadSkip, 'hadTrigger:', hadTrigger, 'stopping:', stoppingRef.current, 'accumulated:', accumulatedTextRef.current.length)
+
       // 트리거 단어가 있거나, 녹음이 이미 중지된 상태면 즉시 LLM 호출
       if (hadSkip || hadTrigger || stoppingRef.current) {
         const combined = accumulatedTextRef.current.join(' ')
         accumulatedTextRef.current = []
         stoppingRef.current = false
         if (combined.trim()) {
+          console.log('[Voice] handleSegment → sendToExtractLlm:', combined)
           callbacksRef.current.addLog('user', combined)
           sendToExtractLlmRef.current(combined)
         }
@@ -853,6 +856,7 @@ export function useEstimateVoice({
 
   // ── 녹음 종료 시 미처리 축적 텍스트 처리 ──
   const stopRecording = useCallback(() => {
+    console.log('[Voice] stopRecording called, sheets:', estimateRef.current.sheets.length, 'accumulated:', accumulatedTextRef.current.length, 'texts:', JSON.stringify(accumulatedTextRef.current))
     setRealtimeHighlight({})
     setBufferHint('')
 
@@ -862,11 +866,13 @@ export function useEstimateVoice({
         const combined = accumulatedTextRef.current.join(' ')
         accumulatedTextRef.current = []
         if (combined.trim()) {
+          console.log('[Voice] stopRecording → sendToExtractLlm:', combined)
           callbacksRef.current.addLog('user', combined)
           sendToExtractLlmRef.current(combined)
         }
       } else {
         // 아직 Whisper 세그먼트가 안 왔을 수 있음 → 플래그 설정
+        console.log('[Voice] stopRecording → stoppingRef = true (waiting for last segment)')
         stoppingRef.current = true
       }
     }
@@ -875,10 +881,13 @@ export function useEstimateVoice({
 
   // ── 토글 (커스텀 stop 경유) ──
   const toggleRecording = useCallback(() => {
+    console.log('[Voice] toggleRecording called, status:', voiceHook.status)
     if (voiceHook.status === 'recording') {
       stopRecording()
     } else if (voiceHook.status === 'idle') {
       startRecording()
+    } else {
+      console.log('[Voice] toggleRecording skipped — status is', voiceHook.status)
     }
   }, [voiceHook.status, stopRecording, startRecording])
 
