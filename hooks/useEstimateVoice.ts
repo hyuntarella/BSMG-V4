@@ -133,6 +133,9 @@ export function useEstimateVoice({
   // ── 빠른 교정 루프: 마지막 실행 명령 추적 ──
   const lastExecutedCommandRef = useRef<VoiceCommand | null>(null)
 
+  // ── 녹음 중지 요청 플래그 (Whisper 비동기 완료 대기) ──
+  const stoppingRef = useRef(false)
+
   // ── 불완전 명령 버퍼 (Step 4) ──
   const pendingBufferRef = useRef<string>('')
   const bufferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -637,9 +640,11 @@ export function useEstimateVoice({
         accumulatedTextRef.current.push(processedText)
       }
 
-      if (hadSkip || hadTrigger) {
+      // 트리거 단어가 있거나, 녹음이 이미 중지된 상태면 즉시 LLM 호출
+      if (hadSkip || hadTrigger || stoppingRef.current) {
         const combined = accumulatedTextRef.current.join(' ')
         accumulatedTextRef.current = []
+        stoppingRef.current = false
         if (combined.trim()) {
           callbacksRef.current.addLog('user', combined)
           sendToExtractLlmRef.current(combined)
@@ -841,6 +846,7 @@ export function useEstimateVoice({
   // ── 녹음 시작 시 축적 텍스트 초기화 ──
   const startRecording = useCallback(async () => {
     accumulatedTextRef.current = []
+    stoppingRef.current = false
     setRealtimeHighlight({})
     voiceHook.startRecording()
   }, [voiceHook])
@@ -849,12 +855,19 @@ export function useEstimateVoice({
   const stopRecording = useCallback(() => {
     setRealtimeHighlight({})
     setBufferHint('')
-    if (estimateRef.current.sheets.length === 0 && accumulatedTextRef.current.length > 0) {
-      const combined = accumulatedTextRef.current.join(' ')
-      accumulatedTextRef.current = []
-      if (combined.trim()) {
-        callbacksRef.current.addLog('user', combined)
-        sendToExtractLlmRef.current(combined)
+
+    if (estimateRef.current.sheets.length === 0) {
+      // 이미 축적된 텍스트가 있으면 즉시 LLM 호출
+      if (accumulatedTextRef.current.length > 0) {
+        const combined = accumulatedTextRef.current.join(' ')
+        accumulatedTextRef.current = []
+        if (combined.trim()) {
+          callbacksRef.current.addLog('user', combined)
+          sendToExtractLlmRef.current(combined)
+        }
+      } else {
+        // 아직 Whisper 세그먼트가 안 왔을 수 있음 → 플래그 설정
+        stoppingRef.current = true
       }
     }
     voiceHook.stopRecording()
