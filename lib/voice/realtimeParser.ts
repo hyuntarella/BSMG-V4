@@ -769,21 +769,70 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
     }
   }
 
-  // ── 다중 숫자 패턴: "[공종명] [숫자] [숫자] [숫자]" ──
-  // 1개=���, 2개=재+노, 3개=재+노+경
-  // 단, 필드명(재료비/노무비/경비)이 포함되어 있으면 이 패턴 스킵 → LLM으로
+  // ── 필드명+숫자 쌍 패턴: "[공종명] [필드] [값] [필드] [값] ..." ──
+  // "바탕정리 재료비 500 노무비 1000" → [{mat:500}, {labor:1000}]
+  // "바탕정리 재료비 500" → [{mat:500}] (1개도 처리)
   {
-    const hasExplicitField = /재료비|재료|자재|노무비|노��|인건비|경비/.test(trimmed)
-    if (!hasExplicitField) {
+    const fieldPattern = /재료비|재료|자재|노무비|노무|인건비|경비/
+    if (fieldPattern.test(trimmed)) {
+      const words = trimmed.split(/\s+/)
+      let itemName: string | null = null
+      let restStartIdx = 0
+      for (let i = 0; i < Math.min(words.length, 3); i++) {
+        const candidateNoSpace = words.slice(0, i + 1).join('')
+        const candidateWithSpace = words.slice(0, i + 1).join(' ')
+        itemName = matchItemName(candidateWithSpace, sheetItems) ?? matchItemName(candidateNoSpace, sheetItems)
+        if (itemName) {
+          restStartIdx = i + 1
+          break
+        }
+      }
+      if (itemName) {
+        const rest = words.slice(restStartIdx)
+        const commands: VoiceCommand[] = []
+        let currentField: string | null = null
+        for (const w of rest) {
+          const field = matchField(w, itemName)
+          if (field) {
+            currentField = field
+            continue
+          }
+          if (currentField) {
+            const val = parseKoreanNumber(w, true)
+            if (val !== null) {
+              commands.push({
+                action: 'update_item',
+                target: itemName,
+                field: currentField,
+                value: val,
+                confidence: 0.95,
+              })
+              currentField = null
+            }
+          }
+        }
+        if (commands.length > 0) {
+          return {
+            success: true,
+            needsLlm: false,
+            commands,
+            command: commands[0],
+          }
+        }
+      }
+    }
+  }
+
+  // ── 다중 숫자 패턴: "[공종명] [숫자] [숫자] [숫자]" ──
+  // 필드명 없이 숫자만: 1개=재, 2개=재+노, 3개=재+노+경
+  {
     const words = trimmed.split(/\s+/)
-    // 공종명을 앞에���부터 매칭 (공백 제거 + 공백 포함 둘 다)
     for (let i = 0; i < Math.min(words.length, 3); i++) {
       const candidateNoSpace = words.slice(0, i + 1).join('')
       const candidateWithSpace = words.slice(0, i + 1).join(' ')
       const itemName = matchItemName(candidateWithSpace, sheetItems) ?? matchItemName(candidateNoSpace, sheetItems)
       if (itemName) {
         const rest = words.slice(i + 1)
-        // 나머지에��� 숫자만 추출
         const numbers: number[] = []
         for (const w of rest) {
           const val = parseKoreanNumber(w, true)
@@ -791,48 +840,22 @@ export function parseCommand(text: string, sheetItems?: string[], context?: Pars
         }
         if (numbers.length >= 2) {
           const commands: VoiceCommand[] = []
-          // 장비류: 경비단가 + 수량(일수) / 일반: 재료비→노무비→경비
           const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
           const isEquipment = equipmentNames.some(eq => itemName.includes(eq))
           if (isEquipment) {
-            commands.push({
-              action: 'update_item',
-              target: itemName,
-              field: 'exp',
-              value: numbers[0],
-              confidence: 0.92,
-            })
-            commands.push({
-              action: 'update_item',
-              target: itemName,
-              field: 'qty',
-              value: numbers[1],
-              confidence: 0.92,
-            })
+            commands.push({ action: 'update_item', target: itemName, field: 'exp', value: numbers[0], confidence: 0.92 })
+            commands.push({ action: 'update_item', target: itemName, field: 'qty', value: numbers[1], confidence: 0.92 })
           } else {
             const fields = ['mat', 'labor', 'exp']
             for (let j = 0; j < Math.min(numbers.length, 3); j++) {
-              commands.push({
-                action: 'update_item',
-                target: itemName,
-                field: fields[j],
-                value: numbers[j],
-                confidence: 0.90,
-              })
+              commands.push({ action: 'update_item', target: itemName, field: fields[j], value: numbers[j], confidence: 0.90 })
             }
           }
-          return {
-            success: true,
-            needsLlm: false,
-            commands,
-            command: commands[0], // 하위 호환
-          }
+          return { success: true, needsLlm: false, commands, command: commands[0] }
         }
-        // 1개 숫자 → 기존 필드 추론 (이미 위에서 처리됨)
         break
       }
     }
-    } // hasExplicitField guard
   }
 
   // ── 매칭 실패 → LLM 필요 ──
