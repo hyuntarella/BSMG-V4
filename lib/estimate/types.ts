@@ -60,6 +60,13 @@ export interface EstimateItem {
   is_base: boolean
   is_equipment: boolean
   is_fixed_qty: boolean
+  is_locked?: boolean
+  is_hidden?: boolean
+  lump_amount?: number | null
+  original_name?: string | null
+  original_spec?: string | null
+  original_unit?: string | null
+  original_qty?: number | null
 }
 
 // ── 견적서 시트 ──
@@ -75,6 +82,7 @@ export interface EstimateSheet {
   grand_total: number
   sort_order: number
   items: EstimateItem[]
+  is_free_mode?: boolean
 }
 
 // ── 견적서 메타 ──
@@ -94,6 +102,11 @@ export interface Estimate {
   manager_phone?: string
   memo?: string
   sheets: EstimateSheet[]
+  sync_urethane?: boolean
+  external_quote_id?: string | null
+  external_customer_id?: string | null
+  source?: 'direct' | 'lens'
+  input_mode?: 'voice' | 'form' | null
 }
 
 // ── 계산 결과 ──
@@ -118,6 +131,7 @@ export interface BuildItemsInput {
   wallM2?: number
   pricePerPyeong: number
   priceMatrix: PriceMatrixRaw
+  preserveLockedItems?: EstimateItem[]
   options?: {
     leak?: boolean
     rooftop?: boolean

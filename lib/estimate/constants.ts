@@ -15,6 +15,7 @@ export const COMPLEX_BASE: BaseItem[] = [
   { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
   { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
   { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
+  { name: '스카이차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
   { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
   { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
@@ -33,6 +34,7 @@ export const URETHANE_BASE: BaseItem[] = [
   { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
   { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
   { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
+  { name: '스카이차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
   { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
   { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
