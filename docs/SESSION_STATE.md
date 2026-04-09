@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G
 - 진행중: 없음
-- 다음: Phase 4G (저장)
+- 다음: Phase 4H (자동 축소)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -108,8 +108,18 @@
 - 우레탄 동기화: Wrapper에서 syncUrethaneItems 호출 (우레탄 시트 변경 시 복합 자동 동기화)
 - 테스트 12개 통과 (잠금토글, 숨김+재계산, 자유입력, 우레탄동기화, lump, undo, redo, 검색, acdb, 자동잠금, 숨김제외, 텍스트오버라이드)
 
+### Phase 4G: 3포맷 저장 (JSON/Excel/PDF)
+- lib/estimate/fileExport.ts: generateJson, generateExcel, generateTempPdf, getExcelFileName, getPdfFileName
+- app/api/estimates/[id]/save-all/route.ts: POST — JSON+Excel+PDF(복합)+PDF(우레탄) 4파일 생성 → Storage 업로드 → DB 업데이트
+- components/estimate/SaveButton.tsx: 저장 버튼 + PDF 2개 자동 다운로드 + JSON/Excel 드롭다운
+- components/estimate/LoadButton.tsx: JSON 파일 불러오기
+- supabase/migrations/011_estimate_file_urls.sql: json_url, composite_pdf_url, urethane_pdf_url, files_generated_at 컬럼 추가
+- PDF 분리 방식: Estimate 복사 + sheets 1개만 포함 → generateEstimateHtml 2번 호출
+- 기존 generate/route.ts, jsonIO.ts, generateWorkbook.ts, generatePdf.ts 수정 없음 (import만)
+- 테스트 15개 통과 (generateJson 2 + getExcelFileName 4 + getPdfFileName 2 + importFromJson 6 + 라운드트립 1)
+
 ## 테스트 상태
-- 전체: 405/406 통과
+- 전체: 420/421 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
