@@ -5,11 +5,12 @@ import { fm } from '@/lib/utils/format'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 
 export type CellState = 'idle' | 'hovered' | 'selected' | 'editing'
-export type CellType = 'text' | 'number'
+export type CellType = 'text' | 'number' | 'select'
 
 interface ExcelCellProps {
   value: string | number
   type?: CellType
+  selectOptions?: string[]
   isSelected: boolean
   isEditing: boolean
   isLocked?: boolean
@@ -41,6 +42,7 @@ export default function ExcelCell({
   isReadonly,
   width,
   align = 'right',
+  selectOptions,
   onSelect,
   onStartEditing,
   onCommit,
@@ -121,6 +123,35 @@ export default function ExcelCell({
         data-testid="excel-cell-readonly"
       >
         <span className="text-gray-400">{displayValue}</span>
+      </td>
+    )
+  }
+
+  // select 타입: 드롭다운 렌더링
+  if (type === 'select' && selectOptions && isEditing) {
+    return (
+      <td
+        className="relative p-0 bg-yellow-50 ring-2 ring-brand-600 ring-inset"
+        style={{ width: width ? `${width}px` : undefined }}
+      >
+        <select
+          autoFocus
+          value={String(value)}
+          onChange={(e) => {
+            onCommit(e.target.value)
+          }}
+          onBlur={() => onCancel()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onCancel()
+          }}
+          className={`w-full ${padClass} ${fontClass} bg-transparent outline-none ${alignClass}`}
+          style={{ height: `${rowH}px` }}
+          data-testid="excel-cell-select"
+        >
+          {selectOptions.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
       </td>
     )
   }

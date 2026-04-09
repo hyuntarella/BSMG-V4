@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
+import { useAutoSave } from '@/hooks/useAutoSave'
 import { useCostChips } from '@/hooks/useCostChips'
 import { useAcdbSuggest } from '@/hooks/useAcdbSuggest'
 import CostChipsPanel from './CostChipsPanel'
@@ -33,6 +34,8 @@ export default function EstimateEditorV5({
     updateSheetPpp,
     addSheet,
   } = useEstimate(initialEstimate, priceMatrix)
+
+  useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
 
   const [activeTab, setActiveTab] = useState<TabId>('composite')
 
@@ -120,6 +123,13 @@ export default function EstimateEditorV5({
             {isDirty && <span className="h-2 w-2 rounded-full bg-orange-400 animate-pulse" title="변경됨" />}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.open('/settings', '_blank')}
+              className="rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            >
+              규칙서
+            </button>
             <LoadButton onLoad={setEstimate} />
             {estimate.id && (
               <SaveButton

@@ -30,9 +30,10 @@ export function useAcdbSuggest({ companyId, limit = 10, debounceMs = 150 }: UseA
         if (!cancelled) {
           cacheRef.current = entries
           loadedRef.current = true
+          if (entries.length === 0) console.warn('[acdb] 로드 완료: 항목 0건 — acdb_entries 테이블에 데이터가 없습니다')
         }
       })
-      .catch(() => { /* DB 미적용 시 무시 */ })
+      .catch((err) => { console.warn('[acdb] 로드 실패 (DB 미적용 또는 데이터 없음):', err?.message) })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
       })

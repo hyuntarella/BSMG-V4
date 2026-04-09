@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { EstimateItem, Method } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 import { fm } from '@/lib/utils/format'
@@ -32,11 +32,14 @@ interface ExcelLikeTableProps {
   onAcdbSelect?: (result: AcdbSearchResult, rowIndex: number) => void
 }
 
+/** 단위 선택 옵션 */
+const UNIT_OPTIONS = ['m²', '식', '일', '평', 'm', '본', 'EA', 'SET', '회'] as const
+
 /** 편집 가능한 열 정의 */
 const EDITABLE_COLS = [
   { key: 'name', label: '품명', width: 154, type: 'text' as const, align: 'left' as const },
   { key: 'spec', label: '규격', width: 150, type: 'text' as const, align: 'left' as const },
-  { key: 'unit', label: '단위', width: 81, type: 'text' as const, align: 'center' as const },
+  { key: 'unit', label: '단위', width: 81, type: 'select' as const, align: 'center' as const },
   { key: 'qty', label: '수량', width: 80, type: 'number' as const, align: 'right' as const },
   { key: 'mat', label: '재료단가', width: 106, type: 'number' as const, align: 'right' as const },
   { key: 'labor', label: '인건단가', width: 106, type: 'number' as const, align: 'right' as const },
@@ -67,6 +70,7 @@ export default function ExcelLikeTable({
   const pendingValueRef = useRef<{ value: string | number; field: string } | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map())
   const [acdbSelectedIdx, setAcdbSelectedIdx] = useState(-1)
   const [warningDismissed, setWarningDismissed] = useState(false)
   const prevOverThresholdRef = useRef(false)
@@ -82,6 +86,15 @@ export default function ExcelLikeTable({
     setWarningDismissed(false)
   }
   prevOverThresholdRef.current = isOverThreshold
+
+  // 검색 매칭 시 첫 행으로 자동 스크롤
+  useEffect(() => {
+    if (matchingRowIndexes && matchingRowIndexes.length > 0) {
+      const firstIdx = matchingRowIndexes[0]
+      const el = rowRefs.current.get(firstIdx)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [matchingRowIndexes])
 
   const commitValue = useCallback(() => {
     if (!activeCell || !pendingValueRef.current) return
@@ -265,6 +278,10 @@ export default function ExcelLikeTable({
             return (
               <tr
                 key={rowIdx}
+                ref={(el) => {
+                  if (el) rowRefs.current.set(rowIdx, el)
+                  else rowRefs.current.delete(rowIdx)
+                }}
                 className={`${isHidden ? 'opacity-40' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''}`}
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
@@ -324,11 +341,14 @@ export default function ExcelLikeTable({
                   // 품명 열 편집 중일 때만 acdb 드롭다운
                   const showAcdb = isNameCol && isCellEditing
 
+                  const isUnitCol = col.key === 'unit'
+
                   return (
                     <ExcelCell
                       key={col.key}
                       value={cellValue}
                       type={col.type}
+                      selectOptions={isUnitCol ? UNIT_OPTIONS as unknown as string[] : undefined}
                       isSelected={isCellSelected}
                       isEditing={isCellEditing}
                       isLocked={item.is_locked && col.type === 'number'}

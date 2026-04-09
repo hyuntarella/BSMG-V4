@@ -12,7 +12,7 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3
 - 진행중: 없음
 - 다음: Phase 5 (Figma 픽셀 복제 PDF)
 
@@ -56,7 +56,7 @@
 - 저장: PDF 2개 자동 (복합 + 우레탄), JSON/엑셀은 서버 저장 후 다운로드 옵션
 - 엑셀 파일명: {견적일}_{고객명}_{공사명}_복합{평단가}_우레탄{평단가}.xlsx (사용자 수정 가능)
 - Undo/Redo: Ctrl+Z + Ctrl+Shift+Z
-- 편집된 셀 자동 잠금 (칩 재선택 시 보존)
+- 편집된 셀 자동 잠금 제거 (Phase 4I-H3). 수동 잠금만 가능, original_* 백업은 유지
 - 수정 우선순위: (b) 셀 단가 > (a) 칩 변경 > (c) 행 추가
 - PDF 생성 타이밍: Phase 4G에 v4 기존 Puppeteer 임시 PDF → Phase 5에서 Figma 픽셀 복제로 교체
 - 계약참조: 제외 (Phase 4 범위 밖)
@@ -157,8 +157,19 @@
 - 템플릿 원본과 100% 일치 확인 (50평미만/복합/38000 교차검증)
 - DB import: 사용자 수동 실행 필요 (npx tsx scripts/import-pvalue-seed.ts)
 
+### Phase 4I-H3: 실동작 누락 일괄 복구
+- 작업 1: 장비 기본값 주입 — useEstimate.ts의 buildItems 호출 4곳에 DEFAULT_EQUIPMENT_OPTIONS 추가 (ladder:1일, waste:1식, dryvit:true, sky:0)
+- 작업 2: useAutoSave 연결 — EstimateEditorV5.tsx에 useAutoSave 훅 1줄 추가 (기존 EstimateEditor 패턴 동일)
+- 작업 3: 자동잠금 제거 — markAsEdited에서 is_locked=true 자동 설정 제거, original_* 백업 유지, 수동 잠금만 가능
+- 작업 4: 단위 드롭다운 — unit 열 type:'text'→'select', ExcelCell에 select 렌더링 추가, 옵션: m²/식/일/평/m/본/EA/SET/회
+- 작업 5: Ctrl+F scrollIntoView — 검색 매칭 시 첫 행으로 자동 스크롤 (rowRefs Map + useEffect)
+- 작업 6: sync_urethane UI 토글 — CustomerInfoCard에 "우레탄 0.5mm 단가 맞춤" 체크박스, 기본값 true
+- 작업 7: 설정 진입 경로 — V5 상단바에 "규칙서" 버튼 → /settings 새 탭
+- 작업 8: acdb 진단 — 코드 경로 정상, 원인은 acdb_entries 데이터 부재. console.warn 추가로 진단 가능
+- buildItems.ts / priceData.ts / calc.ts 수정 없음
+
 ## 테스트 상태
-- 전체: 451/452 통과
+- 전체: 452/453 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태

@@ -10,6 +10,14 @@ import type { VoiceCommand } from '@/lib/voice/commands'
 import { applyCommands } from '@/lib/voice/commands'
 import { routeCommands } from '@/lib/voice/confidenceRouter'
 
+/** 장비 기본 옵션: 사다리차 1일, 폐기물 1식, 드라이비트 포함, 스카이차 미포함 */
+const DEFAULT_EQUIPMENT_OPTIONS = {
+  ladder: { days: 1 },
+  sky: { days: 0 },
+  waste: { days: 1 },
+  dryvit: true,
+} as const
+
 // ── 스냅샷 ──
 export interface Snapshot {
   estimate: Estimate
@@ -56,7 +64,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
   // ── 메타 업데이트 ──
   const updateMeta = useCallback(
-    (field: keyof Estimate, value: string | number) => {
+    (field: keyof Estimate, value: string | number | boolean) => {
       saveSnapshot(`${String(field)} 변경`, 'manual')
       setEstimate(prev => {
         const updated = { ...prev, [field]: value }
@@ -214,6 +222,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         const { items, calcResult } = buildItems({
           method: type, m2: prev.m2, wallM2: prev.wall_m2,
           pricePerPyeong: ppp, priceMatrix,
+          options: DEFAULT_EQUIPMENT_OPTIONS,
         })
 
         const newSheet: EstimateSheet = {
@@ -373,6 +382,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
           const { items, calcResult } = buildItems({
             method: '복합', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+            options: DEFAULT_EQUIPMENT_OPTIONS,
           })
           sheets.push({
             type: '복합', title: '복합방수', price_per_pyeong: ppp,
@@ -390,6 +400,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
           const { items, calcResult } = buildItems({
             method: '우레탄', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+            options: DEFAULT_EQUIPMENT_OPTIONS,
           })
           sheets.push({
             type: '우레탄', title: '우레탄방수', price_per_pyeong: ppp,
@@ -588,6 +599,7 @@ function rebuildSheet(
     method: sheet.type, m2, wallM2,
     pricePerPyeong: sheet.price_per_pyeong, priceMatrix,
     preserveLockedItems: sheet.items,
+    options: DEFAULT_EQUIPMENT_OPTIONS,
   })
   return { ...sheet, items, grand_total: calcResult.grandTotal }
 }

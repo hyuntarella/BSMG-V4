@@ -56,13 +56,13 @@ describe('ExcelLikeTable 통합 로직', () => {
     expect(newTotals.subtotal).toBeGreaterThan(originalTotals.subtotal)
   })
 
-  it('자동 잠금: 편집 시 locked + original 백업', () => {
+  it('편집 시 original 백업 (자동잠금 없음)', () => {
     const items = buildComplexItems(150, 35000)
     const item = items[0]
     expect(item.is_locked).toBeFalsy()
 
     const edited = markAsEdited(item, 'mat', 9999)
-    expect(edited.is_locked).toBe(true)
+    expect(edited.is_locked).toBeFalsy()
     expect(edited.original_mat).toBe(item.mat)
     expect(edited.mat).toBe(9999)
   })

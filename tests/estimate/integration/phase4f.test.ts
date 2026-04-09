@@ -278,14 +278,14 @@ describe('Phase 4F — Phase 3 기능 통합 테스트', () => {
     expect(mockResult.matchType).toBe('exact')
   })
 
-  // ── 10. 단가 변경 + 자동 잠금 ──
-  it('단가 변경: 자동 잠금 + original 백업', () => {
+  // ── 10. 단가 변경 + original 백업 (자동잠금 제거) ──
+  it('단가 변경: original 백업 (자동잠금 없음)', () => {
     const est = makeEstimate()
     const item = est.sheets[0].items[1] // 두 번째 공종
     expect(item.is_locked).toBeFalsy()
 
     const edited = markAsEdited(item, 'labor', 5555)
-    expect(edited.is_locked).toBe(true)
+    expect(edited.is_locked).toBeFalsy()
     expect(edited.original_labor).toBe(item.labor)
     expect(edited.labor).toBe(5555)
     // 금액 재계산

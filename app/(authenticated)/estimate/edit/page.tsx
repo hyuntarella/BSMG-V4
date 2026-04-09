@@ -180,6 +180,7 @@ export default async function EstimateEditPage({ searchParams }: Props) {
     manager_phone: row.manager_phone as string | undefined,
     memo: row.memo as string | undefined,
     sheets,
+    sync_urethane: (row.sync_urethane as boolean | undefined) ?? true,
     external_quote_id: row.external_quote_id as string | null | undefined,
     external_customer_id: row.external_customer_id as string | null | undefined,
     source: row.source as 'direct' | 'lens' | undefined,

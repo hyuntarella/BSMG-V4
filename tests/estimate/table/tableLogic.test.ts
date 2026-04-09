@@ -67,7 +67,6 @@ describe('markAsEdited', () => {
     const result = markAsEdited(item, 'qty', 200)
     expect(result.original_qty).toBe(100)
     expect(result.qty).toBe(200)
-    expect(result.is_locked).toBe(true)
   })
 
   it('mat 변경 시 original_mat 백업', () => {
@@ -75,7 +74,6 @@ describe('markAsEdited', () => {
     const result = markAsEdited(item, 'mat', 2000)
     expect(result.original_mat).toBe(1000)
     expect(result.mat).toBe(2000)
-    expect(result.is_locked).toBe(true)
   })
 
   it('labor 변경 시 original_labor 백업', () => {
@@ -92,13 +90,19 @@ describe('markAsEdited', () => {
     expect(result.exp).toBe(800)
   })
 
-  it('locked=true 설정 + 중복 백업 방지', () => {
+  it('중복 백업 방지', () => {
     const item = makeItem({ qty: 100, original_qty: 50 })
     const result = markAsEdited(item, 'qty', 200)
-    expect(result.is_locked).toBe(true)
     // original_qty는 이미 있으므로 덮어쓰지 않음
     expect(result.original_qty).toBe(50)
     expect(result.qty).toBe(200)
+  })
+
+  it('자동잠금 없음: 편집만으로 is_locked 변경하지 않음', () => {
+    const item = makeItem({ qty: 100 })
+    expect(item.is_locked).toBeFalsy()
+    const result = markAsEdited(item, 'qty', 200)
+    expect(result.is_locked).toBeFalsy()
   })
 
   it('name 변경 시 original_name 백업', () => {
@@ -106,7 +110,6 @@ describe('markAsEdited', () => {
     const result = markAsEdited(item, 'name', '수정된 품명')
     expect(result.original_name).toBe('바탕정리')
     expect(result.name).toBe('수정된 품명')
-    expect(result.is_locked).toBe(true)
   })
 
   it('숫자 필드 변경 시 금액 자동 재계산', () => {

@@ -25,16 +25,16 @@ type EditableNumericField = 'qty' | 'mat' | 'labor' | 'exp'
 type EditableTextField = 'name' | 'spec' | 'unit'
 
 /**
- * 셀 편집 커밋: original_* 백업 + locked=true + 새 값 설정
+ * 셀 편집 커밋: original_* 백업 + 새 값 설정
  * - 백업 중복 방지: original_* 이미 있으면 덮어쓰지 않음
- * - Phase 3 updateItemText 패턴 그대로
+ * - 잠금은 사용자 수동 버튼 클릭 시에만 (자동잠금 제거)
  */
 export function markAsEdited(
   item: EstimateItem,
   field: EditableNumericField | EditableTextField,
   value: number | string,
 ): EstimateItem {
-  const updated = { ...item, is_locked: true }
+  const updated = { ...item }
 
   switch (field) {
     case 'qty':
