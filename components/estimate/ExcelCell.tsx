@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { fm } from '@/lib/utils/format'
+import type { AcdbSearchResult } from '@/lib/acdb/types'
 
 export type CellState = 'idle' | 'hovered' | 'selected' | 'editing'
 export type CellType = 'text' | 'number'
@@ -12,12 +13,19 @@ interface ExcelCellProps {
   isSelected: boolean
   isEditing: boolean
   isLocked?: boolean
+  isReadonly?: boolean
   width?: number
   align?: 'left' | 'center' | 'right'
   onSelect: () => void
   onStartEditing: () => void
   onCommit: (value: string | number) => void
   onCancel: () => void
+  // acdb 자동완성 (품명 열에만 연결)
+  acdbResults?: AcdbSearchResult[]
+  acdbSelectedIndex?: number
+  onAcdbSearch?: (query: string) => void
+  onAcdbSelect?: (result: AcdbSearchResult) => void
+  onAcdbNavigate?: (direction: 'up' | 'down') => void
 }
 
 export default function ExcelCell({
@@ -26,28 +34,34 @@ export default function ExcelCell({
   isSelected,
   isEditing,
   isLocked,
+  isReadonly,
   width,
   align = 'right',
   onSelect,
   onStartEditing,
   onCommit,
   onCancel,
+  acdbResults,
+  acdbSelectedIndex,
+  onAcdbSearch,
+  onAcdbSelect,
+  onAcdbNavigate,
 }: ExcelCellProps) {
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 편집 모드 진입 시 input 포커스
   useEffect(() => {
     if (isEditing) {
-      const raw = type === 'number' ? String(value) : String(value)
+      const raw = String(value)
       setEditValue(raw)
-      // requestAnimationFrame으로 DOM 렌더 후 포커스
       requestAnimationFrame(() => {
         inputRef.current?.focus()
         inputRef.current?.select()
       })
     }
-  }, [isEditing, value, type])
+  }, [isEditing, value])
 
   const handleCommit = useCallback(() => {
     if (type === 'number') {
@@ -58,11 +72,48 @@ export default function ExcelCell({
     }
   }, [editValue, type, onCommit])
 
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setEditValue(v)
+    onAcdbSearch?.(v)
+  }, [onAcdbSearch])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!acdbResults || acdbResults.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      e.stopPropagation()
+      onAcdbNavigate?.('down')
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      e.stopPropagation()
+      onAcdbNavigate?.('up')
+    } else if (e.key === 'Enter' && acdbSelectedIndex != null && acdbSelectedIndex >= 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      onAcdbSelect?.(acdbResults[acdbSelectedIndex])
+    }
+  }, [acdbResults, acdbSelectedIndex, onAcdbNavigate, onAcdbSelect])
+
   const displayValue = type === 'number' && typeof value === 'number'
     ? fm(value)
     : String(value)
 
   const alignClass = align === 'left' ? 'text-left' : align === 'center' ? 'text-center' : 'text-right'
+
+  // readonly 셀은 편집 불가
+  if (isReadonly) {
+    return (
+      <td
+        className={`relative h-[28px] px-1 text-sm cursor-default border border-gray-300 select-none bg-gray-50
+          ${alignClass} ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
+        style={{ width: width ? `${width}px` : undefined }}
+        data-testid="excel-cell-readonly"
+      >
+        <span className="text-gray-400">{displayValue}</span>
+      </td>
+    )
+  }
 
   if (isEditing) {
     return (
@@ -72,14 +123,49 @@ export default function ExcelCell({
       >
         <input
           ref={inputRef}
-          type={type === 'number' ? 'text' : 'text'}
+          type="text"
           inputMode={type === 'number' ? 'numeric' : 'text'}
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleCommit}
+          onChange={handleChange}
+          onBlur={() => {
+            // 드롭다운 클릭 시 blur 무시
+            requestAnimationFrame(() => {
+              if (!dropdownRef.current?.contains(document.activeElement)) {
+                handleCommit()
+              }
+            })
+          }}
+          onKeyDown={handleKeyDown}
           className={`w-full h-[28px] px-1 text-sm bg-transparent outline-none ${alignClass} ${type === 'number' ? 'font-mono' : ''}`}
           data-testid="excel-cell-input"
         />
+        {/* acdb 자동완성 드롭다운 */}
+        {acdbResults && acdbResults.length > 0 && (
+          <div
+            ref={dropdownRef}
+            className="absolute left-0 top-full z-50 w-full max-h-[240px] overflow-y-auto bg-white border border-gray-300 rounded-b shadow-lg"
+            data-testid="acdb-dropdown"
+          >
+            {acdbResults.map((r, i) => (
+              <button
+                key={r.entry.canon}
+                type="button"
+                className={`w-full text-left px-2 py-1.5 text-sm hover:bg-blue-50 ${i === acdbSelectedIndex ? 'bg-blue-100' : ''}`}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  onAcdbSelect?.(r)
+                }}
+                data-testid={`acdb-option-${i}`}
+              >
+                <span className="font-medium">{r.entry.display}</span>
+                {r.entry.spec_default && (
+                  <span className="ml-2 text-gray-400 text-xs">{r.entry.spec_default}</span>
+                )}
+                <span className="ml-1 text-gray-300 text-xs">({r.entry.used_count}회)</span>
+              </button>
+            ))}
+          </div>
+        )}
       </td>
     )
   }
@@ -93,8 +179,10 @@ export default function ExcelCell({
       style={{ width: width ? `${width}px` : undefined }}
       onClick={onSelect}
       onDoubleClick={() => {
-        onSelect()
-        onStartEditing()
+        if (!isLocked || type === 'text') {
+          onSelect()
+          onStartEditing()
+        }
       }}
       data-testid="excel-cell"
     >

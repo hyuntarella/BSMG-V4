@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F
 - 진행중: 없음
-- 다음: Phase 4F (Phase 3 기능 완전 통합)
+- 다음: Phase 4G (저장)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -100,8 +100,16 @@
 - 자동 잠금: 셀 편집 시 locked=true + original_* 백업 (중복 방지)
 - lucide-react 미사용 (인라인 SVG lock 아이콘)
 
+### Phase 4F: Phase 3 기능 완전 통합
+- hooks/useUndoRedo.ts: undo/redo 스택 (max 50), pushState/undo/redo/syncCurrent
+- components/estimate/ExcelLikeTable.tsx 확장: 잠금/숨김 버튼, 검색바(Ctrl+F), 행 추가, acdb 드롭다운, lump readonly, 검색 매칭 하이라이트
+- components/estimate/ExcelCell.tsx 확장: acdb 자동완성 드롭다운 (max 8), isReadonly prop, lump 식 단위 특별 처리
+- components/estimate/EstimateTableWrapper.tsx: 모든 훅 조합 (useEstimate → useUndoRedo → useEstimateSearch → useAcdbSuggest → ExcelLikeTable)
+- 우레탄 동기화: Wrapper에서 syncUrethaneItems 호출 (우레탄 시트 변경 시 복합 자동 동기화)
+- 테스트 12개 통과 (잠금토글, 숨김+재계산, 자유입력, 우레탄동기화, lump, undo, redo, 검색, acdb, 자동잠금, 숨김제외, 텍스트오버라이드)
+
 ## 테스트 상태
-- 전체: 393/394 통과
+- 전체: 405/406 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
