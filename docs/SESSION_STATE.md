@@ -168,6 +168,19 @@
 - 작업 8: acdb 진단 — 코드 경로 정상, 원인은 acdb_entries 데이터 부재. console.warn 추가로 진단 가능
 - buildItems.ts / priceData.ts / calc.ts 수정 없음
 
+### Phase 4I-H3-VERIFY: 엑셀 UX + Ctrl+F 단순화
+- 선행 확인: H3 8개 작업 모두 코드 반영 확인 (git show 874cf7e --stat 12파일)
+- 작업 A 스킵: 6개 항목 전부 (A) 반영됨 — 실동작 문제는 코드 미반영이 아님
+- 작업 B: 엑셀 UX 개선 (§3.11 #5 근육기억)
+  - ExcelCell.tsx: onDoubleClick → onClick 싱글클릭 편집 (isSelected일 때)
+  - ExcelCell.tsx: initialChar prop — 타이핑 진입 시 첫 글자로 덮어쓰기, 클릭 진입 시 selectAll
+  - useTableKeyboard.ts: onTypeToEdit — 선택 상태에서 printable key → 즉시 편집+덮어쓰기
+  - ExcelLikeTable.tsx: typeToEditCharRef로 초기 문자 전달
+- 작업 C: Ctrl+F 단순화 (사장 요청)
+  - scrollIntoView useEffect 제거
+  - rowRefs 제거 (Map + tr ref callback)
+  - 하이라이트(ring-yellow-400) 유지
+
 ## 테스트 상태
 - 전체: 452/453 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)

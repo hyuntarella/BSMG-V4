@@ -17,6 +17,8 @@ interface ExcelCellProps {
   isReadonly?: boolean
   width?: number
   align?: 'left' | 'center' | 'right'
+  /** 타이핑으로 편집 진입 시 첫 글자 (selectAll 대신 덮어쓰기) */
+  initialChar?: string
   onSelect: () => void
   onStartEditing: () => void
   onCommit: (value: string | number) => void
@@ -43,6 +45,7 @@ export default function ExcelCell({
   width,
   align = 'right',
   selectOptions,
+  initialChar,
   onSelect,
   onStartEditing,
   onCommit,
@@ -63,14 +66,22 @@ export default function ExcelCell({
   // 편집 모드 진입 시 input 포커스
   useEffect(() => {
     if (isEditing) {
-      const raw = String(value)
-      setEditValue(raw)
-      requestAnimationFrame(() => {
-        inputRef.current?.focus()
-        inputRef.current?.select()
-      })
+      if (initialChar) {
+        // 타이핑으로 진입: 첫 글자로 덮어쓰기
+        setEditValue(initialChar)
+        requestAnimationFrame(() => {
+          inputRef.current?.focus()
+        })
+      } else {
+        // 클릭/Enter/F2로 진입: 전체 선택 (타이핑 시 자동 덮어쓰기)
+        setEditValue(String(value))
+        requestAnimationFrame(() => {
+          inputRef.current?.focus()
+          inputRef.current?.select()
+        })
+      }
     }
-  }, [isEditing, value])
+  }, [isEditing, value, initialChar])
 
   const handleCommit = useCallback(() => {
     if (type === 'number') {
@@ -219,11 +230,14 @@ export default function ExcelCell({
         ${alignClass}
         ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
-      onClick={onSelect}
-      onDoubleClick={() => {
-        if (!isLocked || type === 'text') {
+      onClick={() => {
+        if (isSelected) {
+          // 이미 선택된 셀 → 싱글클릭으로 편집 진입 (엑셀 UX)
+          if (!isLocked || type === 'text') {
+            onStartEditing()
+          }
+        } else {
           onSelect()
-          onStartEditing()
         }
       }}
       data-testid="excel-cell"

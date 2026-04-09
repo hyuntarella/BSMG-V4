@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { EstimateItem, Method } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 import { fm } from '@/lib/utils/format'
@@ -70,8 +70,9 @@ export default function ExcelLikeTable({
   const pendingValueRef = useRef<{ value: string | number; field: string } | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map())
   const [acdbSelectedIdx, setAcdbSelectedIdx] = useState(-1)
+  /** 타이핑으로 편집 진입 시 첫 글자 */
+  const typeToEditCharRef = useRef<string | null>(null)
   const [warningDismissed, setWarningDismissed] = useState(false)
   const prevOverThresholdRef = useRef(false)
 
@@ -86,15 +87,6 @@ export default function ExcelLikeTable({
     setWarningDismissed(false)
   }
   prevOverThresholdRef.current = isOverThreshold
-
-  // 검색 매칭 시 첫 행으로 자동 스크롤
-  useEffect(() => {
-    if (matchingRowIndexes && matchingRowIndexes.length > 0) {
-      const firstIdx = matchingRowIndexes[0]
-      const el = rowRefs.current.get(firstIdx)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [matchingRowIndexes])
 
   const commitValue = useCallback(() => {
     if (!activeCell || !pendingValueRef.current) return
@@ -132,6 +124,10 @@ export default function ExcelLikeTable({
     // 나머지는 useTableKeyboard에서 처리
   }, [onSearch])
 
+  const handleTypeToEdit = useCallback((char: string) => {
+    typeToEditCharRef.current = char
+  }, [])
+
   const { handleKeyDown } = useTableKeyboard({
     activeCell,
     isEditing,
@@ -144,6 +140,7 @@ export default function ExcelLikeTable({
     onCancelEdit: cancelEdit,
     onUndo,
     onRedo,
+    onTypeToEdit: handleTypeToEdit,
   })
 
   const combinedKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -278,10 +275,6 @@ export default function ExcelLikeTable({
             return (
               <tr
                 key={rowIdx}
-                ref={(el) => {
-                  if (el) rowRefs.current.set(rowIdx, el)
-                  else rowRefs.current.delete(rowIdx)
-                }}
                 className={`${isHidden ? 'opacity-40' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''}`}
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
@@ -343,6 +336,12 @@ export default function ExcelLikeTable({
 
                   const isUnitCol = col.key === 'unit'
 
+                  // 타이핑 편집 진입: 해당 셀만 initialChar 전달 후 ref 클리어
+                  const cellInitialChar = isCellEditing && typeToEditCharRef.current
+                    ? typeToEditCharRef.current
+                    : undefined
+                  if (cellInitialChar) typeToEditCharRef.current = null
+
                   return (
                     <ExcelCell
                       key={col.key}
@@ -351,6 +350,7 @@ export default function ExcelLikeTable({
                       selectOptions={isUnitCol ? UNIT_OPTIONS as unknown as string[] : undefined}
                       isSelected={isCellSelected}
                       isEditing={isCellEditing}
+                      initialChar={cellInitialChar}
                       isLocked={item.is_locked && col.type === 'number'}
                       isReadonly={isLumpReadonly}
                       width={col.width}

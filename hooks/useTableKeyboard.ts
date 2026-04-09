@@ -16,6 +16,8 @@ interface UseTableKeyboardOptions {
   onCancelEdit: () => void
   onUndo?: () => void
   onRedo?: () => void
+  /** 선택 상태에서 타이핑 시 → 편집 진입 + 첫 글자 전달 */
+  onTypeToEdit?: (char: string) => void
 }
 
 /**
@@ -36,6 +38,7 @@ export function useTableKeyboard({
   onCancelEdit,
   onUndo,
   onRedo,
+  onTypeToEdit,
 }: UseTableKeyboardOptions) {
   // 다음 보이는 행 찾기 (direction: 1=아래, -1=위)
   const findNextVisibleRow = useCallback(
@@ -171,10 +174,18 @@ export function useTableKeyboard({
             e.preventDefault()
             if (col < colCount - 1) onSelect(row, col + 1)
             break
+          default:
+            // 선택 상태에서 타이핑 → 즉시 편집 모드 + 덮어쓰기 (엑셀 UX)
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.preventDefault()
+              onTypeToEdit?.(e.key)
+              onStartEditing()
+            }
+            break
         }
       }
     },
-    [activeCell, isEditing, colCount, findNextVisibleRow, onSelect, onStartEditing, onStopEditing, onCommitValue, onCancelEdit, onUndo, onRedo],
+    [activeCell, isEditing, colCount, findNextVisibleRow, onSelect, onStartEditing, onStopEditing, onCommitValue, onCancelEdit, onUndo, onRedo, onTypeToEdit],
   )
 
   return { handleKeyDown }
