@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I
 - 진행중: 없음
-- 다음: Phase 4I
+- 다음: Phase 5 (Figma 픽셀 복제 PDF)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -126,8 +126,23 @@
 - 정책: 1~15행 28px/text-sm, 16~18행 24px/text-sm, 19~20행 22px/text-xs, 21+ 22px/text-xs+경고
 - Phase 5 PDF tier 정책: Phase 5 Figma 픽셀 복제 PDF에서도 동일 tier 정책 적용 필요
 
+### Phase 4I: 페이지 통합 + e2e 검증
+- 전략: (B) 점진 마이그레이션 — /estimate/edit 신규 경로, 기존 /estimate/new 보존
+- app/(authenticated)/estimate/edit/page.tsx: 서버 컴포넌트 (lens/직접/빈 진입 3가지)
+- components/estimate/EstimateEditorV5.tsx: Phase 4 전체 UI 조립 (칩+테이블+저장+불러오기)
+- components/estimate/CustomerInfoCard.tsx: 기본정보 카드 (관리번호/견적일/고객/주소/면적/담당자/특기사항)
+- lib/estimate/fileNames.ts: 파일명 유틸리티 분리 (클라이언트 번들에서 puppeteer 의존성 제거)
+- SaveButton import 경로 변경: fileExport → fileNames (puppeteer 번들 분리)
+- 탭: composite / urethane / compare (3탭 구조)
+- lens 진입: /estimate/edit?source=lens&quoteId=xxx → external_quote_id 매칭 → 자동 로드
+- 직접 진입: /estimate/edit?id=xxx → ID로 로드
+- 빈 진입: /estimate/edit → 새 견적서 자동 생성
+- 칩 선택 → updateSheetPpp 자동 연결 (복합/우레탄 독립)
+- 비교 탭: 평단가/공종수/합계/m2당 요약
+- 테스트 12개 추가 (2-Document, 파일명, lens, 탭인덱스, 잠금)
+
 ## 테스트 상태
-- 전체: 434/435 통과
+- 전체: 446/447 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
