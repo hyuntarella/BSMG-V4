@@ -12,8 +12,8 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A
-- 진행중: Phase 4B + 4C + 4D (묶음)
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D
+- 진행중: 없음
 - 다음: Phase 4E (엑셀 클론 테이블)
 
 ## 완료된 Phase 요약
@@ -67,8 +67,30 @@
 - price_matrix effective_from 날짜 수정 (Phase 10)
 - 외벽/주차장 자동화 (Phase 4.6+)
 
+### Phase 4B: 데이터 모델 정합성 확인
+- 판정: (B) — Estimate.sheets: EstimateSheet[] + EstimateSheet.type: Method
+- 기존 구조가 2-Document 모델 완전 지원. 코드 변경 불필요.
+
+### Phase 4C: lens 어댑터
+- lib/lens/types.ts — QuoteInput, QuoteOutput, VoiceParseResult (brief-quote.md §4 일치)
+- lib/lens/auth.ts — HMAC-SHA256 검증 (timing-safe, 5분 TTL)
+- lib/lens/adapter.ts — lensInputToEstimate, estimateToLensOutput
+- lib/lens/index.ts — 배럴 export
+- app/api/lens/quote/route.ts — POST (HMAC + idempotency + Estimate 생성)
+- app/api/lens/quote/[quoteId]/route.ts — GET (QuoteOutput 반환)
+- 테스트 13개 통과 (auth 4 + adapter 4 + route 5)
+
+### Phase 4D: 칩 UI + 원가 기반 생성
+- lib/estimate/costChips.ts — calcChipRange(costPerM2, isMobile), getChipMarginPercent
+- hooks/useCostChips.ts — getCostPerM2 → calcChipRange → 마진율 자동 계산
+- components/estimate/CostChipsPanel.tsx — 복합/우레탄 칩 UI (117줄)
+- 칩 공식: costPerM2=12000 → 19,000~25,000원/m² (7칩, desktop)
+- OVERHEAD_RATE + PROFIT_RATE import (하드코딩 제거)
+- 테스트 11개 통과 (costChips 5 + useCostChips 3 + CostChipsPanel 3)
+- Domain QA 발견 calcChipRange 단위 불일치 수정 완료 (totalCost→costPerM2)
+
 ## 테스트 상태
-- 전체: 341/342 통과
+- 전체: 365/366 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
