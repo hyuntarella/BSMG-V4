@@ -149,6 +149,14 @@
 - 기존 costChips/useCostChips 테스트 호환 유지 (calcChipRange 보존, 레거시 경로)
 - 테스트 5개 추가 (getAvailableChips: 50평미만 복합/우레탄, 50~100평, 미매칭, areaM2=0)
 
+### Phase 4I-H2: 사다리차 exp_amount 복구
+- 원인: convert 스크립트가 exp_unit_price(=0)만 읽고 exp_amount(=120000) 무시
+- 수정: exp_unit_price=0일 때 exp_amount/qty로 단가 역산 (일반 규칙)
+- 영향 범위: is_lump=False에서 해당 패턴은 사다리차 42건만 (다른 공종 영향 0)
+- seed JSON 갱신: 42/42 사다리차 항목 [0,0,0]→[0,0,120000]
+- 템플릿 원본과 100% 일치 확인 (50평미만/복합/38000 교차검증)
+- DB import: 사용자 수동 실행 필요 (npx tsx scripts/import-pvalue-seed.ts)
+
 ## 테스트 상태
 - 전체: 451/452 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
