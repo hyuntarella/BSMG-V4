@@ -141,8 +141,16 @@
 - 비교 탭: 평단가/공종수/합계/m2당 요약
 - 테스트 12개 추가 (2-Document, 파일명, lens, 탭인덱스, 잠금)
 
+### Phase 4I-H1: costChips 재작성 + 시트 자동 생성
+- Bug A 수정: costChips가 v1 마진 역산 공식(20k~27k) 대신 price_matrix DISTINCT 값(38k~44k) 사용
+- lib/estimate/costChips.ts: getAvailableChips(priceMatrix, areaM2, method) 추가 — priceMatrix 키에서 직접 추출
+- hooks/useCostChips.ts: priceMatrix optional 파라미터 추가 — 있으면 getAvailableChips, 없으면 레거시 calcChipRange
+- Bug B 수정: 빈 Estimate 초기화 시 m2>0 조건 제거 → 복합+우레탄 2개 시트 무조건 자동 생성
+- 기존 costChips/useCostChips 테스트 호환 유지 (calcChipRange 보존, 레거시 경로)
+- 테스트 5개 추가 (getAvailableChips: 50평미만 복합/우레탄, 50~100평, 미매칭, areaM2=0)
+
 ## 테스트 상태
-- 전체: 446/447 통과
+- 전체: 451/452 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태

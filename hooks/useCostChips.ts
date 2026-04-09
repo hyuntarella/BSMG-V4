@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react'
-import type { Method } from '@/lib/estimate/types'
+import type { Method, PriceMatrixRaw } from '@/lib/estimate/types'
 import { getCostPerM2 } from '@/lib/estimate/cost'
-import { calcChipRange, getChipMarginPercent } from '@/lib/estimate/costChips'
+import { calcChipRange, getAvailableChips, getChipMarginPercent } from '@/lib/estimate/costChips'
 
 interface UseCostChipsInput {
   areaM2: number
   method: Method
   isMobile?: boolean
+  priceMatrix?: PriceMatrixRaw
 }
 
 export interface UseCostChipsReturn {
@@ -24,6 +25,7 @@ export function useCostChips({
   areaM2,
   method,
   isMobile = false,
+  priceMatrix,
 }: UseCostChipsInput): UseCostChipsReturn {
   const [selectedChip, setSelectedChip] = useState<number | null>(null)
   const [customPrice, setCustomPrice] = useState<number | null>(null)
@@ -31,8 +33,11 @@ export function useCostChips({
   const costPerM2 = useMemo(() => getCostPerM2(method, areaM2), [method, areaM2])
 
   const chips = useMemo(
-    () => calcChipRange(costPerM2, isMobile),
-    [costPerM2, isMobile],
+    () =>
+      priceMatrix
+        ? getAvailableChips(priceMatrix, areaM2, method)
+        : calcChipRange(costPerM2, isMobile),
+    [priceMatrix, areaM2, method, costPerM2, isMobile],
   )
 
   const effectivePrice = selectedChip ?? customPrice

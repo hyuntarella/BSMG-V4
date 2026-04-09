@@ -36,19 +36,17 @@ export default function EstimateEditorV5({
 
   const [activeTab, setActiveTab] = useState<TabId>('composite')
 
-  // --- 시트 없으면 자동 생성 ---
+  // --- 시트 없으면 자동 생성 (Phase 4: 복합+우레탄 2개 고정) ---
   useEffect(() => {
     const hasComposite = estimate.sheets.some(s => s.type === '복합')
     const hasUrethane = estimate.sheets.some(s => s.type === '우레탄')
-    if (!hasComposite && !hasUrethane && estimate.m2 > 0) {
-      addSheet('복합')
-      addSheet('우레탄')
-    }
+    if (!hasComposite) addSheet('복합')
+    if (!hasUrethane) addSheet('우레탄')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // --- 칩 상태 ---
-  const compositeChips = useCostChips({ areaM2: estimate.m2 || 100, method: '복합' })
-  const urethaneChips = useCostChips({ areaM2: estimate.m2 || 100, method: '우레탄' })
+  // --- 칩 상태 (priceMatrix에서 실제 평단가 추출) ---
+  const compositeChips = useCostChips({ areaM2: estimate.m2 || 100, method: '복합', priceMatrix })
+  const urethaneChips = useCostChips({ areaM2: estimate.m2 || 100, method: '우레탄', priceMatrix })
 
   // --- 칩 선택 → 시트 평단가 갱신 ---
   useEffect(() => {

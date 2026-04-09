@@ -1,7 +1,9 @@
 import { OVERHEAD_RATE, PROFIT_RATE } from './constants'
+import { getAR } from './areaRange'
+import type { Method, PriceMatrixRaw } from './types'
 
 /**
- * 칩 범위 계산 — v1 견적서.html L:1362 로직 이식
+ * 칩 범위 계산 — v1 견적서.html L:1362 로직 이식 (레거시, 테스트 호환용)
  *
  * @param costPerM2 - m² 당 원가 (getCostPerM2 결과)
  * @param isMobile  - 모바일 여부 (step 조절)
@@ -21,6 +23,25 @@ export function calcChipRange(costPerM2: number, isMobile: boolean): number[] {
     chips.push(p)
   }
   return chips
+}
+
+/**
+ * price_matrix에서 사용 가능한 평단가 목록 추출
+ *
+ * @param priceMatrix - 서버에서 로드된 PriceMatrixRaw
+ * @param areaM2      - 면적 (m²)
+ * @param method      - 공법 ('복합' | '우레탄')
+ * @returns 오름차순 정렬된 평단가 배열 (예: [38000, 39000, ..., 44000])
+ */
+export function getAvailableChips(
+  priceMatrix: PriceMatrixRaw,
+  areaM2: number,
+  method: Method,
+): number[] {
+  const ar = getAR(areaM2 || 100)
+  const methodData = priceMatrix[ar]?.[method]
+  if (!methodData) return []
+  return Object.keys(methodData).map(Number).sort((a, b) => a - b)
 }
 
 /**

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { calcChipRange, getChipMarginPercent } from '@/lib/estimate/costChips'
+import { calcChipRange, getAvailableChips, getChipMarginPercent } from '@/lib/estimate/costChips'
+import type { PriceMatrixRaw } from '@/lib/estimate/types'
 
 describe('calcChipRange', () => {
   it('desktop: costPerM2=12,000 → m² 단가 범위 (step=1000)', () => {
@@ -71,5 +72,59 @@ describe('getChipMarginPercent', () => {
 
   it('pricePerM2=0 → 0', () => {
     expect(getChipMarginPercent(0, 12000)).toBe(0)
+  })
+})
+
+describe('getAvailableChips', () => {
+  const mockMatrix: PriceMatrixRaw = {
+    '50평미만': {
+      '복합': {
+        '38000': [],
+        '39000': [],
+        '40000': [],
+        '41000': [],
+        '42000': [],
+        '43000': [],
+        '44000': [],
+      },
+      '우레탄': {
+        '35000': [],
+        '36000': [],
+        '37000': [],
+      },
+    },
+    '50~100평': {
+      '복합': {
+        '36000': [],
+        '37000': [],
+      },
+    },
+  }
+
+  it('50평미만 복합 → 7단계 [38000~44000]', () => {
+    // 150m² ≈ 45평 → 50평미만
+    const chips = getAvailableChips(mockMatrix, 150, '복합')
+    expect(chips).toEqual([38000, 39000, 40000, 41000, 42000, 43000, 44000])
+  })
+
+  it('50평미만 우레탄 → 3단계 [35000~37000]', () => {
+    const chips = getAvailableChips(mockMatrix, 150, '우레탄')
+    expect(chips).toEqual([35000, 36000, 37000])
+  })
+
+  it('50~100평 복합 → 2단계', () => {
+    // 200m² ≈ 60평 → 50~100평
+    const chips = getAvailableChips(mockMatrix, 200, '복합')
+    expect(chips).toEqual([36000, 37000])
+  })
+
+  it('매칭 없는 면적대 → 빈 배열', () => {
+    const chips = getAvailableChips(mockMatrix, 700, '복합')
+    expect(chips).toEqual([])
+  })
+
+  it('areaM2=0 → 기본 100m² 사용 (50평미만)', () => {
+    const chips = getAvailableChips(mockMatrix, 0, '복합')
+    expect(chips).toEqual([38000, 39000, 40000, 41000, 42000, 43000, 44000])
   })
 })
