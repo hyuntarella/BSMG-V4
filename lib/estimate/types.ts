@@ -67,6 +67,10 @@ export interface EstimateItem {
   original_spec?: string | null
   original_unit?: string | null
   original_qty?: number | null
+  // Phase 4E 단가 편집 원본 백업용
+  original_mat?: number | null
+  original_labor?: number | null
+  original_exp?: number | null
 }
 
 // ── 견적서 시트 ──

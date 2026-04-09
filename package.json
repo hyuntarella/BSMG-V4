@@ -10,7 +10,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev:clean": "rm -rf .next && next dev"
+    "dev:clean": "rm -rf .next && next dev",
+    "extract-p-values": "python scripts/extract-p-values.py"
   },
   "repository": {
     "type": "git",

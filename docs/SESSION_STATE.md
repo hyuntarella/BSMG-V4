@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E
 - 진행중: 없음
-- 다음: Phase 4E (엑셀 클론 테이블)
+- 다음: Phase 4F (Phase 3 기능 완전 통합)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -89,8 +89,19 @@
 - 테스트 11개 통과 (costChips 5 + useCostChips 3 + CostChipsPanel 3)
 - Domain QA 발견 calcChipRange 단위 불일치 수정 완료 (totalCost→costPerM2)
 
+### Phase 4E: 엑셀 클론 테이블
+- types.ts: EstimateItem에 original_mat/labor/exp 3개 optional 필드 추가
+- lib/estimate/tableLogic.ts: recalcRow, recalcAllTotals, markAsEdited 순수 함수
+- hooks/useExcelSelection.ts: 단일 셀 선택 상태 관리
+- hooks/useTableKeyboard.ts: 방향키/Tab/Enter/Shift/Esc 키보드 네비게이션 + 숨김행 스킵
+- components/estimate/ExcelCell.tsx: 셀 상태 전이 (idle→selected→editing), 숫자 천단위 쉼표
+- components/estimate/ExcelLikeTable.tsx: Figma 을지 열 너비 기준, sticky 헤더/푸터, 자동 잠금
+- 테스트 28개 통과 (tableLogic 8 + excelCell 5 + tableKeyboard 6 + excelLikeTable 5 + 추가 4)
+- 자동 잠금: 셀 편집 시 locked=true + original_* 백업 (중복 방지)
+- lucide-react 미사용 (인라인 SVG lock 아이콘)
+
 ## 테스트 상태
-- 전체: 365/366 통과
+- 전체: 393/394 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
