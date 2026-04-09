@@ -20,6 +20,10 @@ interface ExcelCellProps {
   onStartEditing: () => void
   onCommit: (value: string | number) => void
   onCancel: () => void
+  // Phase 4H: tier별 스타일
+  tierFontClass?: string
+  tierPaddingClass?: string
+  tierRowHeight?: number
   // acdb 자동완성 (품명 열에만 연결)
   acdbResults?: AcdbSearchResult[]
   acdbSelectedIndex?: number
@@ -41,6 +45,9 @@ export default function ExcelCell({
   onStartEditing,
   onCommit,
   onCancel,
+  tierFontClass,
+  tierPaddingClass,
+  tierRowHeight,
   acdbResults,
   acdbSelectedIndex,
   onAcdbSearch,
@@ -100,14 +107,17 @@ export default function ExcelCell({
     : String(value)
 
   const alignClass = align === 'left' ? 'text-left' : align === 'center' ? 'text-center' : 'text-right'
+  const fontClass = tierFontClass ?? 'text-sm'
+  const padClass = tierPaddingClass ?? 'px-1'
+  const rowH = tierRowHeight ?? 28
 
   // readonly 셀은 편집 불가
   if (isReadonly) {
     return (
       <td
-        className={`relative h-[28px] px-1 text-sm cursor-default border border-gray-300 select-none bg-gray-50
+        className={`relative px-1 ${fontClass} cursor-default border border-gray-300 select-none bg-gray-50
           ${alignClass} ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
-        style={{ width: width ? `${width}px` : undefined }}
+        style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
         data-testid="excel-cell-readonly"
       >
         <span className="text-gray-400">{displayValue}</span>
@@ -136,7 +146,8 @@ export default function ExcelCell({
             })
           }}
           onKeyDown={handleKeyDown}
-          className={`w-full h-[28px] px-1 text-sm bg-transparent outline-none ${alignClass} ${type === 'number' ? 'font-mono' : ''}`}
+          className={`w-full px-1 ${fontClass} bg-transparent outline-none ${alignClass} ${type === 'number' ? 'font-mono' : ''}`}
+          style={{ height: `${rowH}px` }}
           data-testid="excel-cell-input"
         />
         {/* acdb 자동완성 드롭다운 */}
@@ -172,11 +183,11 @@ export default function ExcelCell({
 
   return (
     <td
-      className={`relative h-[28px] px-1 text-sm cursor-default border border-gray-300 select-none
+      className={`relative px-1 ${fontClass} cursor-default border border-gray-300 select-none
         ${isSelected ? 'ring-2 ring-brand-500 ring-inset bg-white' : 'bg-white hover:bg-gray-50'}
         ${alignClass}
         ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
-      style={{ width: width ? `${width}px` : undefined }}
+      style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={onSelect}
       onDoubleClick={() => {
         if (!isLocked || type === 'text') {

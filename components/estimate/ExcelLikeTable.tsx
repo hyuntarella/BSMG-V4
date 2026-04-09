@@ -7,6 +7,7 @@ import { fm } from '@/lib/utils/format'
 import { useExcelSelection } from '@/hooks/useExcelSelection'
 import { useTableKeyboard } from '@/hooks/useTableKeyboard'
 import { recalcAllTotals, markAsEdited } from '@/lib/estimate/tableLogic'
+import { calcTableTier } from '@/lib/estimate/tableLayout'
 import ExcelCell from './ExcelCell'
 
 interface ExcelLikeTableProps {
@@ -67,6 +68,20 @@ export default function ExcelLikeTable({
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [acdbSelectedIdx, setAcdbSelectedIdx] = useState(-1)
+  const [warningDismissed, setWarningDismissed] = useState(false)
+  const prevOverThresholdRef = useRef(false)
+
+  // Phase 4H: visible items 기준 tier 계산
+  const visibleItems = items.filter(item => !item.is_hidden)
+  const visibleCount = visibleItems.length
+  const tier = calcTableTier(visibleCount)
+  const isOverThreshold = visibleCount >= 21
+
+  // 21 이상으로 다시 올라가면 dismiss 리셋
+  if (isOverThreshold && !prevOverThresholdRef.current && warningDismissed) {
+    setWarningDismissed(false)
+  }
+  prevOverThresholdRef.current = isOverThreshold
 
   const commitValue = useCallback(() => {
     if (!activeCell || !pendingValueRef.current) return
@@ -185,32 +200,57 @@ export default function ExcelLikeTable({
         </div>
       )}
 
-      <table className="w-full border-collapse text-sm">
+      {/* Phase 4H: 경고 배너 (tier 4) */}
+      {tier.showOverflowWarning && !warningDismissed && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 bg-yellow-100 border-b border-yellow-300 text-sm text-yellow-800"
+          data-testid="overflow-warning"
+        >
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="flex-shrink-0 text-yellow-600">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>
+            공종 수가 많습니다({visibleItems.length}개). 공정 분리를 고려해주세요. (옥상/외벽/주차장 분리는 Phase 4.5 지원 예정)
+          </span>
+          <button
+            type="button"
+            onClick={() => setWarningDismissed(true)}
+            className="ml-auto text-yellow-600 hover:text-yellow-800 flex-shrink-0"
+            data-testid="overflow-warning-dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <table className={`w-full border-collapse ${tier.fontClass}`}>
         {/* 헤더 */}
         <thead className="sticky top-0 z-10">
-          <tr className="bg-brand text-white text-sm font-semibold">
+          <tr className="bg-brand text-white font-semibold" style={{ height: `${tier.headerHeight}px` }}>
             <th className="w-[50px] border border-gray-300 px-1 text-center">
               {/* 잠금/숨김 아이콘 열 */}
             </th>
             {EDITABLE_COLS.map((col) => (
               <th
                 key={col.key}
-                className="border border-gray-300 px-1 py-1 text-center"
+                className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`}
                 style={{ width: `${col.width}px` }}
               >
                 {col.label}
               </th>
             ))}
-            <th className="border border-gray-300 px-1 py-1 text-center" style={{ width: '106px' }}>
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
               재료금액
             </th>
-            <th className="border border-gray-300 px-1 py-1 text-center" style={{ width: '106px' }}>
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
               인건금액
             </th>
-            <th className="border border-gray-300 px-1 py-1 text-center" style={{ width: '106px' }}>
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
               경비금액
             </th>
-            <th className="border border-gray-300 px-1 py-1 text-center" style={{ width: '96px' }}>
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '96px' }}>
               합계
             </th>
           </tr>
@@ -225,7 +265,8 @@ export default function ExcelLikeTable({
             return (
               <tr
                 key={rowIdx}
-                className={`h-[28px] ${isHidden ? 'opacity-40' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''}`}
+                className={`${isHidden ? 'opacity-40' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''}`}
+                style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
               >
                 {/* 잠금/숨김 버튼 */}
@@ -294,6 +335,9 @@ export default function ExcelLikeTable({
                       isReadonly={isLumpReadonly}
                       width={col.width}
                       align={col.align}
+                      tierFontClass={tier.fontClass}
+                      tierPaddingClass={tier.paddingClass}
+                      tierRowHeight={tier.rowHeight}
                       onSelect={() => select(rowIdx, colIdx)}
                       onStartEditing={startEditing}
                       onCommit={(val) => {
@@ -311,16 +355,16 @@ export default function ExcelLikeTable({
                 })}
 
                 {/* 읽기 전용 금액 열 */}
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600 h-[28px]">
+                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.mat_amount)}
                 </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600 h-[28px]">
+                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.labor_amount)}
                 </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600 h-[28px]">
+                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.exp_amount)}
                 </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums font-semibold h-[28px]">
+                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums font-semibold" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.total)}
                 </td>
               </tr>

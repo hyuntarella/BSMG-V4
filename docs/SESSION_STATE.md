@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H
 - 진행중: 없음
-- 다음: Phase 4H (자동 축소)
+- 다음: Phase 4I
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -66,6 +66,7 @@
 - Phase 10 단가 시점 이력 UI 위치
 - price_matrix effective_from 날짜 수정 (Phase 10)
 - 외벽/주차장 자동화 (Phase 4.6+)
+- Phase 5 PDF도 동일 tier 정책 적용 필요 (Phase 4H에서 확정된 4단계 축소 정책)
 
 ### Phase 4B: 데이터 모델 정합성 확인
 - 판정: (B) — Estimate.sheets: EstimateSheet[] + EstimateSheet.type: Method
@@ -118,8 +119,15 @@
 - 기존 generate/route.ts, jsonIO.ts, generateWorkbook.ts, generatePdf.ts 수정 없음 (import만)
 - 테스트 15개 통과 (generateJson 2 + getExcelFileName 4 + getPdfFileName 2 + importFromJson 6 + 라운드트립 1)
 
+### Phase 4H: 행 수 자동 축소
+- lib/estimate/tableLayout.ts: calcTableTier 순수 함수 (tier 1~4 정책)
+- components/estimate/ExcelLikeTable.tsx: 동적 tier 적용 (rowHeight/fontClass/paddingClass/headerHeight) + 경고 배너 (tier 4, dismiss+자동리셋)
+- components/estimate/ExcelCell.tsx: tierFontClass/tierPaddingClass/tierRowHeight optional props 추가
+- 정책: 1~15행 28px/text-sm, 16~18행 24px/text-sm, 19~20행 22px/text-xs, 21+ 22px/text-xs+경고
+- Phase 5 PDF tier 정책: Phase 5 Figma 픽셀 복제 PDF에서도 동일 tier 정책 적용 필요
+
 ## 테스트 상태
-- 전체: 420/421 통과
+- 전체: 434/435 통과
 - 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
 
 ## 알려진 파일 상태
