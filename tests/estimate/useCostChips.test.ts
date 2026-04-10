@@ -9,6 +9,7 @@ vi.mock('react', () => {
       return [value, setter]
     },
     useMemo: <T,>(fn: () => T, _deps: unknown[]): T => fn(),
+    useCallback: <T,>(fn: T, _deps: unknown[]): T => fn,
   }
 })
 

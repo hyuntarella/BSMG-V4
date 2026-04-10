@@ -134,6 +134,7 @@ describe('CostChipsPanel', () => {
     const onChange = inputs[0].props.onChange as (e: { target: { value: string } }) => void
     onChange({ target: { value: '25000' } })
     expect(mockSetCustom).toHaveBeenCalledWith(25000)
-    expect(mockSetSelected).toHaveBeenCalledWith(null)
+    // setSelectedChip(null)은 useCostChips hook 내부에서 처리됨 — 패널은 호출하지 않음
+    expect(mockSetSelected).not.toHaveBeenCalled()
   })
 })

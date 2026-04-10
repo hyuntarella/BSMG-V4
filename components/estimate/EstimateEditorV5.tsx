@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
 import { useAutoSave } from '@/hooks/useAutoSave'
@@ -49,30 +49,38 @@ export default function EstimateEditorV5({
     if (!hasUrethane) addSheet('우레탄')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- 사용자가 칩을 눌렀을 때만 sheet.ppp를 동기화 (useEffect 재트리거 방지) ---
+  // estimateRef로 최신 sheets를 참조 — useCallback 재생성 없이 직접 조회
+  const estimateRef = useRef(estimate)
+  estimateRef.current = estimate
+
+  const handleCompositePriceChange = useCallback((price: number) => {
+    const idx = estimateRef.current.sheets.findIndex(s => s.type === '복합')
+    if (idx < 0) return
+    if (estimateRef.current.sheets[idx].price_per_pyeong === price) return
+    updateSheetPpp(idx, price, true)
+  }, [updateSheetPpp])
+
+  const handleUrethanePriceChange = useCallback((price: number) => {
+    const idx = estimateRef.current.sheets.findIndex(s => s.type === '우레탄')
+    if (idx < 0) return
+    if (estimateRef.current.sheets[idx].price_per_pyeong === price) return
+    updateSheetPpp(idx, price, true)
+  }, [updateSheetPpp])
+
   // --- 칩 상태 (priceMatrix에서 실제 평단가 추출) ---
-  const compositeChips = useCostChips({ areaM2: estimate.m2 || 100, method: '복합', priceMatrix })
-  const urethaneChips = useCostChips({ areaM2: estimate.m2 || 100, method: '우레탄', priceMatrix })
-
-  // --- 칩 선택 → 시트 평단가 갱신 ---
-  useEffect(() => {
-    console.log('[EDITOR] composite chip effect', { effectivePrice: compositeChips.effectivePrice, currentPpp: estimate.sheets[estimate.sheets.findIndex(s => s.type === '복합')]?.price_per_pyeong })
-    const price = compositeChips.effectivePrice
-    if (price === null) return
-    const idx = estimate.sheets.findIndex(s => s.type === '복합')
-    if (idx < 0) return
-    if (estimate.sheets[idx].price_per_pyeong === price) return
-    updateSheetPpp(idx, price, true)
-  }, [compositeChips.effectivePrice]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    console.log('[EDITOR] urethane chip effect', { effectivePrice: urethaneChips.effectivePrice, currentPpp: estimate.sheets[estimate.sheets.findIndex(s => s.type === '우레탄')]?.price_per_pyeong })
-    const price = urethaneChips.effectivePrice
-    if (price === null) return
-    const idx = estimate.sheets.findIndex(s => s.type === '우레탄')
-    if (idx < 0) return
-    if (estimate.sheets[idx].price_per_pyeong === price) return
-    updateSheetPpp(idx, price, true)
-  }, [urethaneChips.effectivePrice]) // eslint-disable-line react-hooks/exhaustive-deps
+  const compositeChips = useCostChips({
+    areaM2: estimate.m2 || 100,
+    method: '복합',
+    priceMatrix,
+    onPriceChange: handleCompositePriceChange,
+  })
+  const urethaneChips = useCostChips({
+    areaM2: estimate.m2 || 100,
+    method: '우레탄',
+    priceMatrix,
+    onPriceChange: handleUrethanePriceChange,
+  })
 
   // --- acdb ---
   const acdbSuggest = useAcdbSuggest({ companyId: estimate.company_id ?? null })

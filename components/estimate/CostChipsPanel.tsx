@@ -67,7 +67,6 @@ function ChipSection({
               type="button"
               onClick={() => {
                 setSelectedChip(isSelected ? null : chip)
-                if (!isSelected) setCustomPrice(null)
               }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium border cursor-pointer transition-colors ${colorClass}${ringClass}`}
             >
@@ -88,7 +87,6 @@ function ChipSection({
           onChange={(e) => {
             const val = e.target.value === '' ? null : Number(e.target.value)
             setCustomPrice(val)
-            setSelectedChip(null)
           }}
           className={`w-32 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
             isCustomActive
