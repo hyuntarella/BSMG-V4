@@ -1,11 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import type { Estimate, EstimateItem } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
-import { useUndoRedo } from '@/hooks/useUndoRedo'
 import { useEstimateSearch } from '@/hooks/useEstimateSearch'
-import { recalcAllTotals } from '@/lib/estimate/tableLogic'
 import { syncUrethaneItems } from '@/lib/estimate/syncUrethane'
 import { calc } from '@/lib/estimate/calc'
 import ExcelLikeTable from './ExcelLikeTable'
@@ -22,6 +20,8 @@ interface EstimateTableWrapperProps {
   onChange: (estimate: Estimate) => void
   acdbSuggest?: AcdbSuggestHook
   companyId?: string
+  onUndo?: () => void
+  onSaveSnapshot?: (description: string) => void
 }
 
 export default function EstimateTableWrapper({
@@ -29,19 +29,14 @@ export default function EstimateTableWrapper({
   sheetIndex,
   onChange,
   acdbSuggest,
+  onUndo,
+  onSaveSnapshot,
 }: EstimateTableWrapperProps) {
   const sheet = estimate.sheets[sheetIndex]
   const items = sheet?.items ?? []
   const sheetType = sheet?.type ?? '복합'
 
   console.log('[WRAPPER] render', { sheetIndex, itemCount: items.length, sheetType })
-
-  const { pushState, syncCurrent, undo, redo } = useUndoRedo(items)
-
-  // items 변경 시 undo/redo 동기화
-  useEffect(() => {
-    syncCurrent(items)
-  }, [items, syncCurrent])
 
   // 검색
   const estimateSearch = useEstimateSearch(estimate.sheets)
@@ -52,7 +47,7 @@ export default function EstimateTableWrapper({
   // --- items 변경 헬퍼 ---
   const updateItems = useCallback((newItems: EstimateItem[], description: string) => {
     console.log('[WRAPPER] updateItems', { description, newItemCount: newItems.length })
-    pushState(description)
+    onSaveSnapshot?.(description)
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems, grand_total: calcResult.grandTotal }
@@ -68,7 +63,7 @@ export default function EstimateTableWrapper({
     }
 
     onChange({ ...estimate, sheets })
-  }, [estimate, sheetIndex, sheetType, pushState, onChange])
+  }, [estimate, sheetIndex, sheetType, onSaveSnapshot, onChange])
 
   // --- onChange from table (직접 items 변경) ---
   const handleItemsChange = useCallback((newItems: EstimateItem[]) => {
@@ -77,28 +72,28 @@ export default function EstimateTableWrapper({
 
   // --- 잠금 토글 ---
   const handleToggleLock = useCallback((itemIndex: number) => {
-    pushState('잠금 토글')
+    onSaveSnapshot?.('잠금 토글')
     const newItems = [...items]
     newItems[itemIndex] = { ...newItems[itemIndex], is_locked: !newItems[itemIndex].is_locked }
     const sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems }
     onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, pushState, onChange])
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
   // --- 숨김 토글 ---
   const handleToggleHide = useCallback((itemIndex: number) => {
-    pushState('숨김 토글')
+    onSaveSnapshot?.('숨김 토글')
     const newItems = [...items]
     newItems[itemIndex] = { ...newItems[itemIndex], is_hidden: !newItems[itemIndex].is_hidden }
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems, grand_total: calcResult.grandTotal }
     onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, pushState, onChange])
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
   // --- 자유입력 행 추가 ---
   const handleAddFreeItem = useCallback(() => {
-    pushState('행 추가')
+    onSaveSnapshot?.('행 추가')
     const newItem: EstimateItem = {
       sort_order: items.length + 1,
       name: '',
@@ -120,31 +115,16 @@ export default function EstimateTableWrapper({
     const sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems }
     onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, pushState, onChange])
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
   // --- Undo ---
   const handleUndo = useCallback(() => {
-    const restored = undo()
-    if (!restored) return
-    const calcResult = calc(restored.filter(i => !i.is_hidden))
-    const sheets = [...estimate.sheets]
-    sheets[sheetIndex] = { ...sheets[sheetIndex], items: restored, grand_total: calcResult.grandTotal }
-    onChange({ ...estimate, sheets })
-  }, [undo, estimate, sheetIndex, onChange])
-
-  // --- Redo ---
-  const handleRedo = useCallback(() => {
-    const restored = redo()
-    if (!restored) return
-    const calcResult = calc(restored.filter(i => !i.is_hidden))
-    const sheets = [...estimate.sheets]
-    sheets[sheetIndex] = { ...sheets[sheetIndex], items: restored, grand_total: calcResult.grandTotal }
-    onChange({ ...estimate, sheets })
-  }, [redo, estimate, sheetIndex, onChange])
+    onUndo?.()
+  }, [onUndo])
 
   // --- acdb 선택 ---
   const handleAcdbSelect = useCallback((result: AcdbSearchResult, rowIndex: number) => {
-    pushState('acdb 선택')
+    onSaveSnapshot?.('acdb 선택')
     const newItems = [...items]
     const item = { ...newItems[rowIndex] }
     item.name = result.entry.display
@@ -155,7 +135,7 @@ export default function EstimateTableWrapper({
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems }
     onChange({ ...estimate, sheets })
     acdbSuggest?.clear()
-  }, [items, estimate, sheetIndex, pushState, onChange, acdbSuggest])
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange, acdbSuggest])
 
   if (!sheet) return null
 
@@ -166,7 +146,7 @@ export default function EstimateTableWrapper({
       areaM2={estimate.m2}
       onChange={handleItemsChange}
       onUndo={handleUndo}
-      onRedo={handleRedo}
+      onRedo={undefined}
       onToggleLock={handleToggleLock}
       onToggleHide={handleToggleHide}
       onAddFreeItem={handleAddFreeItem}
