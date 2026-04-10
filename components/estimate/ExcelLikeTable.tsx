@@ -100,7 +100,6 @@ export default function ExcelLikeTable({
 
   const commitValue = useCallback(() => {
     const cell = activeCell ?? lastActiveCellRef.current
-    console.log('[COMMIT] commitValue', { activeCell: activeCell ? `${activeCell.row},${activeCell.col}` : null, lastActive: lastActiveCellRef.current ? `${lastActiveCellRef.current.row},${lastActiveCellRef.current.col}` : null, pending: pendingValueRef.current })
     if (!cell || !pendingValueRef.current) return
     const { row } = cell
     const { value, field } = pendingValueRef.current
@@ -375,10 +374,7 @@ export default function ExcelLikeTable({
                       onStartEditing={handleStartEditing}
                       onCommit={(val) => {
                         // onBlur 경로: 키보드가 이미 커밋했으면 스킵
-                        if (keyboardCommittedRef.current) {
-                          console.log('[COMMIT] onCommit skipped (keyboard already committed)')
-                          return
-                        }
+                        if (keyboardCommittedRef.current) return
                         pendingValueRef.current = { value: val, field: col.key }
                         commitValue()
                       }}

@@ -27,7 +27,6 @@ export function buildItems(input: BuildItemsInput): {
   calcResult: CalcResult
 } {
   const { method, m2, wallM2 = 0, pricePerPyeong, priceMatrix, options = {} } = input
-  console.log('[BUILD] buildItems enter', { method, m2, wallM2, pricePerPyeong })
 
   const areaRange = getAR(m2)
   const unitCosts = getPD(priceMatrix, areaRange, method, pricePerPyeong)
@@ -138,7 +137,6 @@ export function buildItems(input: BuildItemsInput): {
   }
 
   const calcResult = calc(items)
-  console.log('[BUILD] buildItems result', { itemCount: items.length, grandTotal: calcResult.grandTotal })
 
   return { items, calcResult }
 }
