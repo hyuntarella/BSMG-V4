@@ -202,10 +202,10 @@ export default function EstimateEditorV5({
             </button>
           </div>
           {activeTab === 'composite' && compositeIdx >= 0 && (
-            <BasePriceBar sheet={estimate.sheets[compositeIdx]} />
+            <BasePriceBar sheet={estimate.sheets[compositeIdx]} m2={estimate.m2} />
           )}
           {activeTab === 'urethane' && urethaneIdx >= 0 && (
-            <BasePriceBar sheet={estimate.sheets[urethaneIdx]} />
+            <BasePriceBar sheet={estimate.sheets[urethaneIdx]} m2={estimate.m2} />
           )}
         </div>
 
