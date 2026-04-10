@@ -11,6 +11,7 @@ import EstimateTableWrapper from './EstimateTableWrapper'
 import SaveButton from './SaveButton'
 import LoadButton from './LoadButton'
 import CustomerInfoCard from './CustomerInfoCard'
+import BasePriceBar from './BasePriceBar'
 
 type TabId = 'composite' | 'urethane' | 'compare'
 
@@ -187,17 +188,25 @@ export default function EstimateEditorV5({
           />
         </div>
 
-        {/* 탭 */}
-        <div className="flex border-b bg-white">
-          <button className={tabClass('composite')} onClick={() => setActiveTab('composite')}>
-            복합
-          </button>
-          <button className={tabClass('urethane')} onClick={() => setActiveTab('urethane')}>
-            우레탄
-          </button>
-          <button className={tabClass('compare')} onClick={() => setActiveTab('compare')}>
-            비교
-          </button>
+        {/* 탭 + 평단가 현황 */}
+        <div className="flex items-center justify-between border-b bg-white">
+          <div className="flex">
+            <button className={tabClass('composite')} onClick={() => setActiveTab('composite')}>
+              복합
+            </button>
+            <button className={tabClass('urethane')} onClick={() => setActiveTab('urethane')}>
+              우레탄
+            </button>
+            <button className={tabClass('compare')} onClick={() => setActiveTab('compare')}>
+              비교
+            </button>
+          </div>
+          {activeTab === 'composite' && compositeIdx >= 0 && (
+            <BasePriceBar sheet={estimate.sheets[compositeIdx]} />
+          )}
+          {activeTab === 'urethane' && urethaneIdx >= 0 && (
+            <BasePriceBar sheet={estimate.sheets[urethaneIdx]} />
+          )}
         </div>
 
         {/* 테이블 영역 */}
