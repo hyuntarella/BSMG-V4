@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND
-- 진행중: Phase 4I-H4-2-KEYBIND 완료 — Ctrl+Z 근본 수정, 사용자 실측 통과
-- 다음: console.log 19개 제거 → Phase 5
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND
+- 진행중: Phase 4I-H4-3 평단가 현황 (표 오른쪽 위 요약 바)
+- 다음: Phase 4I-H4-4 비교 탭 공종별 단가 나란히 → console.log 19개 제거 → Phase 5
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -203,7 +203,7 @@
   - rowRefs 제거 (Map + tr ref callback)
   - 하이라이트(ring-yellow-400) 유지
 
-### Phase 4I-H4: 표 읽기전용 4열→2열 압축
+### Phase 4I-H4-1: 표 읽기전용 4열→2열 압축
 - ExcelLikeTable: 단가/금액 각 3열(재료비/인건비/경비)을 읽기전용 모드에서 단가합/금액합 2열로 압축
 - 편집 모드 유지, Figma 을지 열 너비 기준 재적용
 - 커밋: 6a345b5
