@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { EstimateItem, Method } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
+import type { CellPosition } from '@/hooks/useExcelSelection'
 import { fm } from '@/lib/utils/format'
 import { useExcelSelection } from '@/hooks/useExcelSelection'
 import { useTableKeyboard } from '@/hooks/useTableKeyboard'
@@ -68,6 +69,10 @@ export default function ExcelLikeTable({
 }: ExcelLikeTableProps) {
   const { activeCell, isEditing, select, startEditing, stopEditing, clear } = useExcelSelection()
   const pendingValueRef = useRef<{ value: string | number; field: string } | null>(null)
+  /** activeCell 백업 — commitValue에서 activeCell이 null일 때 fallback */
+  const lastActiveCellRef = useRef<CellPosition | null>(null)
+  /** 키보드 commit 완료 플래그 — onBlur 이중 커밋 방지 */
+  const keyboardCommittedRef = useRef(false)
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [acdbSelectedIdx, setAcdbSelectedIdx] = useState(-1)
@@ -75,6 +80,11 @@ export default function ExcelLikeTable({
   const typeToEditCharRef = useRef<string | null>(null)
   const [warningDismissed, setWarningDismissed] = useState(false)
   const prevOverThresholdRef = useRef(false)
+
+  // lastActiveCellRef 동기화: activeCell이 유효할 때마다 백업
+  if (activeCell) {
+    lastActiveCellRef.current = activeCell
+  }
 
   // Phase 4H: visible items 기준 tier 계산
   const visibleItems = items.filter(item => !item.is_hidden)
@@ -89,8 +99,10 @@ export default function ExcelLikeTable({
   prevOverThresholdRef.current = isOverThreshold
 
   const commitValue = useCallback(() => {
-    if (!activeCell || !pendingValueRef.current) return
-    const { row } = activeCell
+    const cell = activeCell ?? lastActiveCellRef.current
+    console.log('[COMMIT] commitValue', { activeCell: activeCell ? `${activeCell.row},${activeCell.col}` : null, lastActive: lastActiveCellRef.current ? `${lastActiveCellRef.current.row},${lastActiveCellRef.current.col}` : null, pending: pendingValueRef.current })
+    if (!cell || !pendingValueRef.current) return
+    const { row } = cell
     const { value, field } = pendingValueRef.current
     const item = items[row]
     if (!item) return
@@ -100,6 +112,7 @@ export default function ExcelLikeTable({
     newItems[row] = edited
     onChange(newItems)
     pendingValueRef.current = null
+    keyboardCommittedRef.current = true
   }, [activeCell, items, onChange])
 
   const cancelEdit = useCallback(() => {
@@ -128,13 +141,19 @@ export default function ExcelLikeTable({
     typeToEditCharRef.current = char
   }, [])
 
+  // 편집 시작 시 키보드 커밋 플래그 리셋
+  const handleStartEditing = useCallback(() => {
+    keyboardCommittedRef.current = false
+    startEditing()
+  }, [startEditing])
+
   const { handleKeyDown } = useTableKeyboard({
     activeCell,
     isEditing,
     items,
     colCount: COL_COUNT,
     onSelect: select,
-    onStartEditing: startEditing,
+    onStartEditing: handleStartEditing,
     onStopEditing: stopEditing,
     onCommitValue: commitValue,
     onCancelEdit: cancelEdit,
@@ -251,17 +270,11 @@ export default function ExcelLikeTable({
                 {col.label}
               </th>
             ))}
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
-              재료금액
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '110px' }}>
+              단가합
             </th>
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
-              인건금액
-            </th>
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '106px' }}>
-              경비금액
-            </th>
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '96px' }}>
-              합계
+            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '110px' }}>
+              금액합
             </th>
           </tr>
         </thead>
@@ -359,8 +372,13 @@ export default function ExcelLikeTable({
                       tierPaddingClass={tier.paddingClass}
                       tierRowHeight={tier.rowHeight}
                       onSelect={() => select(rowIdx, colIdx)}
-                      onStartEditing={startEditing}
+                      onStartEditing={handleStartEditing}
                       onCommit={(val) => {
+                        // onBlur 경로: 키보드가 이미 커밋했으면 스킵
+                        if (keyboardCommittedRef.current) {
+                          console.log('[COMMIT] onCommit skipped (keyboard already committed)')
+                          return
+                        }
                         pendingValueRef.current = { value: val, field: col.key }
                         commitValue()
                       }}
@@ -377,15 +395,9 @@ export default function ExcelLikeTable({
                   )
                 })}
 
-                {/* 읽기 전용 금액 열 */}
+                {/* 읽기 전용 금액 열: 단가합 / 금액합 */}
                 <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
-                  {fm(item.mat_amount)}
-                </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
-                  {fm(item.labor_amount)}
-                </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
-                  {fm(item.exp_amount)}
+                  {fm(item.mat + item.labor + item.exp)}
                 </td>
                 <td className="border border-gray-300 px-1 text-right font-mono tabular-nums font-semibold" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.total)}
@@ -397,15 +409,15 @@ export default function ExcelLikeTable({
 
         {/* 푸터 — 소계/공과잡비/이윤/계/합계 */}
         <tfoot className="sticky bottom-0 bg-gray-50">
-          <FooterRow label="소 계" value={totals.subtotal} colSpan={8} />
-          <FooterRow label="공과잡비" value={totals.overhead} suffix="3%" colSpan={8} />
-          <FooterRow label="기업이윤" value={totals.profit} suffix="6%" colSpan={8} />
-          <FooterRow label="계" value={totals.totalBeforeRound} colSpan={8} />
+          <FooterRow label="소 계" value={totals.subtotal} colSpan={9} />
+          <FooterRow label="공과잡비" value={totals.overhead} suffix="3%" colSpan={9} />
+          <FooterRow label="기업이윤" value={totals.profit} suffix="6%" colSpan={9} />
+          <FooterRow label="계" value={totals.totalBeforeRound} colSpan={9} />
           <tr className="border-t-2 border-gray-900 bg-gray-100 font-bold">
-            <td colSpan={8} className="px-2 py-1.5 text-left text-sm">
+            <td colSpan={9} className="px-2 py-1.5 text-left text-sm">
               합 계 <span className="text-xs font-normal text-gray-500">(단수정리)</span>
             </td>
-            <td colSpan={4} className="px-2 py-1.5 text-right font-mono tabular-nums text-base">
+            <td colSpan={1} className="px-2 py-1.5 text-right font-mono tabular-nums text-base">
               {fm(totals.grandTotal)}
             </td>
           </tr>
@@ -448,7 +460,7 @@ function FooterRow({
         {label}
         {suffix && <span className="ml-1 text-gray-400">({suffix})</span>}
       </td>
-      <td colSpan={4} className="px-2 py-1 text-right font-mono tabular-nums text-xs">
+      <td colSpan={1} className="px-2 py-1 text-right font-mono tabular-nums text-xs">
         {fm(value)}
       </td>
     </tr>
