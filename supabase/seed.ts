@@ -39,9 +39,9 @@ const PRESETS_DEFAULT = [
   { name: '노출 우레탄 2차', spec: 'KS 인증 1.0mm', unit: 'm²', mat: 4000, labor: 3000, exp: 500, category: 'urethane' },
   { name: '크랙보수', spec: 'V컷 + 실링', unit: 'm', mat: 3000, labor: 5000, exp: 0, category: 'extra' },
   { name: '드라이비트 절개', spec: '', unit: 'm', mat: 0, labor: 3500, exp: 0, category: 'extra' },
-  { name: '사다리차', spec: '1톤', unit: '일', mat: 0, labor: 120000, exp: 0, category: 'equipment' },
-  { name: '폐기물 처리', spec: '마대 및 운반', unit: '일', mat: 0, labor: 200000, exp: 0, category: 'equipment' },
-  { name: '스���이차', spec: '0.5톤', unit: '일', mat: 0, labor: 350000, exp: 0, category: 'equipment' },
+  { name: '사다리차', spec: '1톤', unit: '일', mat: 0, labor: 0, exp: 120000, category: 'equipment' },
+  { name: '폐기물 처리', spec: '마대 및 운반', unit: '일', mat: 0, labor: 0, exp: 200000, category: 'equipment' },
+  { name: '스���이차', spec: '0.5톤', unit: '일', mat: 0, labor: 0, exp: 350000, category: 'equipment' },
 ]
 
 // ── 원가 테이블 ──

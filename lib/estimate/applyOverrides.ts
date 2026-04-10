@@ -24,27 +24,27 @@ export function applyOverrides(
       updated.qty = options.wallM2
     }
 
-    // 사다리차
+    // 사다리차 (장비 → 경비 컬럼)
     if (item.name === '사다리차' && options.ladder) {
       updated.qty = options.ladder.days
       if (options.ladder.unitPrice) {
-        updated.labor = options.ladder.unitPrice
+        updated.exp = options.ladder.unitPrice
       }
     }
 
-    // 스카이차
+    // 스카이차 (장비 → 경비 컬럼)
     if (item.name === '스카이차' && options.sky) {
       updated.qty = options.sky.days
       if (options.sky.unitPrice) {
-        updated.labor = options.sky.unitPrice
+        updated.exp = options.sky.unitPrice
       }
     }
 
-    // 폐기물 처리
-    if (item.name === '폐기물 처리' && options.waste) {
+    // 폐기물처리 (장비 → 경비 컬럼) — BASE 상수는 공백 없는 '폐기물처리'
+    if (item.name === '폐기물처리' && options.waste) {
       updated.qty = options.waste.days
       if (options.waste.unitPrice) {
-        updated.labor = options.waste.unitPrice
+        updated.exp = options.waste.unitPrice
       }
     }
 

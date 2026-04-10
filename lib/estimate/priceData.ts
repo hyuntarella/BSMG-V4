@@ -1,11 +1,12 @@
 import type { UnitCost, PriceMatrixRaw, Method } from './types'
 import { lerpArr } from '@/lib/utils/lerp'
+import { COMPLEX_BASE, URETHANE_BASE } from './constants'
 
 /**
  * P매트릭스에서 해당 면적대·공법·평단가의 단가 배열을 가져온다.
  * 정확히 일치하는 평단가가 없으면 양쪽 가장 가까운 값 사이를 보간한다.
  *
- * getPD(matrix, '50~100평', '복합', 37500) → UnitCost[11]
+ * getPD(matrix, '50~100평', '복합', 37500) → UnitCost[12] (복합) / UnitCost[11] (우레탄)
  */
 export function getPD(
   matrix: PriceMatrixRaw,
@@ -13,11 +14,12 @@ export function getPD(
   method: Method,
   pricePerPyeong: number
 ): UnitCost[] {
+  const baseLength = method === '복합' ? COMPLEX_BASE.length : URETHANE_BASE.length
   const methodData = matrix[areaRange]?.[method]
   if (!methodData || Object.keys(methodData).length === 0) {
-    // P매트릭스 비어있으면 기본 0값 배열 반환 (11개 공종)
+    // P매트릭스 비어있으면 기본 0값 배열 반환 (BASE 길이에 맞춤)
     console.warn(`P매트릭스에 ${areaRange}/${method} 데이터 없음 — 기본값 사용`)
-    return Array.from({ length: 11 }, (): UnitCost => [0, 0, 0])
+    return Array.from({ length: baseLength }, (): UnitCost => [0, 0, 0])
   }
 
   const prices = Object.keys(methodData)

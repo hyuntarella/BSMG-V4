@@ -238,12 +238,12 @@
     "expected": {
       "action": "update_item",
       "item_name": "사다리차",
-      "field": "labor",
+      "field": "exp",
       "value": 120000,
       "position": null
     },
     "priority": "P1",
-    "note": "장비 + 단가 → labor, 만원 단위"
+    "note": "장비 + 단가 → exp(경비), 만원 단위"
   },
   {
     "id": "SET-005",
@@ -252,7 +252,7 @@
     "expected": {
       "action": "update_item",
       "item_name": "사다리차",
-      "field": "labor",
+      "field": "exp",
       "value": 150000,
       "position": null
     },
@@ -392,12 +392,12 @@
     "expected": {
       "action": "update_item",
       "item_name": "폐기물처리",
-      "field": "labor",
+      "field": "exp",
       "delta": 50000,
       "position": null
     },
     "priority": "P1",
-    "note": "장비 + 단가 → labor + 만원 단위"
+    "note": "장비 + 단가 → exp(경비) + 만원 단위"
   },
   {
     "id": "INFER-001",
@@ -451,13 +451,13 @@
     "expected": {
       "action": "update_item",
       "item_name": "사다리차",
-      "field": "labor",
+      "field": "exp",
       "value": 150000,
       "position": null,
       "fieldInferred": true
     },
     "priority": "P1",
-    "note": "장비류 필드 추론 → labor"
+    "note": "장비류 필드 추론 → exp(경비)"
   },
   {
     "id": "DEL-001",

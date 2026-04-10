@@ -233,7 +233,7 @@ async function createTestEstimate(): Promise<TestEstimate> {
     { name: '하도프라이머', spec: '', unit: 'm²', qty: 150, mat: 800, labor: 500, exp: 0, is_base: true, is_equipment: false, is_fixed_qty: false },
     { name: '복합시트', spec: '3.8mm', unit: 'm²', qty: 150, mat: 5000, labor: 3000, exp: 0, is_base: true, is_equipment: false, is_fixed_qty: false },
     { name: '보호누름', spec: '', unit: 'm²', qty: 150, mat: 1500, labor: 1200, exp: 0, is_base: true, is_equipment: false, is_fixed_qty: false },
-    { name: '사다리차', spec: '', unit: '대', qty: 1, mat: 0, labor: 120000, exp: 0, is_base: false, is_equipment: true, is_fixed_qty: true },
+    { name: '사다리차', spec: '', unit: '대', qty: 1, mat: 0, labor: 0, exp: 120000, is_base: false, is_equipment: true, is_fixed_qty: true },
   ]
 
   const itemInserts = rawItems.map((item, idx) => ({

@@ -12,7 +12,10 @@ import { resolve } from 'path'
 
 // ── 1. canonical_name → item_index 매핑 ──
 
-/** 복합 공종 11개 (COMPLEX_BASE 순서, 스카이차 제외) */
+/**
+ * 복합 공종 12개 — COMPLEX_BASE 순서와 1:1 대응.
+ * CSV 원본에는 스카이차 행이 없으므로 idx 9는 [0,0,0] placeholder.
+ */
 const COMPLEX_CANONICAL_MAP: Record<string, number> = {
   '바탕정리': 0,
   '바탕조정제부분미장': 1,
@@ -23,11 +26,15 @@ const COMPLEX_CANONICAL_MAP: Record<string, number> = {
   '벽체우레탄': 6,
   '우레탄상도': 7,
   '사다리차': 8,
-  '폐기물처리': 9,
-  '드라이비트절개': 10,
+  // idx 9 = 스카이차 (CSV에 없음, placeholder)
+  '폐기물처리': 10,
+  '드라이비트절개': 11,
 }
 
-/** 우레탄 공종 10개 (URETHANE_BASE 순서, 스카이차 제외) */
+/**
+ * 우레탄 공종 11개 — URETHANE_BASE 순서와 1:1 대응.
+ * CSV 원본에는 스카이차 행이 없으므로 idx 8은 [0,0,0] placeholder.
+ */
 const URETHANE_CANONICAL_MAP: Record<string, number> = {
   '바탕정리': 0,
   '바탕조정제부분미장': 1,
@@ -37,12 +44,13 @@ const URETHANE_CANONICAL_MAP: Record<string, number> = {
   '벽체우레탄': 5,
   '우레탄상도': 6,
   '사다리차': 7,
-  '폐기물처리': 8,
-  '드라이비트절개': 9,
+  // idx 8 = 스카이차 (CSV에 없음, placeholder)
+  '폐기물처리': 9,
+  '드라이비트절개': 10,
 }
 
-const COMPLEX_ITEM_COUNT = 11
-const URETHANE_ITEM_COUNT = 10
+const COMPLEX_ITEM_COUNT = 12
+const URETHANE_ITEM_COUNT = 11
 
 // ── 2. area_bucket → area_range 매핑 ──
 

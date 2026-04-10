@@ -59,19 +59,20 @@ export function buildItems(input: BuildItemsInput): {
       qty = 1
     }
 
-    // 장비류에 P매트릭스 단가가 0이면 기본 단가 사용
-    let finalLabor = labor
-    if (b.isEquipment && labor === 0) {
-      if (b.name === '사다리차') finalLabor = options.ladder?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.ladder
-      else if (b.name === '스카이차') finalLabor = options.sky?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.sky
-      else if (b.name === '폐기물처리') finalLabor = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
+    // 장비류 단가는 경비(exp) 컬럼. P매트릭스에 값이 없으면 기본 경비 단가 사용.
+    // (사다리차/스카이차/폐기물/드라이비트는 구조적으로 경비 항목)
+    let finalExp = exp
+    if (b.isEquipment && exp === 0 && labor === 0) {
+      if (b.name === '사다리차') finalExp = options.ladder?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.ladder
+      else if (b.name === '스카이차') finalExp = options.sky?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.sky
+      else if (b.name === '폐기물처리') finalExp = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
     }
 
     // 식 항목 (장비 제외): 단가 비움, 금액에 직접 (P매트릭스 값 = 금액)
     const isShikItem = b.unit === '식' && !b.isEquipment
     const matAmount = isShikItem ? mat : Math.round(qty * mat)
-    const laborAmount = isShikItem ? finalLabor : Math.round(qty * finalLabor)
-    const expAmount = isShikItem ? exp : Math.round(qty * exp)
+    const laborAmount = isShikItem ? labor : Math.round(qty * labor)
+    const expAmount = isShikItem ? finalExp : Math.round(qty * finalExp)
 
     return {
       sort_order: i + 1,
@@ -80,8 +81,8 @@ export function buildItems(input: BuildItemsInput): {
       unit: b.unit,
       qty,
       mat: isShikItem ? 0 : mat,
-      labor: isShikItem ? 0 : finalLabor,
-      exp: isShikItem ? 0 : exp,
+      labor: isShikItem ? 0 : labor,
+      exp: isShikItem ? 0 : finalExp,
       mat_amount: matAmount,
       labor_amount: laborAmount,
       exp_amount: expAmount,

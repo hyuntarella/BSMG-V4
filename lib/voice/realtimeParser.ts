@@ -291,17 +291,18 @@ export function matchItemName(input: string, sheetItems?: string[]): string | nu
 
 /**
  * 필드명 매칭.
- * 장비류(사다리차, 스카이차, 폐기물) + "단가" 문맥이면 labor 반환.
+ * 장비류(사다리차, 스카이차, 폐기물) + "단가" 문맥이면 exp 반환.
+ * (장비 대여료/폐기물 처리비는 구조적으로 경비 항목)
  */
 export function matchField(input: string, itemName?: string): string | null {
   const normalized = input.replace(/\s/g, '')
   const field = FIELD_ALIASES[normalized]
   if (!field) return null
 
-  // "단가" + 장비류 → labor
+  // "단가" + 장비류 → exp (경비)
   if (field === 'mat' && normalized === '단가' && itemName) {
     const equipmentNames = ['사다리차', '스카이차', '폐기물처리']
-    if (equipmentNames.some(eq => itemName.includes(eq))) return 'labor'
+    if (equipmentNames.some(eq => itemName.includes(eq))) return 'exp'
   }
 
   return field
