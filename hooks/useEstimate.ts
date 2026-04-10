@@ -362,11 +362,14 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate.sheets, saveSnapshot],
   )
 
-  // ── undo (직전 스냅샷 복원) ──
+  // ── undo (직전 스냅샷에서 sheets만 복원 — 메타 필드는 현재값 유지) ──
   const undo = useCallback(() => {
     if (snapshots.length === 0) return
     const last = snapshots[snapshots.length - 1]
-    setEstimate(JSON.parse(JSON.stringify(last.estimate)))
+    setEstimate(prev => ({
+      ...prev,
+      sheets: JSON.parse(JSON.stringify(last.estimate.sheets)),
+    }))
     setSnapshots(prev => prev.slice(0, -1))
     setModifiedCells(new Map())
     setIsDirty(true)
