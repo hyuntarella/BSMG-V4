@@ -69,7 +69,6 @@ export default function ExcelCell({
   // 편집 모드 진입 시 input 포커스 + pendingValue 동기화
   useEffect(() => {
     if (isEditing && type !== 'select') {
-      console.log('[CELL] edit mode enter', { value, type, isEditing, initialChar })
       if (initialChar) {
         // 타이핑으로 진입: 첫 글자로 덮어쓰기
         setEditValue(initialChar)
@@ -98,7 +97,6 @@ export default function ExcelCell({
   }, [isEditing, value, initialChar])
 
   const handleCommit = useCallback(() => {
-    console.log('[CELL] handleCommit', { editValue, type, parsed: type === 'number' ? parseFloat(editValue.replace(/,/g, '')) : editValue })
     if (type === 'number') {
       const parsed = parseFloat(editValue.replace(/,/g, ''))
       onCommit(isNaN(parsed) ? 0 : parsed)
@@ -173,7 +171,6 @@ export default function ExcelCell({
         <select
           value={String(value)}
           onChange={(e) => {
-            console.log('[CELL] select onChange', { newValue: e.target.value })
             onCommit(e.target.value)
           }}
           onKeyDown={(e) => {
@@ -255,7 +252,6 @@ export default function ExcelCell({
         ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={() => {
-        console.log('[CELL] onClick', { isSelected, isLocked, type, value })
         if (isSelected) {
           // 이미 선택된 셀 → 싱글클릭으로 편집 진입 (엑셀 UX)
           if (!isLocked || type === 'text') {

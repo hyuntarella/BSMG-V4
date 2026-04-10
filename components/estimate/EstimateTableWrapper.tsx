@@ -36,8 +36,6 @@ export default function EstimateTableWrapper({
   const items = sheet?.items ?? []
   const sheetType = sheet?.type ?? '복합'
 
-  console.log('[WRAPPER] render', { sheetIndex, itemCount: items.length, sheetType })
-
   // 검색
   const estimateSearch = useEstimateSearch(estimate.sheets)
   const matchingRowIndexes = estimateSearch.results
@@ -46,7 +44,6 @@ export default function EstimateTableWrapper({
 
   // --- items 변경 헬퍼 ---
   const updateItems = useCallback((newItems: EstimateItem[], description: string) => {
-    console.log('[WRAPPER] updateItems', { description, newItemCount: newItems.length })
     onSaveSnapshot?.(description)
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]

@@ -108,7 +108,6 @@ export default function EstimateEditorV5({
 
   // --- 면적 변경 핸들러 ---
   const handleAreaChange = useCallback((m2: number) => {
-    console.log('[EDITOR] handleAreaChange', { m2 })
     updateMeta('m2', m2)
   }, [updateMeta])
 
