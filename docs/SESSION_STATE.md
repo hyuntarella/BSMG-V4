@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG
-- 진행중: Phase 4I-H3-FIX 완료 — Vercel 배포 후 사용자 실측 대기
-- 다음: 실측 통과 → console.log 19개 제거 → Phase 5
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND
+- 진행중: Phase 4I-H4-2-KEYBIND 완료 — Ctrl+Z 근본 수정, 사용자 실측 통과
+- 다음: console.log 19개 제거 → Phase 5
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -202,6 +202,45 @@
   - scrollIntoView useEffect 제거
   - rowRefs 제거 (Map + tr ref callback)
   - 하이라이트(ring-yellow-400) 유지
+
+### Phase 4I-H4: 표 읽기전용 4열→2열 압축
+- ExcelLikeTable: 단가/금액 각 3열(재료비/인건비/경비)을 읽기전용 모드에서 단가합/금액합 2열로 압축
+- 편집 모드 유지, Figma 을지 열 너비 기준 재적용
+- 커밋: 6a345b5
+
+### Phase 4I-H4-2: Undo/Redo 단일 시스템 통합
+- 배경: H4에서 items 레벨 useUndoRedo와 useEstimate.saveSnapshot 두 개의 undo 시스템이 병존
+- useUndoRedo(items) 완전 제거 → useEstimate.saveSnapshot + useEstimate.undo()로 통합
+- 수정: EstimateEditorV5에서 undo/saveSnapshot 추출 → EstimateTableWrapper prop으로 전달
+- EstimateTableWrapper: useUndoRedo import/호출 제거, pushState → onSaveSnapshot?.()로 교체
+- handleRedo 제거(useEstimate에 redo 없음), ExcelLikeTable onRedo={undefined}
+- 미사용 import 정리 (useEffect, useState, recalcAllTotals)
+- 커밋: 164ea57
+
+### Phase 4I-H4-2-FIX: undo sheets만 복원
+- 문제: undo가 estimate 전체 복원 → m2 포함 메타 필드가 이전 스냅샷 값으로 되돌아감
+- 수정: useEstimate.undo에서 setEstimate(prev => ({...prev, sheets: JSON.parse(...last.estimate.sheets)}))
+- 메타 필드(m2, customer_name 등)는 현재값 유지, 공종 items만 복원
+- 커밋: 754eeae
+
+### Phase 4I-H4-2-CHIP: chip effect 제거
+- 문제 가설: EstimateEditorV5의 칩 useEffect가 undo 경로와 맞물려 sheet 재빌드 피드백 루프 형성
+- 수정: useCostChips에 onPriceChange 콜백 파라미터 추가. setSelectedChip/setCustomPrice 래퍼에서
+  사용자 이벤트 경로에서 단 한 번만 콜백 호출. 상호 null-sync도 훅 내부 처리
+- EstimateEditorV5: 칩 useEffect 2개 완전 제거. estimateRef 기반 handleCompositePriceChange/handleUrethanePriceChange
+- CostChipsPanel: setSelectedChip(null) 이중 호출 제거
+- 테스트 업데이트: useCostChips.test React mock에 useCallback 추가, CostChipsPanel.test 직접입력 기대 수정
+- 커밋: 6a629d9
+
+### Phase 4I-H4-2-KEYBIND: Ctrl+Z 진짜 범인 — 브라우저 native input undo 차단
+- 근본 원인: 포커스가 <input type="number"> (면적 필드)에 있을 때 Ctrl+Z는 브라우저 네이티브 input undo가
+  먼저 실행되어 입력값을 한 글자씩 되돌리고 onChange → handleAreaChange → updateMeta('m2', ...) 연쇄 호출
+- useTableKeyboard의 Ctrl+Z는 activeCell이 있을 때만 발동 → input 포커스 시 커스텀 undo는 호출조차 안 됨
+- H4-2/FIX/CHIP 수정들은 전부 올바르게 작동 중이었지만, undo 자체가 호출된 적이 없었음
+- 수정: EstimateEditorV5에 window 레벨 keydown 리스너(capture 단계) 설치. Ctrl+Z 선점 →
+  preventDefault + stopPropagation → useEstimate.undo() 호출. 포커스 위치와 무관하게 커스텀 undo 발동
+- 사용자 실측 통과: 면적 유지 + items 복원 확인
+- 커밋: 697d80b
 
 ## 테스트 상태
 - 전체: 452/453 통과
