@@ -364,6 +364,9 @@ export default function ExcelLikeTable({
                         pendingValueRef.current = { value: val, field: col.key }
                         commitValue()
                       }}
+                      onEditChange={(val) => {
+                        pendingValueRef.current = { value: val, field: col.key }
+                      }}
                       onCancel={cancelEdit}
                       acdbResults={showAcdb ? acdbResults?.slice(0, 8) : undefined}
                       acdbSelectedIndex={showAcdb ? acdbSelectedIdx : undefined}
