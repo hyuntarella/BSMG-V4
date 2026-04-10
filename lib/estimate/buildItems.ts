@@ -27,6 +27,7 @@ export function buildItems(input: BuildItemsInput): {
   calcResult: CalcResult
 } {
   const { method, m2, wallM2 = 0, pricePerPyeong, priceMatrix, options = {} } = input
+  console.log('[BUILD] buildItems enter', { method, m2, wallM2, pricePerPyeong })
 
   const areaRange = getAR(m2)
   const unitCosts = getPD(priceMatrix, areaRange, method, pricePerPyeong)
@@ -42,6 +43,7 @@ export function buildItems(input: BuildItemsInput): {
     if (b.isEquipment) {
       // 장비류: 기본 0 (옵션에서 오버라이드)
       if (b.name === '사다리차') qty = options.ladder?.days ?? 0
+      else if (b.name === '스카이차') qty = options.sky?.days ?? 0
       else if (b.name === '폐기물처리') qty = options.waste?.days ?? 0
       else if (b.name === '드라이비트하부절개') qty = options.dryvit ? 1 : 0
     } else if (b.isWall) {
@@ -62,6 +64,7 @@ export function buildItems(input: BuildItemsInput): {
     let finalLabor = labor
     if (b.isEquipment && labor === 0) {
       if (b.name === '사다리차') finalLabor = options.ladder?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.ladder
+      else if (b.name === '스카이차') finalLabor = options.sky?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.sky
       else if (b.name === '폐기물처리') finalLabor = options.waste?.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste
     }
 
@@ -108,7 +111,34 @@ export function buildItems(input: BuildItemsInput): {
   // sort_order 재정렬
   items = items.map((item, i) => ({ ...item, sort_order: i + 1 }))
 
+  // Lock 보존: is_locked=true인 항목은 기존 단가 유지
+  if (input.preserveLockedItems?.length) {
+    const lockedMap = new Map<string, EstimateItem>()
+    for (const l of input.preserveLockedItems) {
+      if (l.is_locked) lockedMap.set(l.name.replace(/\s+/g, ''), l)
+    }
+
+    items = items.map(item => {
+      const locked = lockedMap.get(item.name.replace(/\s+/g, ''))
+      if (!locked) return item
+      const mat = locked.mat
+      const labor = locked.labor
+      const exp = locked.exp
+      const mat_amount = Math.round(mat * item.qty)
+      const labor_amount = Math.round(labor * item.qty)
+      const exp_amount = Math.round(exp * item.qty)
+      return {
+        ...item,
+        mat, labor, exp,
+        mat_amount, labor_amount, exp_amount,
+        total: mat_amount + labor_amount + exp_amount,
+        is_locked: true,
+      }
+    })
+  }
+
   const calcResult = calc(items)
+  console.log('[BUILD] buildItems result', { itemCount: items.length, grandTotal: calcResult.grandTotal })
 
   return { items, calcResult }
 }

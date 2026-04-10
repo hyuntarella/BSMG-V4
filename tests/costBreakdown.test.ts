@@ -1,8 +1,4 @@
-/**
- * costBreakdown 테스트
- * 실행: npx tsx tests/costBreakdown.test.ts
- */
-
+import { describe, it, expect } from 'vitest'
 import {
   getCostBreakdown,
   getAdjustedCost,
@@ -12,99 +8,84 @@ import {
 } from '../lib/estimate/costBreakdown'
 import { LABOR_COST_PER_PUM } from '../lib/estimate/constants'
 
-let passed = 0
-let failed = 0
+describe('getCostBreakdown', () => {
+  const c30 = getCostBreakdown(30)
 
-function assert(name: string, condition: boolean, detail?: string) {
-  if (condition) {
-    passed++
-    console.log(`  ✅ ${name}`)
-  } else {
-    failed++
-    console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`)
-  }
-}
+  it('30평 하도 = 80000', () => expect(c30.hado).toBe(80000))
+  it('30평 중도 = 500000', () => expect(c30.jungdo15).toBe(500000))
+  it('30평 상도 = 120000', () => expect(c30.sangdo).toBe(120000))
+  it('30평 시트 = 620000', () => expect(c30.sheet).toBe(620000))
+  it('30평 경비 = 350000', () => expect(c30.misc).toBe(350000))
+  it('30평 품수 = 6', () => expect(c30.pum).toBe(6))
+  it('30평 인건비 = 6×220000', () => expect(c30.labor).toBe(6 * LABOR_COST_PER_PUM))
 
-// ── getCostBreakdown ──
-console.log('\n📦 getCostBreakdown')
+  it('30평 재료비소계', () => {
+    const materialTotal = 80000 + 500000 + 120000 + 620000
+    expect(c30.materialTotal).toBe(materialTotal)
+  })
 
-const c30 = getCostBreakdown(30)
-assert('30평 하도 = 80000', c30.hado === 80000, `got ${c30.hado}`)
-assert('30평 중도 = 500000', c30.jungdo15 === 500000, `got ${c30.jungdo15}`)
-assert('30평 상도 = 120000', c30.sangdo === 120000, `got ${c30.sangdo}`)
-assert('30평 시트 = 620000', c30.sheet === 620000, `got ${c30.sheet}`)
-assert('30평 경비 = 350000', c30.misc === 350000, `got ${c30.misc}`)
-assert('30평 품수 = 6', c30.pum === 6, `got ${c30.pum}`)
-assert('30평 인건비 = 6×220000', c30.labor === 6 * LABOR_COST_PER_PUM, `got ${c30.labor}`)
+  it('30평 총원가', () => {
+    const materialTotal = 80000 + 500000 + 120000 + 620000
+    expect(c30.total).toBe(materialTotal + c30.labor + 350000)
+  })
 
-const materialTotal30 = 80000 + 500000 + 120000 + 620000
-assert('30평 재료비소계', c30.materialTotal === materialTotal30, `got ${c30.materialTotal}`)
-assert('30평 총원가', c30.total === materialTotal30 + c30.labor + 350000, `got ${c30.total}`)
+  it('50평 하도 = 170000', () => expect(getCostBreakdown(50).hado).toBe(170000))
+  it('50평 품수 = 7', () => expect(getCostBreakdown(50).pum).toBe(7))
+  it('100평 하도 = 320000', () => expect(getCostBreakdown(100).hado).toBe(320000))
+  it('100평 중도 = 1500000', () => expect(getCostBreakdown(100).jungdo15).toBe(1500000))
 
-const c50 = getCostBreakdown(50)
-assert('50평 하도 = 170000', c50.hado === 170000, `got ${c50.hado}`)
-assert('50평 품수 = 7', c50.pum === 7, `got ${c50.pum}`)
+  it('40평 하도 보간 = 125000', () => expect(getCostBreakdown(40).hado).toBe(125000))
+  it('40평 중도 보간 = 650000', () => expect(getCostBreakdown(40).jungdo15).toBe(650000))
 
-const c100 = getCostBreakdown(100)
-assert('100평 하도 = 320000', c100.hado === 320000, `got ${c100.hado}`)
-assert('100평 중도 = 1500000', c100.jungdo15 === 1500000, `got ${c100.jungdo15}`)
+  it('20평 → 30평 값', () => expect(getCostBreakdown(20).hado).toBe(80000))
+  it('150평 → 100평 값', () => expect(getCostBreakdown(150).hado).toBe(320000))
+})
 
-// 보간 테스트
-const c40 = getCostBreakdown(40)
-assert('40평 하도 보간 = 125000', c40.hado === 125000, `got ${c40.hado}`)
-assert('40평 중도 보간 = 650000', c40.jungdo15 === 650000, `got ${c40.jungdo15}`)
+describe('getAdjustedCost', () => {
+  const c30 = getCostBreakdown(30)
+  const adj30 = getAdjustedCost(30)
 
-// 경계값
-const c20 = getCostBreakdown(20)
-assert('20평 → 30평 값', c20.hado === 80000, `got ${c20.hado}`)
-const c150 = getCostBreakdown(150)
-assert('150평 → 100평 값', c150.hado === 320000, `got ${c150.hado}`)
+  it('30평 인상후 하도 = 96000', () => expect(adj30.hado).toBe(Math.round(80000 * 1.2)))
+  it('30평 인상후 중도 = 600000', () => expect(adj30.jungdo15).toBe(Math.round(500000 * 1.2)))
+  it('인건비 변화 없음', () => expect(adj30.labor).toBe(c30.labor))
+  it('경비 변화 없음', () => expect(adj30.misc).toBe(c30.misc))
+  it('총원가 증가', () => expect(adj30.total).toBeGreaterThan(c30.total))
+})
 
-// ── getAdjustedCost ──
-console.log('\n📦 getAdjustedCost')
+describe('getMarginDisplay', () => {
+  const margin = getMarginDisplay(50000, 50)
 
-const adj30 = getAdjustedCost(30)
-assert('30평 인상후 하도 = 96000', adj30.hado === Math.round(80000 * 1.2), `got ${adj30.hado}`)
-assert('30평 인상후 중도 = 600000', adj30.jungdo15 === Math.round(500000 * 1.2), `got ${adj30.jungdo15}`)
-assert('인건비 변화 없음', adj30.labor === c30.labor, `got ${adj30.labor}`)
-assert('경비 변화 없음', adj30.misc === c30.misc, `got ${adj30.misc}`)
-assert('총원가 증가', adj30.total > c30.total, `adj=${adj30.total}, base=${c30.total}`)
+  it('마진 포맷 정상', () => expect(margin.formatted).toMatch(/\d+% \(인상 전 \d+%\)/))
+  it('인상전 마진 ≥ 현 마진', () => expect(margin.beforeIncrease).toBeGreaterThanOrEqual(margin.current))
+})
 
-// ── getMarginDisplay ──
-console.log('\n📦 getMarginDisplay')
+describe('findPriceForMargin', () => {
+  it('마진50% 평단가 > 0', () => expect(findPriceForMargin(50, 50)).toBeGreaterThan(0))
+  it('1000원 단위', () => expect(findPriceForMargin(50, 50) % 1000).toBe(0))
 
-const margin = getMarginDisplay(50000, 50)
-assert('마진 포맷 정상', /\d+% \(인상 전 \d+%\)/.test(margin.formatted), `got "${margin.formatted}"`)
-assert('인상전 마진 ≥ 현 마진', margin.beforeIncrease >= margin.current)
+  it('역산 후 마진 ≥ 50%', () => {
+    const price50 = findPriceForMargin(50, 50)
+    const verify50 = getMarginDisplay(price50, 50)
+    expect(verify50.current).toBeGreaterThanOrEqual(50)
+  })
 
-// ── findPriceForMargin ──
-console.log('\n📦 findPriceForMargin')
+  it('마진30% 평단가 > 0', () => expect(findPriceForMargin(30, 100)).toBeGreaterThan(0))
 
-const price50 = findPriceForMargin(50, 50)
-assert('마진50% 평단가 > 0', price50 > 0, `got ${price50}`)
-assert('1000원 단위', price50 % 1000 === 0, `got ${price50}`)
+  it('역산 후 마진 ≥ 30%', () => {
+    const price30 = findPriceForMargin(30, 100)
+    const verify30 = getMarginDisplay(price30, 100)
+    expect(verify30.current).toBeGreaterThanOrEqual(30)
+  })
 
-const verify50 = getMarginDisplay(price50, 50)
-assert('역산 후 마진 ≥ 50%', verify50.current >= 50, `got ${verify50.current}%`)
-console.log(`  ℹ️  50평 마진50% → 평단가 ${price50}원/㎡, 실제 마진 ${verify50.formatted}`)
+  it('마진100% → 0', () => expect(findPriceForMargin(100, 50)).toBe(0))
+})
 
-const price30 = findPriceForMargin(30, 100)
-assert('마진30% 평단가 > 0', price30 > 0, `got ${price30}`)
-const verify30 = getMarginDisplay(price30, 100)
-assert('역산 후 마진 ≥ 30%', verify30.current >= 30, `got ${verify30.current}%`)
+describe('pricePerM2ToPyeong', () => {
+  it('㎡→평 단가 > 0', () => expect(pricePerM2ToPyeong(30000, 165.3)).toBeGreaterThan(0))
 
-const priceImpossible = findPriceForMargin(100, 50)
-assert('마진100% → 0', priceImpossible === 0)
-
-// ── pricePerM2ToPyeong ──
-console.log('\n📦 pricePerM2ToPyeong')
-
-const ppyeong = pricePerM2ToPyeong(30000, 165.3)
-assert('㎡→평 단가 > 0', ppyeong > 0, `got ${ppyeong}`)
-const expectedPP = Math.round((30000 * 165.3) / (165.3 / 3.306))
-assert('계산 정확', ppyeong === expectedPP, `got ${ppyeong}, expected ${expectedPP}`)
-
-// ── 결과 ──
-console.log(`\n${'='.repeat(40)}`)
-console.log(`총 ${passed + failed}건: ✅ ${passed} / ❌ ${failed}`)
-if (failed > 0) process.exit(1)
+  it('계산 정확', () => {
+    const ppyeong = pricePerM2ToPyeong(30000, 165.3)
+    const expected = Math.round((30000 * 165.3) / (165.3 / 3.306))
+    expect(ppyeong).toBe(expected)
+  })
+})

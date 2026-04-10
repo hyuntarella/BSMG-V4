@@ -10,6 +10,14 @@ import type { VoiceCommand } from '@/lib/voice/commands'
 import { applyCommands } from '@/lib/voice/commands'
 import { routeCommands } from '@/lib/voice/confidenceRouter'
 
+/** 장비 기본 옵션: 사다리차 1일, 폐기물 1식, 드라이비트 포함, 스카이차 미포함 */
+const DEFAULT_EQUIPMENT_OPTIONS = {
+  ladder: { days: 1 },
+  sky: { days: 0 },
+  waste: { days: 1 },
+  dryvit: true,
+} as const
+
 // ── 스냅샷 ──
 export interface Snapshot {
   estimate: Estimate
@@ -56,7 +64,8 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
   // ── 메타 업데이트 ──
   const updateMeta = useCallback(
-    (field: keyof Estimate, value: string | number) => {
+    (field: keyof Estimate, value: string | number | boolean) => {
+      console.log('[USE_EST] updateMeta', { field, value })
       saveSnapshot(`${String(field)} 변경`, 'manual')
       setEstimate(prev => {
         const updated = { ...prev, [field]: value }
@@ -96,6 +105,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   // ── 평단가 변경 (재생성 여부 분기) ──
   const updateSheetPpp = useCallback(
     (sheetIndex: number, ppp: number, rebuild: boolean) => {
+      console.log('[USE_EST] updateSheetPpp', { sheetIndex, ppp, rebuild })
       saveSnapshot(`시트${sheetIndex} 평단가 변경`, 'manual')
       setEstimate(prev => {
         const sheets = [...prev.sheets]
@@ -115,14 +125,20 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [priceMatrix, saveSnapshot, markCell],
   )
 
-  // ── 아이템 필드 업데이트 ──
+  // ── 아이템 필드 업데이트 (#9 수량 오버라이드 포함) ──
   const updateItem = useCallback(
     (sheetIndex: number, itemIndex: number, field: string, value: number) => {
+      console.log('[USE_EST] updateItem', { sheetIndex, itemIndex, field, value })
       saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} ${field} 변경`, 'manual')
       setEstimate(prev => {
         const sheets = [...prev.sheets]
         const items = [...sheets[sheetIndex].items]
         const item = { ...items[itemIndex], [field]: value }
+
+        // #9 수량 오버라이드: 원본 백업
+        if (field === 'qty' && item.original_qty == null) {
+          item.original_qty = items[itemIndex].qty
+        }
 
         item.mat_amount = Math.round(item.qty * item.mat)
         item.labor_amount = Math.round(item.qty * item.labor)
@@ -130,8 +146,13 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         item.total = item.mat_amount + item.labor_amount + item.exp_amount
 
         items[itemIndex] = item
-        const calcResult = calc(items)
+        const calcResult = calc(items.filter(i => !i.is_hidden))
         sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        console.log('[USE_EST] updateItem → setState done', {
+          itemName: items[itemIndex]?.name,
+          newTotal: item.total,
+          grandTotal: calcResult.grandTotal,
+        })
         return { ...prev, sheets }
       })
       setIsDirty(true)
@@ -140,14 +161,27 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate.sheets, saveSnapshot, markCell],
   )
 
-  // ── 아이템 텍스트 필드 업데이트 (name/spec/unit) ──
+  // ── 아이템 텍스트 필드 업데이트 (#7 단위, #8 이름·규격 오버라이드) ──
   const updateItemText = useCallback(
     (sheetIndex: number, itemIndex: number, field: 'name' | 'spec' | 'unit', value: string) => {
       saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} ${field} 변경`, 'manual')
       setEstimate(prev => {
         const sheets = [...prev.sheets]
         const items = [...sheets[sheetIndex].items]
-        items[itemIndex] = { ...items[itemIndex], [field]: value }
+        const item = { ...items[itemIndex], [field]: value }
+
+        // #7,8 오버라이드: 원본 백업 (최초 변경 시에만)
+        if (field === 'name' && !items[itemIndex].original_name) {
+          item.original_name = items[itemIndex].name
+        }
+        if (field === 'spec' && !items[itemIndex].original_spec) {
+          item.original_spec = items[itemIndex].spec
+        }
+        if (field === 'unit' && !items[itemIndex].original_unit) {
+          item.original_unit = items[itemIndex].unit
+        }
+
+        items[itemIndex] = item
         sheets[sheetIndex] = { ...sheets[sheetIndex], items }
         return { ...prev, sheets }
       })
@@ -196,6 +230,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         const { items, calcResult } = buildItems({
           method: type, m2: prev.m2, wallM2: prev.wall_m2,
           pricePerPyeong: ppp, priceMatrix,
+          options: DEFAULT_EQUIPMENT_OPTIONS,
         })
 
         const newSheet: EstimateSheet = {
@@ -355,6 +390,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
           const { items, calcResult } = buildItems({
             method: '복합', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+            options: DEFAULT_EQUIPMENT_OPTIONS,
           })
           sheets.push({
             type: '복합', title: '복합방수', price_per_pyeong: ppp,
@@ -372,6 +408,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
 
           const { items, calcResult } = buildItems({
             method: '우레탄', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
+            options: DEFAULT_EQUIPMENT_OPTIONS,
           })
           sheets.push({
             type: '우레탄', title: '우레탄방수', price_per_pyeong: ppp,
@@ -386,6 +423,147 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
       setIsDirty(true)
     },
     [priceMatrix],
+  )
+
+  // ── lump 금액 설정 (#11) ──
+  const setLumpAmount = useCallback(
+    (sheetIndex: number, itemIndex: number, amount: number) => {
+      saveSnapshot('lump 금액 설정', 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const items = [...sheets[sheetIndex].items]
+        const item = { ...items[itemIndex] }
+
+        item.lump_amount = amount
+        item.mat_amount = 0
+        item.labor_amount = 0
+        item.exp_amount = amount
+        item.total = amount
+
+        items[itemIndex] = item
+        const calcResult = calc(items.filter(i => !i.is_hidden))
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [saveSnapshot],
+  )
+
+  // ── 자유입력 공종 추가 (#12) ──
+  const addFreeItem = useCallback(
+    (sheetIndex: number, formData: {
+      name: string
+      spec?: string
+      unit?: string
+      qty?: number
+      mat?: number
+      labor?: number
+      exp?: number
+    }) => {
+      saveSnapshot('자유입력 공종 추가', 'manual')
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const items = [...sheets[sheetIndex].items]
+        const qty = formData.qty ?? 1
+        const mat = formData.mat ?? 0
+        const labor = formData.labor ?? 0
+        const exp = formData.exp ?? 0
+        const mat_amount = Math.round(qty * mat)
+        const labor_amount = Math.round(qty * labor)
+        const exp_amount = Math.round(qty * exp)
+
+        const newItem: EstimateItem = {
+          sort_order: items.length + 1,
+          name: formData.name,
+          spec: formData.spec ?? '',
+          unit: formData.unit ?? 'm²',
+          qty,
+          mat,
+          labor,
+          exp,
+          mat_amount,
+          labor_amount,
+          exp_amount,
+          total: mat_amount + labor_amount + exp_amount,
+          is_base: false,
+          is_equipment: false,
+          is_fixed_qty: false,
+        }
+
+        items.push(newItem)
+        const calcResult = calc(items.filter(i => !i.is_hidden))
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [saveSnapshot],
+  )
+
+  // ── 단가 잠금 토글 (#4) ──
+  const toggleLock = useCallback(
+    (sheetIndex: number, itemIndex: number) => {
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const items = [...sheets[sheetIndex].items]
+        items[itemIndex] = { ...items[itemIndex], is_locked: !items[itemIndex].is_locked }
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [],
+  )
+
+  // ── 공종 숨김 토글 (#5) ──
+  const toggleHide = useCallback(
+    (sheetIndex: number, itemIndex: number) => {
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        const items = [...sheets[sheetIndex].items]
+        items[itemIndex] = { ...items[itemIndex], is_hidden: !items[itemIndex].is_hidden }
+        const calcResult = calc(items.filter(i => !i.is_hidden))
+        sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+    },
+    [],
+  )
+
+  // ── CRM 자동채움 (#16) ──
+  // CrmRecord 필드명: customerName, address, manager, phone, area (camelCase)
+  const fillFromCrm = useCallback(
+    (crmCustomer: {
+      customerName?: string | null
+      address?: string | null
+      manager?: string | null
+      phone?: string | null
+      area?: string | null
+    }) => {
+      saveSnapshot('CRM 자동채움', 'manual')
+      setEstimate(prev => {
+        const updated = { ...prev }
+        if (crmCustomer.customerName) updated.customer_name = crmCustomer.customerName
+        if (crmCustomer.address) updated.site_name = crmCustomer.address
+        if (crmCustomer.manager) updated.manager_name = crmCustomer.manager
+        if (crmCustomer.phone) updated.manager_phone = crmCustomer.phone
+        if (crmCustomer.area) {
+          const pyeong = parseFloat(crmCustomer.area)
+          if (!isNaN(pyeong) && pyeong > 0) {
+            updated.m2 = Math.round(pyeong * 3.3058)
+          }
+        }
+        return updated
+      })
+      setIsDirty(true)
+    },
+    [saveSnapshot],
   )
 
   const markClean = useCallback(() => setIsDirty(false), [])
@@ -409,6 +587,11 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     initFromVoiceFlow,
     getSheetMargin,
     undo,
+    setLumpAmount,
+    addFreeItem,
+    toggleLock,
+    toggleHide,
+    fillFromCrm,
     // 스냅샷
     snapshots,
     restoreTo,
@@ -423,6 +606,8 @@ function rebuildSheet(
   const { items, calcResult } = buildItems({
     method: sheet.type, m2, wallM2,
     pricePerPyeong: sheet.price_per_pyeong, priceMatrix,
+    preserveLockedItems: sheet.items,
+    options: DEFAULT_EQUIPMENT_OPTIONS,
   })
   return { ...sheet, items, grand_total: calcResult.grandTotal }
 }

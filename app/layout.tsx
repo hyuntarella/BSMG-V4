@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import ServiceWorkerRegister from './sw-register'
 import MobileTabBar from '@/components/layout/MobileTabBar'
 import { ToastProvider } from '@/components/ui/Toast'
 
@@ -42,7 +41,6 @@ export default function RootLayout({
           {children}
           <MobileTabBar />
         </ToastProvider>
-        <ServiceWorkerRegister />
       </body>
     </html>
   )

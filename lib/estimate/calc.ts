@@ -10,9 +10,9 @@ import { OVERHEAD_RATE, PROFIT_RATE, ROUND_UNIT } from './constants'
 export function calc(items: EstimateItem[]): CalcResult {
   const subtotal = items.reduce((s, it) => s + it.total, 0)
 
-  // 공과잡비/기업이윤 기준: 장비 제외 소계
+  // 공과잡비/기업이윤 기준: 장비 + lump 제외 소계
   const baseForRate = items
-    .filter(it => !it.is_equipment)
+    .filter(it => !it.is_equipment && !it.lump_amount)
     .reduce((s, it) => s + it.total, 0)
 
   const overhead = Math.round(baseForRate * OVERHEAD_RATE)
