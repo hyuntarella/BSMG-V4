@@ -12,6 +12,7 @@ import SaveButton from './SaveButton'
 import LoadButton from './LoadButton'
 import CustomerInfoCard from './CustomerInfoCard'
 import BasePriceBar from './BasePriceBar'
+import CompareTable from './CompareTable'
 
 type TabId = 'composite' | 'urethane' | 'compare'
 
@@ -256,6 +257,10 @@ export default function EstimateEditorV5({
                   )}
                 </div>
               </div>
+              <CompareTable
+                compositeSheet={compositeIdx >= 0 ? estimate.sheets[compositeIdx] : undefined}
+                urethaneSheet={urethaneIdx >= 0 ? estimate.sheets[urethaneIdx] : undefined}
+              />
             </div>
           )}
 
