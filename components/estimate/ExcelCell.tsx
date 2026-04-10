@@ -23,6 +23,8 @@ interface ExcelCellProps {
   onStartEditing: () => void
   onCommit: (value: string | number) => void
   onCancel: () => void
+  /** 편집 중 값이 바뀔 때마다 호출 — 키보드 commit 경로용 pendingValue 동기화 */
+  onEditChange?: (value: string | number) => void
   // Phase 4H: tier별 스타일
   tierFontClass?: string
   tierPaddingClass?: string
@@ -50,6 +52,7 @@ export default function ExcelCell({
   onStartEditing,
   onCommit,
   onCancel,
+  onEditChange,
   tierFontClass,
   tierPaddingClass,
   tierRowHeight,
@@ -63,25 +66,35 @@ export default function ExcelCell({
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // 편집 모드 진입 시 input 포커스
+  // 편집 모드 진입 시 input 포커스 + pendingValue 동기화
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && type !== 'select') {
       console.log('[CELL] edit mode enter', { value, type, isEditing, initialChar })
       if (initialChar) {
         // 타이핑으로 진입: 첫 글자로 덮어쓰기
         setEditValue(initialChar)
+        // 키보드 commit용 pendingValue 즉시 동기화
+        if (type === 'number') {
+          const parsed = parseFloat(initialChar.replace(/,/g, ''))
+          onEditChange?.(isNaN(parsed) ? 0 : parsed)
+        } else {
+          onEditChange?.(initialChar)
+        }
         requestAnimationFrame(() => {
           inputRef.current?.focus()
         })
       } else {
         // 클릭/Enter/F2로 진입: 전체 선택 (타이핑 시 자동 덮어쓰기)
         setEditValue(String(value))
+        // 현재 값도 동기화 (변경 없이 Enter 시 대비)
+        onEditChange?.(value)
         requestAnimationFrame(() => {
           inputRef.current?.focus()
           inputRef.current?.select()
         })
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, value, initialChar])
 
   const handleCommit = useCallback(() => {
@@ -97,8 +110,15 @@ export default function ExcelCell({
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value
     setEditValue(v)
+    // 키보드 commit용 pendingValue 즉시 동기화
+    if (type === 'number') {
+      const parsed = parseFloat(v.replace(/,/g, ''))
+      onEditChange?.(isNaN(parsed) ? 0 : parsed)
+    } else {
+      onEditChange?.(v)
+    }
     onAcdbSearch?.(v)
-  }, [onAcdbSearch])
+  }, [type, onEditChange, onAcdbSearch])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!acdbResults || acdbResults.length === 0) return
@@ -140,25 +160,26 @@ export default function ExcelCell({
     )
   }
 
-  // select 타입: 드롭다운 렌더링
-  if (type === 'select' && selectOptions && isEditing) {
+  // select 타입: 항상 <select> 렌더 (edit mode 개념 제거, 1-클릭으로 네이티브 드롭다운 즉시 열림)
+  if (type === 'select' && selectOptions) {
     return (
       <td
-        className="relative p-0 bg-yellow-50 ring-2 ring-brand-600 ring-inset"
+        className={`relative p-0 border border-gray-300 ${isSelected ? 'ring-2 ring-brand-500 ring-inset bg-white' : 'bg-white hover:bg-gray-50'}`}
         style={{ width: width ? `${width}px` : undefined }}
+        onClick={() => {
+          if (!isSelected) onSelect()
+        }}
       >
         <select
-          autoFocus
           value={String(value)}
           onChange={(e) => {
             console.log('[CELL] select onChange', { newValue: e.target.value })
             onCommit(e.target.value)
           }}
-          onBlur={() => onCancel()}
           onKeyDown={(e) => {
             if (e.key === 'Escape') onCancel()
           }}
-          className={`w-full ${padClass} ${fontClass} bg-transparent outline-none ${alignClass}`}
+          className={`w-full ${padClass} ${fontClass} bg-transparent outline-none cursor-pointer ${alignClass}`}
           style={{ height: `${rowH}px` }}
           data-testid="excel-cell-select"
         >
@@ -235,12 +256,6 @@ export default function ExcelCell({
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={() => {
         console.log('[CELL] onClick', { isSelected, isLocked, type, value })
-        if (type === 'select') {
-          // select 타입: 1-클릭으로 즉시 편집 모드 진입
-          if (!isSelected) onSelect()
-          onStartEditing()
-          return
-        }
         if (isSelected) {
           // 이미 선택된 셀 → 싱글클릭으로 편집 진입 (엑셀 UX)
           if (!isLocked || type === 'text') {

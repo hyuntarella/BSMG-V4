@@ -12,9 +12,9 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3
-- 진행중: 없음
-- 다음: Phase 5 (Figma 픽셀 복제 PDF)
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG
+- 진행중: Phase 4I-H3-FIX 완료 — Vercel 배포 후 사용자 실측 대기
+- 다음: 실측 통과 → console.log 19개 제거 → Phase 5
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -167,6 +167,28 @@
 - 작업 7: 설정 진입 경로 — V5 상단바에 "규칙서" 버튼 → /settings 새 탭
 - 작업 8: acdb 진단 — 코드 경로 정상, 원인은 acdb_entries 데이터 부재. console.warn 추가로 진단 가능
 - buildItems.ts / priceData.ts / calc.ts 수정 없음
+
+### Phase 4I-H3-DEBUG: 편집 원복 추적 + 단위 1-클릭
+- 하네스 재실행 (bsmg-orchestrator): Estimate Engine + UI Builder + Domain QA
+- 작업 1: console.log 진단 코드 19개 삽입 (6개 파일)
+  - [CELL] ExcelCell 4개, [USE_EST] useEstimate 4개, [RECALC] tableLogic 2개
+  - [MARK_EDITED] tableLogic 2개, [BUILD] buildItems 2개, [EDITOR] EditorV5 3개, [WRAPPER] Wrapper 2개
+- 작업 2: type==='select' 셀 1-클릭 즉시 드롭다운 (기존 3-클릭 → 1-클릭)
+- 로직 변경 0, 빌드/린트/타입체크 통과
+- 커밋: ae56c89
+
+### Phase 4I-H3-FIX: 편집 원복 + 단위 1-클릭 근본 수정
+- 문제 A 근본 원인: Enter/Tab/Arrow 키보드 commit 경로에서 pendingValueRef.current === null로 early return
+  - useTableKeyboard → commitValue() 호출 시 pendingValueRef 미설정 (ExcelCell 내부 editValue와 동기화 안 됨)
+  - 수정: onEditChange prop 추가 — ExcelCell이 매 키스트로크마다 pendingValueRef 동기화
+  - 편집 진입 시에도 현재 값 동기화 (변경 없이 Enter 시 대비)
+- 문제 B 근본 원인: JS로 <select> 드롭다운 강제 열기 불가 (브라우저 보안)
+  - 수정: select 셀 isEditing 분기 완전 제거, 항상 <select> 렌더
+  - 1-클릭으로 네이티브 OS 드롭다운 즉시 열림
+- 수정 파일: ExcelCell.tsx (onEditChange prop + select 상시 렌더), ExcelLikeTable.tsx (onEditChange 전달)
+- console.log 19개 유지, buildItems/priceData/calc 변경 없음
+- 테스트 135/135 통과, 빌드/린트 통과
+- 커밋: 513d61a
 
 ### Phase 4I-H3-VERIFY: 엑셀 UX + Ctrl+F 단순화
 - 선행 확인: H3 8개 작업 모두 코드 반영 확인 (git show 874cf7e --stat 12파일)
