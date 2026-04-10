@@ -39,6 +39,21 @@ export default function EstimateEditorV5({
 
   useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
 
+  // --- 전역 Ctrl+Z: 브라우저 네이티브 input undo 차단 + 커스텀 undo 호출 ---
+  // 사유: 포커스가 <input>에 있을 때 Ctrl+Z는 브라우저가 입력 값을 한 글자씩 되돌리고
+  //      onChange를 발생시켜 updateMeta('m2', ...)가 연쇄 호출됨. 이를 막기 위해 window 레벨에서 선점.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', handler, true) // capture phase — 브라우저 기본동작보다 먼저
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [undo])
+
   const [activeTab, setActiveTab] = useState<TabId>('composite')
 
   // --- 시트 없으면 자동 생성 (Phase 4: 복합+우레탄 2개 고정) ---
