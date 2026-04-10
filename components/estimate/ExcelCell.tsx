@@ -15,6 +15,8 @@ interface ExcelCellProps {
   isEditing: boolean
   isLocked?: boolean
   isReadonly?: boolean
+  /** 기본값 표시 — 편집 가능하지만 아직 사용자가 수정하지 않은 고정 기본값임을 시각적으로 표시 (반투명) */
+  isMuted?: boolean
   width?: number
   align?: 'left' | 'center' | 'right'
   /** 타이핑으로 편집 진입 시 첫 글자 (selectAll 대신 덮어쓰기) */
@@ -44,6 +46,7 @@ export default function ExcelCell({
   isEditing,
   isLocked,
   isReadonly,
+  isMuted,
   width,
   align = 'right',
   selectOptions,
@@ -262,8 +265,9 @@ export default function ExcelCell({
         }
       }}
       data-testid="excel-cell"
+      data-muted={isMuted ? 'true' : undefined}
     >
-      <span className="text-gray-900">{displayValue}</span>
+      <span className={isMuted ? 'text-gray-400' : 'text-gray-900'}>{displayValue}</span>
       {isLocked && (
         <svg
           width={12}

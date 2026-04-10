@@ -348,6 +348,14 @@ export default function ExcelLikeTable({
 
                   const isUnitCol = col.key === 'unit'
 
+                  // H5-1: 폐기물처리 장비 행의 인건단가 기본값 표시 (반투명)
+                  // 사용자가 값을 수정하면 original_labor가 기록되어 반투명 해제됨
+                  const isWasteDefaultLabor =
+                    col.key === 'labor' &&
+                    item.name === '폐기물처리' &&
+                    item.is_equipment === true &&
+                    item.original_labor == null
+
                   // 타이핑 편집 진입: 해당 셀만 initialChar 전달 후 ref 클리어
                   const cellInitialChar = isCellEditing && typeToEditCharRef.current
                     ? typeToEditCharRef.current
@@ -365,6 +373,7 @@ export default function ExcelLikeTable({
                       initialChar={cellInitialChar}
                       isLocked={item.is_locked && col.type === 'number'}
                       isReadonly={isLumpReadonly}
+                      isMuted={isWasteDefaultLabor}
                       width={col.width}
                       align={col.align}
                       tierFontClass={tier.fontClass}
