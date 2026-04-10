@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { fm } from '@/lib/utils/format'
+import { fm, formatNumericEdit } from '@/lib/utils/format'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 
 export type CellState = 'idle' | 'hovered' | 'selected' | 'editing'
@@ -70,12 +70,13 @@ export default function ExcelCell({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 편집 모드 진입 시 input 포커스 + pendingValue 동기화
+  // 숫자 셀은 편집 진입 시 천단위 콤마 포함 문자열로 초기화 → onFocus select() 와 함께
+  // 클릭 진입 시 값 전체가 하이라이트되어 덮어쓰기 가능
   useEffect(() => {
     if (isEditing && type !== 'select') {
       if (initialChar) {
-        // 타이핑으로 진입: 첫 글자로 덮어쓰기
+        // 타이핑으로 진입: 첫 글자로 덮어쓰기 (단일 문자라 포맷 불필요)
         setEditValue(initialChar)
-        // 키보드 commit용 pendingValue 즉시 동기화
         if (type === 'number') {
           const parsed = parseFloat(initialChar.replace(/,/g, ''))
           onEditChange?.(isNaN(parsed) ? 0 : parsed)
@@ -86,9 +87,12 @@ export default function ExcelCell({
           inputRef.current?.focus()
         })
       } else {
-        // 클릭/Enter/F2로 진입: 전체 선택 (타이핑 시 자동 덮어쓰기)
-        setEditValue(String(value))
-        // 현재 값도 동기화 (변경 없이 Enter 시 대비)
+        // 클릭/Enter/F2로 진입: 콤마 포함 포맷으로 표시 + 전체 선택
+        const initialStr =
+          type === 'number' && typeof value === 'number'
+            ? fm(value)
+            : String(value)
+        setEditValue(initialStr)
         onEditChange?.(value)
         requestAnimationFrame(() => {
           inputRef.current?.focus()
@@ -109,16 +113,19 @@ export default function ExcelCell({
   }, [editValue, type, onCommit])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value
-    setEditValue(v)
-    // 키보드 commit용 pendingValue 즉시 동기화
+    const raw = e.target.value
+    // 키보드 commit용 pendingValue 즉시 동기화 (저장값은 항상 숫자)
     if (type === 'number') {
-      const parsed = parseFloat(v.replace(/,/g, ''))
+      // 편집 중에도 천단위 콤마 실시간 표시
+      const formatted = formatNumericEdit(raw)
+      setEditValue(formatted)
+      const parsed = parseFloat(formatted.replace(/,/g, ''))
       onEditChange?.(isNaN(parsed) ? 0 : parsed)
     } else {
-      onEditChange?.(v)
+      setEditValue(raw)
+      onEditChange?.(raw)
     }
-    onAcdbSearch?.(v)
+    onAcdbSearch?.(raw)
   }, [type, onEditChange, onAcdbSearch])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -203,6 +210,10 @@ export default function ExcelCell({
           inputMode={type === 'number' ? 'numeric' : 'text'}
           value={editValue}
           onChange={handleChange}
+          onFocus={(e) => {
+            // 편집 진입 시 기존 값 전체선택 (타이핑 진입 제외 — 첫 글자를 덮어써야 함)
+            if (!initialChar) e.currentTarget.select()
+          }}
           onBlur={() => {
             // 드롭다운 클릭 시 blur 무시
             requestAnimationFrame(() => {
