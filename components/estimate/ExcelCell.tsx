@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { fm, formatNumericEdit } from '@/lib/utils/format'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 
@@ -68,42 +68,49 @@ export default function ExcelCell({
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  /** handleChange에서 계산한 목표 커서 위치 — useLayoutEffect에서 복원 */
+  const pendingCursorRef = useRef<number | null>(null)
 
   // 편집 모드 진입 시 input 포커스 + pendingValue 동기화
-  // 숫자 셀은 편집 진입 시 천단위 콤마 포함 문자열로 초기화 → onFocus select() 와 함께
-  // 클릭 진입 시 값 전체가 하이라이트되어 덮어쓰기 가능
+  // H7-fix: useLayoutEffect + flushSync 시도는 "flushSync from inside lifecycle" 에러 유발.
+  // 원래 useEffect + rAF 패턴으로 복귀. race 방지는 pendingValueRef.row (부모측) 가 담당.
   useEffect(() => {
-    if (isEditing && type !== 'select') {
-      if (initialChar) {
-        // 타이핑으로 진입: 첫 글자로 덮어쓰기 (단일 문자라 포맷 불필요)
-        setEditValue(initialChar)
-        if (type === 'number') {
-          const parsed = parseFloat(initialChar.replace(/,/g, ''))
-          onEditChange?.(isNaN(parsed) ? 0 : parsed)
-        } else {
-          onEditChange?.(initialChar)
-        }
-        requestAnimationFrame(() => {
-          inputRef.current?.focus()
-        })
+    if (!isEditing || type === 'select') return
+    console.log('[H7-DEBUG edit-enter]', { type, initialChar, value, editValue })
+    if (initialChar) {
+      // 타이핑으로 진입: 첫 글자로 덮어쓰기 (단일 문자라 포맷 불필요)
+      setEditValue(initialChar)
+      if (type === 'number') {
+        const parsed = parseFloat(initialChar.replace(/,/g, ''))
+        onEditChange?.(isNaN(parsed) ? 0 : parsed)
       } else {
-        // 클릭/Enter/F2로 진입: 콤마 포함 포맷으로 표시 + 전체 선택
-        const initialStr =
-          type === 'number' && typeof value === 'number'
-            ? fm(value)
-            : String(value)
-        setEditValue(initialStr)
-        onEditChange?.(value)
-        requestAnimationFrame(() => {
-          inputRef.current?.focus()
-          inputRef.current?.select()
-        })
+        onEditChange?.(initialChar)
       }
+      // H7-fix: 타이핑 진입 시 첫 글자로 acdb 드롭다운 즉시 트리거
+      // (이전: initialChar 경로에서 onAcdbSearch 호출이 누락되어 한 글자만 입력 시 드롭다운이 안 뜸)
+      onAcdbSearch?.(initialChar)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        // select() 안 함 — 첫 글자를 유지하고 이어서 타이핑하도록
+      })
+    } else {
+      // 클릭/Enter/F2로 진입: 콤마 포함 포맷으로 표시 + 전체 선택
+      const initialStr =
+        type === 'number' && typeof value === 'number'
+          ? fm(value)
+          : String(value)
+      setEditValue(initialStr)
+      onEditChange?.(value)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, value, initialChar])
 
   const handleCommit = useCallback(() => {
+    console.log('[H7-DEBUG handleCommit]', { editValue, type })
     if (type === 'number') {
       const parsed = parseFloat(editValue.replace(/,/g, ''))
       onCommit(isNaN(parsed) ? 0 : parsed)
@@ -113,11 +120,29 @@ export default function ExcelCell({
   }, [editValue, type, onCommit])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value
+    const input = e.target
+    const raw = input.value
+    const cursorBefore = input.selectionStart ?? raw.length
     // 키보드 commit용 pendingValue 즉시 동기화 (저장값은 항상 숫자)
     if (type === 'number') {
       // 편집 중에도 천단위 콤마 실시간 표시
       const formatted = formatNumericEdit(raw)
+      // 콤마 삽입/제거에 따른 커서 위치 보정
+      // raw 기준 커서 앞쪽의 숫자 개수가 formatted에서도 같아지는 위치를 찾음
+      const digitsBeforeCursor = raw.slice(0, cursorBefore).replace(/[^\d]/g, '').length
+      let newCursor = formatted.length
+      let digitCount = 0
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) {
+          digitCount++
+          if (digitCount >= digitsBeforeCursor) {
+            newCursor = i + 1
+            break
+          }
+        }
+      }
+      if (digitsBeforeCursor === 0) newCursor = 0
+      pendingCursorRef.current = newCursor
       setEditValue(formatted)
       const parsed = parseFloat(formatted.replace(/,/g, ''))
       onEditChange?.(isNaN(parsed) ? 0 : parsed)
@@ -127,6 +152,19 @@ export default function ExcelCell({
     }
     onAcdbSearch?.(raw)
   }, [type, onEditChange, onAcdbSearch])
+
+  // 숫자 포맷 후 커서 위치 복원 (controlled input 재렌더 시 커서가 끝으로 튀는 문제 방지)
+  useLayoutEffect(() => {
+    if (pendingCursorRef.current !== null && inputRef.current) {
+      const pos = pendingCursorRef.current
+      try {
+        inputRef.current.setSelectionRange(pos, pos)
+      } catch {
+        // 일부 브라우저에서 focus 전 setSelectionRange 호출 시 throw — 무시
+      }
+      pendingCursorRef.current = null
+    }
+  })
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!acdbResults || acdbResults.length === 0) return
@@ -215,12 +253,13 @@ export default function ExcelCell({
             if (!initialChar) e.currentTarget.select()
           }}
           onBlur={() => {
-            // 드롭다운 클릭 시 blur 무시
-            requestAnimationFrame(() => {
-              if (!dropdownRef.current?.contains(document.activeElement)) {
-                handleCommit()
-              }
-            })
+            const activeEl = document.activeElement?.tagName
+            console.log('[H7-DEBUG blur]', { editValue, activeEl })
+            if (dropdownRef.current?.contains(document.activeElement)) {
+              console.log('[H7-DEBUG blur] skipped (dropdown focused)')
+              return
+            }
+            handleCommit()
           }}
           onKeyDown={handleKeyDown}
           className={`w-full px-1 ${fontClass} bg-transparent outline-none ${alignClass} ${type === 'number' ? 'font-mono' : ''}`}
@@ -266,14 +305,10 @@ export default function ExcelCell({
         ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={() => {
-        if (isSelected) {
-          // 이미 선택된 셀 → 싱글클릭으로 편집 진입 (엑셀 UX)
-          if (!isLocked || type === 'text') {
-            onStartEditing()
-          }
-        } else {
-          onSelect()
-        }
+        const canEdit = !isLocked || type === 'text'
+        console.log('[H7-DEBUG click]', { type, value, isSelected, canEdit })
+        if (!isSelected) onSelect()
+        if (canEdit) onStartEditing()
       }}
       data-testid="excel-cell"
       data-muted={isMuted ? 'true' : undefined}

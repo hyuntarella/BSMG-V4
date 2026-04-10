@@ -3,7 +3,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { EstimateItem, Method } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
-import type { CellPosition } from '@/hooks/useExcelSelection'
 import { fm } from '@/lib/utils/format'
 import { useExcelSelection } from '@/hooks/useExcelSelection'
 import { useTableKeyboard } from '@/hooks/useTableKeyboard'
@@ -71,9 +70,12 @@ export default function ExcelLikeTable({
   onAcdbSelect,
 }: ExcelLikeTableProps) {
   const { activeCell, isEditing, select, startEditing, stopEditing, clear } = useExcelSelection()
-  const pendingValueRef = useRef<{ value: string | number; field: string } | null>(null)
-  /** activeCell 백업 — commitValue에서 activeCell이 null일 때 fallback */
-  const lastActiveCellRef = useRef<CellPosition | null>(null)
+  /**
+   * 편집 중 값 버퍼 — row 를 포함하여 commit 시점의 "편집 당시 셀"을 고정.
+   * H7-fix: row 누락 시 onBlur rAF commit 이 activeCell 경주로 인해
+   * 다음 셀(B)에 이전 셀(A)의 값을 덮어쓰는 race 가 발생 (이전 셀→다음 셀 연속 클릭 시 먹통).
+   */
+  const pendingValueRef = useRef<{ value: string | number; field: string; row: number } | null>(null)
   /** 키보드 commit 완료 플래그 — onBlur 이중 커밋 방지 */
   const keyboardCommittedRef = useRef(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -83,11 +85,6 @@ export default function ExcelLikeTable({
   const typeToEditCharRef = useRef<string | null>(null)
   const [warningDismissed, setWarningDismissed] = useState(false)
   const prevOverThresholdRef = useRef(false)
-
-  // lastActiveCellRef 동기화: activeCell이 유효할 때마다 백업
-  if (activeCell) {
-    lastActiveCellRef.current = activeCell
-  }
 
   // Phase 4H: visible items 기준 tier 계산
   const visibleItems = items.filter(item => !item.is_hidden)
@@ -102,20 +99,32 @@ export default function ExcelLikeTable({
   prevOverThresholdRef.current = isOverThreshold
 
   const commitValue = useCallback(() => {
-    const cell = activeCell ?? lastActiveCellRef.current
-    if (!cell || !pendingValueRef.current) return
-    const { row } = cell
-    const { value, field } = pendingValueRef.current
+    console.log('[H7-DEBUG parent-commit]', {
+      pending: pendingValueRef.current,
+      activeCell,
+      isEditing,
+      keyboardCommitted: keyboardCommittedRef.current,
+    })
+    if (!pendingValueRef.current) {
+      console.log('[H7-DEBUG parent-commit] SKIPPED — pendingValueRef is null')
+      return
+    }
+    const { value, field, row } = pendingValueRef.current
     const item = items[row]
-    if (!item) return
+    if (!item) {
+      console.log('[H7-DEBUG parent-commit] SKIPPED — item not found', { row })
+      return
+    }
 
     const edited = markAsEdited(item, field as 'qty' | 'mat' | 'labor' | 'exp' | 'name' | 'spec' | 'unit', value)
     const newItems = [...items]
     newItems[row] = edited
+    const prevValue = (item as unknown as Record<string, unknown>)[field]
+    console.log('[H7-DEBUG parent-commit] APPLIED', { row, field, value, prevValue })
     onChange(newItems)
     pendingValueRef.current = null
     keyboardCommittedRef.current = true
-  }, [activeCell, items, onChange])
+  }, [items, onChange, activeCell, isEditing])
 
   const cancelEdit = useCallback(() => {
     pendingValueRef.current = null
@@ -391,11 +400,12 @@ export default function ExcelLikeTable({
                       onCommit={(val) => {
                         // onBlur 경로: 키보드가 이미 커밋했으면 스킵
                         if (keyboardCommittedRef.current) return
-                        pendingValueRef.current = { value: val, field: col.key }
+                        // H7-fix: row 를 함께 저장 → A→B 연속 클릭 race 방지
+                        pendingValueRef.current = { value: val, field: col.key, row: rowIdx }
                         commitValue()
                       }}
                       onEditChange={(val) => {
-                        pendingValueRef.current = { value: val, field: col.key }
+                        pendingValueRef.current = { value: val, field: col.key, row: rowIdx }
                       }}
                       onCancel={cancelEdit}
                       acdbResults={showAcdb ? acdbResults?.slice(0, 8) : undefined}
