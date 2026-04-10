@@ -340,7 +340,9 @@ export default function ExcelLikeTable({
                   const isCellEditing = isCellSelected && isEditing
 
                   // lump 특별 처리: 식 단위 + 단가 열 → readonly
-                  const isLumpReadonly = isLump && (col.key === 'mat' || col.key === 'labor' || col.key === 'exp')
+                  // 단, 장비(폐기물처리/드라이비트하부절개/사다리차/스카이차)는 식 단위여도
+                  // 재료/노무/경비 단가를 따로 편집해야 하므로 제외
+                  const isLumpReadonly = isLump && !item.is_equipment && (col.key === 'mat' || col.key === 'labor' || col.key === 'exp')
                   // 품명 열인지
                   const isNameCol = col.key === 'name'
                   // 품명 열 편집 중일 때만 acdb 드롭다운
