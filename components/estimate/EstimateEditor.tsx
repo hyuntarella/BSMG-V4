@@ -12,6 +12,7 @@ import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import BasePriceBar from './BasePriceBar'
+import CompareTable from './CompareTable'
 import VoiceBarContainer from '@/components/voice/VoiceBarContainer'
 import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
@@ -290,7 +291,13 @@ export default function EstimateEditor({
           />
         )}
         {activeTab === 'compare' && (
-          <CompareSheet sheets={estimate.sheets} m2={estimate.m2} />
+          <div className="space-y-4">
+            <CompareSheet sheets={estimate.sheets} m2={estimate.m2} />
+            <CompareTable
+              compositeSheet={estimate.sheets.find(s => s.type === '복합')}
+              urethaneSheet={estimate.sheets.find(s => s.type === '우레탄')}
+            />
+          </div>
         )}
       </main>
 
