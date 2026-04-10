@@ -132,20 +132,6 @@ export default function CustomerInfoCard({
           />
         </div>
       </div>
-
-      {/* 우레탄 동기화 토글 */}
-      <div className="mt-3 flex items-center gap-2 border-t pt-3">
-        <input
-          type="checkbox"
-          id="sync-urethane"
-          checked={estimate.sync_urethane !== false}
-          onChange={(e) => onMetaChange('sync_urethane', e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="sync-urethane" className="text-xs text-gray-600">
-          우레탄 0.5mm 단가 맞춤
-        </label>
-      </div>
     </div>
   )
 }

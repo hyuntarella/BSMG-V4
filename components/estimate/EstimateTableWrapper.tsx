@@ -4,7 +4,11 @@ import { useCallback } from 'react'
 import type { Estimate, EstimateItem } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 import { useEstimateSearch } from '@/hooks/useEstimateSearch'
-import { syncUrethaneItems } from '@/lib/estimate/syncUrethane'
+import {
+  applyUrethaneBase05,
+  deriveBase05FromItem,
+  syncWallAndTop,
+} from '@/lib/estimate/syncUrethane'
 import { calc } from '@/lib/estimate/calc'
 import ExcelLikeTable from './ExcelLikeTable'
 
@@ -43,19 +47,70 @@ export default function EstimateTableWrapper({
     .map(r => r.itemIndex)
 
   // --- items 변경 헬퍼 ---
+  // 우레탄 0.5mm 동기화가 ON이면:
+  //   1) 편집된 행이 노출 우레탄 3종 (u1/u2/복합노출) 중 하나일 때 배수 역산 → 양쪽 시트 재정렬
+  //   2) 편집된 행이 벽체/상도일 때 반대 시트에도 1:1 복사
+  // 현재 편집 중인 시트(sheetType)에 따라 반대 시트의 인덱스를 찾아 업데이트한다.
   const updateItems = useCallback((newItems: EstimateItem[], description: string) => {
     onSaveSnapshot?.(description)
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
-    const sheets = [...estimate.sheets]
+    let sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems, grand_total: calcResult.grandTotal }
 
-    // 우레탄 동기화: 우레탄 시트 변경 시 복합 시트 우레탄 관련 공종 동기화
-    if (estimate.sync_urethane && sheetType === '우레탄') {
-      const complexIdx = estimate.sheets.findIndex(s => s.type === '복합')
-      if (complexIdx >= 0) {
-        const synced = syncUrethaneItems(sheets[complexIdx].items, newItems)
-        const syncCalc = calc(synced.filter(i => !i.is_hidden))
-        sheets[complexIdx] = { ...sheets[complexIdx], items: synced, grand_total: syncCalc.grandTotal }
+    if (estimate.sync_urethane !== false) {
+      const complexIdx = sheets.findIndex(s => s.type === '복합')
+      const urethaneIdx = sheets.findIndex(s => s.type === '우레탄')
+
+      if (complexIdx >= 0 && urethaneIdx >= 0) {
+        // 편집된 시트의 항목에서 변경된 행 탐색: 이전 값과 다른 첫 번째 행
+        const prevItems = estimate.sheets[sheetIndex].items
+        const editedItem = newItems.find((item, i) => {
+          const prev = prevItems[i]
+          return !prev || prev.mat !== item.mat || prev.labor !== item.labor || prev.exp !== item.exp
+        })
+
+        if (editedItem) {
+          // 1) 노출 우레탄 3종 배수 역산
+          const base05 = deriveBase05FromItem(editedItem)
+          if (base05) {
+            const { complex, urethane } = applyUrethaneBase05(
+              sheets[complexIdx].items,
+              sheets[urethaneIdx].items,
+              base05,
+            )
+            sheets[complexIdx] = {
+              ...sheets[complexIdx],
+              items: complex,
+              grand_total: calc(complex.filter(i => !i.is_hidden)).grandTotal,
+            }
+            sheets[urethaneIdx] = {
+              ...sheets[urethaneIdx],
+              items: urethane,
+              grand_total: calc(urethane.filter(i => !i.is_hidden)).grandTotal,
+            }
+          } else {
+            // 2) 벽체/상도: 편집된 시트 → 반대 시트 1:1 복사
+            const canonName = editedItem.name.replace(/\s+/g, '')
+            if (canonName === '벽체우레탄' || canonName === '우레탄상도') {
+              const direction = sheetType === '우레탄' ? 'urethane-to-complex' : 'complex-to-urethane'
+              const { complex, urethane } = syncWallAndTop(
+                sheets[complexIdx].items,
+                sheets[urethaneIdx].items,
+                direction,
+              )
+              sheets[complexIdx] = {
+                ...sheets[complexIdx],
+                items: complex,
+                grand_total: calc(complex.filter(i => !i.is_hidden)).grandTotal,
+              }
+              sheets[urethaneIdx] = {
+                ...sheets[urethaneIdx],
+                items: urethane,
+                grand_total: calc(urethane.filter(i => !i.is_hidden)).grandTotal,
+              }
+            }
+          }
+        }
       }
     }
 

@@ -13,6 +13,7 @@ import LoadButton from './LoadButton'
 import CustomerInfoCard from './CustomerInfoCard'
 import BasePriceBar from './BasePriceBar'
 import CompareTable from './CompareTable'
+import UrethaneBase05Control from './UrethaneBase05Control'
 
 type TabId = 'composite' | 'urethane' | 'compare'
 
@@ -208,6 +209,15 @@ export default function EstimateEditorV5({
             <BasePriceBar sheet={estimate.sheets[urethaneIdx]} m2={estimate.m2} />
           )}
         </div>
+
+        {/* 우레탄 0.5mm 기준 단가 컨트롤 (복합/우레탄 탭에서만 노출) */}
+        {(activeTab === 'composite' || activeTab === 'urethane') && (
+          <UrethaneBase05Control
+            estimate={estimate}
+            onChange={handleEstimateChange}
+            onSaveSnapshot={saveSnapshot}
+          />
+        )}
 
         {/* 테이블 영역 */}
         <div className="rounded-lg border bg-white p-4">
