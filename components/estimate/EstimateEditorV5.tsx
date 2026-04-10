@@ -53,6 +53,7 @@ export default function EstimateEditorV5({
 
   // --- 칩 선택 → 시트 평단가 갱신 ---
   useEffect(() => {
+    console.log('[EDITOR] composite chip effect', { effectivePrice: compositeChips.effectivePrice, currentPpp: estimate.sheets[estimate.sheets.findIndex(s => s.type === '복합')]?.price_per_pyeong })
     const price = compositeChips.effectivePrice
     if (price === null) return
     const idx = estimate.sheets.findIndex(s => s.type === '복합')
@@ -62,6 +63,7 @@ export default function EstimateEditorV5({
   }, [compositeChips.effectivePrice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    console.log('[EDITOR] urethane chip effect', { effectivePrice: urethaneChips.effectivePrice, currentPpp: estimate.sheets[estimate.sheets.findIndex(s => s.type === '우레탄')]?.price_per_pyeong })
     const price = urethaneChips.effectivePrice
     if (price === null) return
     const idx = estimate.sheets.findIndex(s => s.type === '우레탄')
@@ -79,6 +81,7 @@ export default function EstimateEditorV5({
 
   // --- 면적 변경 핸들러 ---
   const handleAreaChange = useCallback((m2: number) => {
+    console.log('[EDITOR] handleAreaChange', { m2 })
     updateMeta('m2', m2)
   }, [updateMeta])
 

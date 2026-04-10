@@ -6,10 +6,12 @@ import { calc } from './calc'
  * calc.ts는 수정하지 않음 — 이 함수는 단일 행 재계산 전용
  */
 export function recalcRow(item: EstimateItem): EstimateItem {
+  console.log('[RECALC] recalcRow', { name: item.name, qty: item.qty, mat: item.mat, labor: item.labor, exp: item.exp })
   const mat_amount = Math.round(item.qty * item.mat)
   const labor_amount = Math.round(item.qty * item.labor)
   const exp_amount = Math.round(item.qty * item.exp)
   const total = mat_amount + labor_amount + exp_amount
+  console.log('[RECALC] recalcRow result', { mat_amount, labor_amount, exp_amount, total })
   return { ...item, mat_amount, labor_amount, exp_amount, total }
 }
 
@@ -35,6 +37,7 @@ export function markAsEdited(
   value: number | string,
 ): EstimateItem {
   const updated = { ...item }
+  console.log('[MARK_EDITED] markAsEdited', { name: item.name, field, value, currentValue: item[field as keyof typeof item] })
 
   switch (field) {
     case 'qty':
@@ -68,6 +71,7 @@ export function markAsEdited(
   }
 
   // 숫자 필드 변경 시 금액 재계산
+  console.log('[MARK_EDITED] markAsEdited → before recalc', { field, updatedValue: updated[field as keyof typeof updated] })
   if (field === 'qty' || field === 'mat' || field === 'labor' || field === 'exp') {
     return recalcRow(updated)
   }

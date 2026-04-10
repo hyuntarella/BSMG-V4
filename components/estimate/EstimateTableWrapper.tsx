@@ -34,6 +34,8 @@ export default function EstimateTableWrapper({
   const items = sheet?.items ?? []
   const sheetType = sheet?.type ?? '복합'
 
+  console.log('[WRAPPER] render', { sheetIndex, itemCount: items.length, sheetType })
+
   const { pushState, syncCurrent, undo, redo } = useUndoRedo(items)
 
   // items 변경 시 undo/redo 동기화
@@ -49,6 +51,7 @@ export default function EstimateTableWrapper({
 
   // --- items 변경 헬퍼 ---
   const updateItems = useCallback((newItems: EstimateItem[], description: string) => {
+    console.log('[WRAPPER] updateItems', { description, newItemCount: newItems.length })
     pushState(description)
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]

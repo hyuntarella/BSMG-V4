@@ -65,6 +65,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   // ── 메타 업데이트 ──
   const updateMeta = useCallback(
     (field: keyof Estimate, value: string | number | boolean) => {
+      console.log('[USE_EST] updateMeta', { field, value })
       saveSnapshot(`${String(field)} 변경`, 'manual')
       setEstimate(prev => {
         const updated = { ...prev, [field]: value }
@@ -104,6 +105,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   // ── 평단가 변경 (재생성 여부 분기) ──
   const updateSheetPpp = useCallback(
     (sheetIndex: number, ppp: number, rebuild: boolean) => {
+      console.log('[USE_EST] updateSheetPpp', { sheetIndex, ppp, rebuild })
       saveSnapshot(`시트${sheetIndex} 평단가 변경`, 'manual')
       setEstimate(prev => {
         const sheets = [...prev.sheets]
@@ -126,6 +128,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   // ── 아이템 필드 업데이트 (#9 수량 오버라이드 포함) ──
   const updateItem = useCallback(
     (sheetIndex: number, itemIndex: number, field: string, value: number) => {
+      console.log('[USE_EST] updateItem', { sheetIndex, itemIndex, field, value })
       saveSnapshot(`${estimate.sheets[sheetIndex]?.items[itemIndex]?.name ?? ''} ${field} 변경`, 'manual')
       setEstimate(prev => {
         const sheets = [...prev.sheets]
@@ -145,6 +148,11 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         items[itemIndex] = item
         const calcResult = calc(items.filter(i => !i.is_hidden))
         sheets[sheetIndex] = { ...sheets[sheetIndex], items, grand_total: calcResult.grandTotal }
+        console.log('[USE_EST] updateItem → setState done', {
+          itemName: items[itemIndex]?.name,
+          newTotal: item.total,
+          grandTotal: calcResult.grandTotal,
+        })
         return { ...prev, sheets }
       })
       setIsDirty(true)
