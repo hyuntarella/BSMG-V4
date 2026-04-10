@@ -49,6 +49,9 @@ const EDITABLE_COLS = [
 
 const COL_COUNT = EDITABLE_COLS.length
 
+/** 장비 공종 이름 — is_equipment 플래그가 누락된 구 데이터 대비 fallback */
+const EQUIPMENT_NAMES = new Set(['사다리차', '스카이차', '폐기물처리', '드라이비트하부절개'])
+
 export default function ExcelLikeTable({
   items,
   method,
@@ -342,7 +345,9 @@ export default function ExcelLikeTable({
                   // lump 특별 처리: 식 단위 + 단가 열 → readonly
                   // 단, 장비(폐기물처리/드라이비트하부절개/사다리차/스카이차)는 식 단위여도
                   // 재료/노무/경비 단가를 따로 편집해야 하므로 제외
-                  const isLumpReadonly = isLump && !item.is_equipment && (col.key === 'mat' || col.key === 'labor' || col.key === 'exp')
+                  // is_equipment 플래그 누락 구 데이터 대비 이름 fallback 병행
+                  const isEquipmentRow = item.is_equipment === true || EQUIPMENT_NAMES.has(item.name)
+                  const isLumpReadonly = isLump && !isEquipmentRow && (col.key === 'mat' || col.key === 'labor' || col.key === 'exp')
                   // 품명 열인지
                   const isNameCol = col.key === 'name'
                   // 품명 열 편집 중일 때만 acdb 드롭다운
@@ -350,12 +355,11 @@ export default function ExcelLikeTable({
 
                   const isUnitCol = col.key === 'unit'
 
-                  // H5-1: 폐기물처리 장비 행의 인건단가 기본값 표시 (반투명)
+                  // H5-1: 폐기물처리 행의 인건단가 기본값 표시 (반투명)
                   // 사용자가 값을 수정하면 original_labor가 기록되어 반투명 해제됨
                   const isWasteDefaultLabor =
                     col.key === 'labor' &&
                     item.name === '폐기물처리' &&
-                    item.is_equipment === true &&
                     item.original_labor == null
 
                   // 타이핑 편집 진입: 해당 셀만 initialChar 전달 후 ref 클리어
