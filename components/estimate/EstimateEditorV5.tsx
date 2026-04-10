@@ -33,6 +33,8 @@ export default function EstimateEditorV5({
     updateMeta,
     updateSheetPpp,
     addSheet,
+    undo,
+    saveSnapshot,
   } = useEstimate(initialEstimate, priceMatrix)
 
   useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
@@ -183,6 +185,8 @@ export default function EstimateEditorV5({
               sheetIndex={compositeIdx}
               onChange={handleEstimateChange}
               acdbSuggest={acdbSuggest}
+              onUndo={undo}
+              onSaveSnapshot={saveSnapshot}
             />
           )}
 
@@ -192,6 +196,8 @@ export default function EstimateEditorV5({
               sheetIndex={urethaneIdx}
               onChange={handleEstimateChange}
               acdbSuggest={acdbSuggest}
+              onUndo={undo}
+              onSaveSnapshot={saveSnapshot}
             />
           )}
 
