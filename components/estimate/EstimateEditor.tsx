@@ -11,6 +11,7 @@ import TabBar, { type TabId } from './TabBar'
 import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
+import BasePriceBar from './BasePriceBar'
 import VoiceBarContainer from '@/components/voice/VoiceBarContainer'
 import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
@@ -251,6 +252,13 @@ export default function EstimateEditor({
 
       {/* 탭 */}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} hasComplex={hasComplex} hasUrethane={hasUrethane} />
+
+      {/* 평단가 현황 바 — detail 탭에서만 */}
+      {(activeTab === 'complex-detail' || activeTab === 'urethane-detail') && activeSheetIndex >= 0 && (
+        <div className="mx-auto w-full max-w-5xl px-3 pt-2 flex justify-end">
+          <BasePriceBar sheet={estimate.sheets[activeSheetIndex]} />
+        </div>
+      )}
 
       {/* 콘텐츠 */}
       <main className="flex-1 px-3 py-4 mx-auto w-full max-w-5xl">
