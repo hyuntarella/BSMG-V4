@@ -114,8 +114,8 @@ describe('Phase 4F — Phase 3 기능 통합 테스트', () => {
     expect(edited.name).toBe('커스텀 공종')
   })
 
-  // ── 4. 우레탄 동기화 ──
-  it('우레탄 동기화: 우레탄 시트 변경 → 복합 시트 우레탄 관련 공종 동기화', () => {
+  // ── 4. 우레탄 동기화 (#6 재설계: 0.5mm base × 배수) ──
+  it('우레탄 동기화: 우레탄 시트 변경 → 복합 시트 노출우레탄 = u1 × 1.5 (= base05 × 3)', () => {
     const est = makeEstimate()
     const complexItems = est.sheets[0].items
     const urethaneItems = est.sheets[1].items
@@ -123,19 +123,24 @@ describe('Phase 4F — Phase 3 기능 통합 테스트', () => {
     // 우레탄 시트의 단가로 복합 시트 동기화
     const synced = syncUrethaneItems(complexItems, urethaneItems)
 
-    // 동기화 대상 공종이 있으면 확인
     const nochul = synced.find(i => i.name.replace(/\s/g, '') === '노출우레탄')
     const wallUre = synced.find(i => i.name.replace(/\s/g, '') === '벽체우레탄')
     const topCoat = synced.find(i => i.name.replace(/\s/g, '') === '우레탄상도')
+    const r100 = (v: number) => Math.round(v / 100) * 100
 
-    // 복합에 노출우레탄이 있으면 동기화되었는지 확인
+    // 새 공식: 복합 노출우레탄 = base05 × 3 = u1 × 1.5 (u1 = base05 × 2)
     if (nochul) {
       const u1 = urethaneItems.find(i => i.name.replace(/\s/g, '') === '노출우레탄1차')
       if (u1) {
-        expect(nochul.mat).toBe(Math.round(u1.mat / 2 * 3 / 100) * 100)
+        const base05Mat = r100(u1.mat / 2)
+        const base05Labor = r100(u1.labor / 2)
+        const base05Exp = r100(u1.exp / 2)
+        expect(nochul.mat).toBe(r100(base05Mat * 3))
+        expect(nochul.labor).toBe(r100(base05Labor * 3))
+        expect(nochul.exp).toBe(r100(base05Exp * 3))
       }
     }
-    // 벽체우레탄이 있으면 그대로 복사되었는지
+    // 벽체/상도는 기존 1:1 복사 유지
     if (wallUre) {
       const srcWall = urethaneItems.find(i => i.name.replace(/\s/g, '') === '벽체우레탄')
       if (srcWall) {
@@ -143,7 +148,6 @@ describe('Phase 4F — Phase 3 기능 통합 테스트', () => {
         expect(wallUre.labor).toBe(srcWall.labor)
       }
     }
-    // 우레탄 상도도 마찬가지
     if (topCoat) {
       const srcTop = urethaneItems.find(i => i.name.replace(/\s/g, '') === '우레탄상도')
       if (srcTop) {
