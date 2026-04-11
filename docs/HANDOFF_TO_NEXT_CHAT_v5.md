@@ -75,21 +75,23 @@ v4 §3.1~§3.11 유지. v5 추가:
 - acdb-seed.json 을 DB에 주입해서 칩 단가 베이크의 근거로 삼는다.
 
 **확정 구조**:
-- `COMPLEX_BASE` 8개 (방수 공종만), `URETHANE_BASE` 7개. 장비 4종(사다리차/스카이차/폐기물/드라이비트하부절개) BASE에서 제거.
+- `COMPLEX_BASE` 8개 (방수 공종만), `URETHANE_BASE` 7개. 장비 4종(사다리차/스카이차/폐기물처리비/드라이비트하부절개) BASE에서 제거.
 - 장비 옵션(ladder/sky/waste/dryvit)은 `buildItems.appendEquipmentRows`가 BASE 빌드 후 동적으로 행 추가. `applyOverrides`는 더 이상 장비 건드리지 않음 (signature: `{ wallM2 }` 만 받음).
 - P매트릭스 seed 2종 모두 8/7 슬롯으로 축소. 기존 장비 슬롯이 `[0,0,0]` placeholder였던 덕에 `slice(0, 8|7)`로 안전 축소. 기존 견적 재현 가능.
 - `calc.ts` 완전 불변 — `is_equipment` 플래그 기반 overhead/profit 제외 로직 재사용.
 - migration `013_remove_equipment_from_base.sql` + `supabase/run-migration-013.ts` (supabase CLI 미링크 환경용 supabase-js 러너).
 
-**칩 정의**: `lib/estimate/quickChipConfig.ts`
+**칩 정의 (1dd90a6 정리 이후)**: `lib/estimate/quickChipConfig.ts`
 | 카테고리 | 칩 | 단가 소스 |
 |---|---|---|
-| 장비·인력 (7) | 사다리차/폐기물처리/드라이비트하부절개/스카이차/포크레인/크레인/로프공 | DEFAULT_EQUIPMENT_PRICES 3종 + acdb median 4종 |
-| 바탕·보수 (3) | 바탕조정제 부분미장/크랙보수/옥탑방수 | acdb median (옥탑방수는 0, 사용자 입력) |
-| 철거·토목 (5) | 데크철거/화단흙제거/화단철거/배수구처리/드라이비트부분절개 | acdb median (배수구처리는 0) |
-| 기타 (1) | 트렌치설치 | acdb median |
+| 장비·인력 (6) | 사다리차/폐기물처리비/스카이차/포크레인(대)/크레인(대)/로프공(인) | DEFAULT_EQUIPMENT_PRICES 3종 + acdb median 3종 |
+| 보수·추가 (3) | 바탕조정제 부분미장(식)/드라이비트 하부절개(식)/드라이비트 부분절개(식) | 전부 0 — 사용자 직접 입력 |
 
-- 화단철거 median이 이상치(labor 1.2M)이므로 배포 후 재검토 여지 있음
+- 폐기물처리 → **폐기물처리비** 전 코드 리네임. EQUIPMENT_NAMES set 에 두 이름 모두 포함하여 구 데이터 호환.
+- 바탕조정제 부분미장: acdb median(n=2 → 10,500원)이 이상치라 0으로 리셋. 사용자가 lump 금액 직접 입력.
+- 드라이비트 하부절개/부분절개: acdb 미존재 → 0, 사용자 입력.
+- 삭제된 칩(이전 #10 1차본): 크랙보수, 옥탑방수, 데크철거, 화단흙제거, 화단철거, 배수구처리, 트렌치설치 — 사용 빈도 낮고 acdb 노이즈 많아 정리.
+- UNIT_OPTIONS 갱신(ExcelLikeTable): `m²/식/일/대/인/m/EA/SET` (평/본/회 제거, 대/인 추가).
 - 추후 외벽/주차장 칩은 구현 제외, quickChipConfig.ts 주석에 확장 지점 명시
 
 **acdb seed 주입**: `supabase/seed.ts.importAcdbSeed()` — 519 rows upsert, 단위 `㎡`→`m²` 정규화, company_id+canon unique 기준.
@@ -99,7 +101,23 @@ v4 §3.1~§3.11 유지. v5 추가:
 - `is_equipment` 플래그 — overhead/profit 제외 로직의 핵심
 - migration 013 파괴적 DELETE — 재적용 시 운영 데이터 손실 주의
 
-**커밋**: `0d7ad23` feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입
+**커밋**:
+- `0d7ad23` feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입
+- `1dd90a6` fix(#10): 빠른공종 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS 갱신
+
+### 3.21 평단가 칩 미표시 버그 (1dd90a6 직전 DB hotfix, 확정 — 코드 변경 없음)
+**증상**: 견적서 편집 화면에서 복합/우레탄 평단가 칩이 빈 배열 → 칩 자체가 안 보임.
+
+**원인** (DB 데이터 정합성):
+- migration 013이 `price_matrix` 전량 DELETE → 이후 `supabase/price_matrix_pvalue_seed.json` 재임포트가 `ce9890e6-...` (방수명가) 한 곳에만 들어감 (318 rows).
+- 실제 active estimates 는 `00000000-...` (부성에이티) / `95ede817-...` (방수명가) / `24f91719-...` 에 분산.
+- `app/(authenticated)/estimate/edit/page.tsx`가 `company_id=companyId` 로 필터 → **0 rows** → priceMatrix 빈 객체 → `getAvailableChips` 가 빈 배열 반환 → CostChipsPanel 빈 칩.
+
+**복구**: `ce9890e6-...` 의 318 rows 를 위 3개 company_id 로 복제 (DELETE-then-INSERT). node 인라인 스크립트 1회 실행. Vercel 재배포 불필요 (DB only).
+
+**검증 결과**: m²=150 → 50평미만 → 복합 7 chips `[38000..44000]` 정상 노출. 모든 active company 동일 데이터.
+
+**재발 방지 메모**: 다음 migration 으로 price_matrix 를 다시 비울 일이 있으면 **모든 active company_id 에 seed 재주입**해야 함. 단일 company seed 로 끝내지 말 것. 실측 환경에서는 active company_id 가 4개임 (`00000000`, `24f91719`, `95ede817`, `ce9890e6`).
 
 ### 3.19 셀 클릭 편집 진입 UX (H8, 확정 — 건드리지 말 것)
 **사장 요구** (H8 진입 시점): select-all + delete 과정 없이 바로 새 값 타이핑. 셀 밖 클릭해도 Enter 없이 원래값 유지/입력값 저장.

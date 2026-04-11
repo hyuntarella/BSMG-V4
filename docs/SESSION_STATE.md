@@ -12,10 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / **4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입)**
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / **4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix)**
 - 진행중: 없음. Phase 4I-H5 잔여 항목(#5 Ctrl+F 잔여 확인) 대기
 - 다음: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
-- **main HEAD: `0d7ad23`** (feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입)
+- **main HEAD: `1dd90a6`** (fix(#10): 빠른공종 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS 갱신)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
