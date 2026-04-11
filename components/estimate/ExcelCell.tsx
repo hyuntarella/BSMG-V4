@@ -174,6 +174,25 @@ export default function ExcelCell({
     }
   })
 
+  // H8-outside-click: 편집 중일 때 document-level mousedown 리스너로 외부 클릭 감지.
+  // onBlur 는 브라우저에 따라 non-focusable 요소(빈 td/footer/tbody 배경)를 클릭하면
+  // 포커스가 이동하지 않아 발생하지 않을 수 있음. 이 리스너는 포커스 동작과 무관하게 동작.
+  // 입력창 자신 / acdb 드롭다운 내부 클릭은 제외.
+  useEffect(() => {
+    if (!isEditing || type === 'select') return
+
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null
+      if (!target) return
+      if (inputRef.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      handleCommit()
+    }
+
+    document.addEventListener('mousedown', handleDocumentMouseDown)
+    return () => document.removeEventListener('mousedown', handleDocumentMouseDown)
+  }, [isEditing, type, handleCommit])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!acdbResults || acdbResults.length === 0) return
     if (e.key === 'ArrowDown') {
