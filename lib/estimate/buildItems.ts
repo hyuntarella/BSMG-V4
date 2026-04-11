@@ -68,7 +68,10 @@ export function buildItems(input: BuildItemsInput): {
       labor_amount: laborAmount,
       exp_amount: expAmount,
       total: matAmount + laborAmount + expAmount,
-      is_base: b.isBase ?? false,
+      // #11-hotfix: buildItems 는 오로지 기본 공종(COMPLEX_BASE/URETHANE_BASE)만 빌드한다.
+      // 장비 옵션은 appendEquipmentRows, 자유 추가는 UI 헬퍼에서 각각 is_base:false 로 설정.
+      // BaseItem.isBase 필드는 과거부터 일관되게 세팅되지 않아 있어, 여기서 true 로 고정한다.
+      is_base: true,
       is_equipment: false,
       is_fixed_qty: b.isFixedQty ?? false,
     }

@@ -36,7 +36,9 @@ export interface BaseItem {
   unit: string
   isArea?: boolean       // qty = m² (면적 연동)
   isWall?: boolean       // qty = wallM² (벽체 연동)
-  isBase?: boolean       // 기본 공종
+  // #11-hotfix: isBase 필드 제거 — BASE 배열에 속한 항목은 정의상 기본 공종이므로
+  // buildItems 에서 is_base:true 를 고정 세팅한다. 과거엔 이 필드가 일관되게
+  // 세팅되지 않아 삭제 버튼 가드가 뚫렸음.
   isEquipment?: boolean  // 장비류 (고정 수량)
   isFixedQty?: boolean   // 수량 고정 (공과잡비 등 제외)
 }
