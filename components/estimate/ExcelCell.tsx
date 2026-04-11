@@ -25,8 +25,11 @@ interface ExcelCellProps {
   onStartEditing: () => void
   onCommit: (value: string | number) => void
   onCancel: () => void
-  /** 편집 중 값이 바뀔 때마다 호출 — 키보드 commit 경로용 pendingValue 동기화 */
-  onEditChange?: (value: string | number) => void
+  /**
+   * 편집 중 값이 바뀔 때마다 호출 — 키보드 commit 경로용 pendingValue 동기화.
+   * null 을 전달하면 부모가 pendingValueRef 를 클리어하여 "변경 없음" 으로 간주.
+   */
+  onEditChange?: (value: string | number | null) => void
   // Phase 4H: tier별 스타일
   tierFontClass?: string
   tierPaddingClass?: string
@@ -72,8 +75,8 @@ export default function ExcelCell({
   const pendingCursorRef = useRef<number | null>(null)
 
   // 편집 모드 진입 시 input 포커스 + pendingValue 동기화
-  // H7-fix: useLayoutEffect + flushSync 시도는 "flushSync from inside lifecycle" 에러 유발.
-  // 원래 useEffect + rAF 패턴으로 복귀. race 방지는 pendingValueRef.row (부모측) 가 담당.
+  // H8: 클릭 진입 시 editValue 를 '' 로 시작. 사용자가 새 값을 입력하면 교체, 입력 없이 떠나면 원래값 유지.
+  //     deps 에서 value 를 제거 — 편집 중 외부 value 변경(예: sync_urethane)이 editValue 를 덮지 않음.
   useEffect(() => {
     if (!isEditing || type === 'select') return
     if (initialChar) {
@@ -85,37 +88,38 @@ export default function ExcelCell({
       } else {
         onEditChange?.(initialChar)
       }
-      // H7-fix: 타이핑 진입 시 첫 글자로 acdb 드롭다운 즉시 트리거
-      // (이전: initialChar 경로에서 onAcdbSearch 호출이 누락되어 한 글자만 입력 시 드롭다운이 안 뜸)
+      // 타이핑 진입 시 첫 글자로 acdb 드롭다운 즉시 트리거
       onAcdbSearch?.(initialChar)
       requestAnimationFrame(() => {
         inputRef.current?.focus()
         // select() 안 함 — 첫 글자를 유지하고 이어서 타이핑하도록
       })
     } else {
-      // 클릭/Enter/F2로 진입: 콤마 포함 포맷으로 표시 + 전체 선택
-      const initialStr =
-        type === 'number' && typeof value === 'number'
-          ? fm(value)
-          : String(value)
-      setEditValue(initialStr)
-      onEditChange?.(value)
+      // H8 클릭/Enter/F2 진입: 빈 입력창으로 시작
+      // 사용자가 타이핑하면 pendingValueRef 가 세팅됨. 타이핑 없이 blur/이동하면 커밋 스킵 → 원래값 유지
+      setEditValue('')
+      // onEditChange 를 호출하지 않음 → 부모의 pendingValueRef 는 이미 handleStartEditing 에서 null 로 클리어됨
       requestAnimationFrame(() => {
         inputRef.current?.focus()
-        inputRef.current?.select()
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, value, initialChar])
+  }, [isEditing, initialChar])
 
   const handleCommit = useCallback(() => {
+    // H8: editValue 가 비어 있으면 "변경 없음" 으로 간주 — 커밋 스킵, 원래값 유지
+    // (클릭 진입 후 타이핑 없이 떠나는 경우 / 입력 후 전부 지운 경우)
+    if (editValue.trim() === '') {
+      onCancel()
+      return
+    }
     if (type === 'number') {
       const parsed = parseFloat(editValue.replace(/,/g, ''))
       onCommit(isNaN(parsed) ? 0 : parsed)
     } else {
       onCommit(editValue)
     }
-  }, [editValue, type, onCommit])
+  }, [editValue, type, onCommit, onCancel])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target
@@ -142,11 +146,17 @@ export default function ExcelCell({
       if (digitsBeforeCursor === 0) newCursor = 0
       pendingCursorRef.current = newCursor
       setEditValue(formatted)
-      const parsed = parseFloat(formatted.replace(/,/g, ''))
-      onEditChange?.(isNaN(parsed) ? 0 : parsed)
+      // H8: 빈 문자열은 "변경 없음" 신호로 null 전달 → 부모가 pendingValueRef 를 null 로 정리
+      if (formatted === '') {
+        onEditChange?.(null)
+      } else {
+        const parsed = parseFloat(formatted.replace(/,/g, ''))
+        onEditChange?.(isNaN(parsed) ? 0 : parsed)
+      }
     } else {
       setEditValue(raw)
-      onEditChange?.(raw)
+      // H8: 텍스트 셀도 빈 입력은 "변경 없음" 으로 처리
+      onEditChange?.(raw === '' ? null : raw)
     }
     onAcdbSearch?.(raw)
   }, [type, onEditChange, onAcdbSearch])

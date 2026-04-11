@@ -138,9 +138,11 @@ export default function ExcelLikeTable({
     typeToEditCharRef.current = char
   }, [])
 
-  // 편집 시작 시 키보드 커밋 플래그 리셋
+  // 편집 시작 시 키보드 커밋 플래그 리셋 + pendingValueRef 초기화
+  // H8: 이전 편집의 잔여 pending 을 제거해야 "빈 입력 = 변경 없음" 규칙이 성립
   const handleStartEditing = useCallback(() => {
     keyboardCommittedRef.current = false
+    pendingValueRef.current = null
     startEditing()
   }, [startEditing])
 
@@ -391,6 +393,11 @@ export default function ExcelLikeTable({
                         commitValue()
                       }}
                       onEditChange={(val) => {
+                        // H8: null = 빈 입력 → pending 클리어 → 커밋 시 변경 없음으로 처리
+                        if (val === null) {
+                          pendingValueRef.current = null
+                          return
+                        }
                         pendingValueRef.current = { value: val, field: col.key, row: rowIdx }
                       }}
                       onCancel={cancelEdit}
