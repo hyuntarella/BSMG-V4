@@ -99,10 +99,17 @@ export default function ExcelLikeTable({
   prevOverThresholdRef.current = isOverThreshold
 
   const commitValue = useCallback(() => {
-    if (!pendingValueRef.current) return
+    if (!pendingValueRef.current) {
+      // H8: pending 이 없으면 커밋할 게 없지만 edit mode 는 종료해야 blur 후 빈 input 이 남지 않음
+      stopEditing()
+      return
+    }
     const { value, field, row } = pendingValueRef.current
     const item = items[row]
-    if (!item) return
+    if (!item) {
+      stopEditing()
+      return
+    }
 
     const edited = markAsEdited(item, field as 'qty' | 'mat' | 'labor' | 'exp' | 'name' | 'spec' | 'unit', value)
     const newItems = [...items]
@@ -110,11 +117,15 @@ export default function ExcelLikeTable({
     onChange(newItems)
     pendingValueRef.current = null
     keyboardCommittedRef.current = true
-  }, [items, onChange])
+    // H8: blur 경로에서도 edit mode 종료. 키보드 경로는 useTableKeyboard 가 별도 stopEditing 호출하지만 중복 호출은 무해
+    stopEditing()
+  }, [items, onChange, stopEditing])
 
   const cancelEdit = useCallback(() => {
     pendingValueRef.current = null
-  }, [])
+    // H8: blur + 빈 입력 경로에서도 edit mode 종료
+    stopEditing()
+  }, [stopEditing])
 
   const handleTableKeyDown = useCallback((e: React.KeyboardEvent) => {
     // Ctrl+F → 검색 토글
