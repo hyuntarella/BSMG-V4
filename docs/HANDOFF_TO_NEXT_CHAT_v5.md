@@ -2,7 +2,7 @@
 
 > 새 Claude: 이 문서 먼저 흡수. v4 폐기. §14 양식대로 "인수 완료" 보고 후 사장 메시지 대응.
 > v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점부터의 차이를 기록한다.
-> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / **#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed)** 반영.
+> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed) / **#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스)** 반영.
 
 ---
 
@@ -104,6 +104,42 @@ v4 §3.1~§3.11 유지. v5 추가:
 **커밋**:
 - `0d7ad23` feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입
 - `1dd90a6` fix(#10): 빠른공종 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS 갱신
+
+### 3.22 칩 추가 행 삭제 버튼 + is_base 가드 핫픽스 (#11, 확정 — 건드리지 말 것)
+**사장 요구**: 기본 8공종(is_base=true)은 숨김만, 칩으로 추가한 공종(is_base=false)에는 휴지통 버튼 표시. 잠금/숨김 옆 배치. 삭제 시 행 제거 + 합계 재계산.
+
+**확정 구조**:
+- 기본 8공종 (바탕정리, 바탕조정제미장, 하도 프라이머, 복합 시트, 쪼인트 실란트, 노출 우레탄, 벽체 우레탄, 우레탄 상도) → `is_base: true` → 휴지통 미노출 (`<span>` placeholder 로 정렬 유지)
+- 칩 추가 / 장비 옵션 / 자유 행 → `is_base: false` → 휴지통 노출 → `window.confirm(품명)` → 행 filter + sort_order 재번호 + grand_total 재계산
+- 버튼 열 폭 `50px → 72px` (3버튼 수용)
+
+**핵심 구현 (2계층)**:
+1. `components/estimate/EstimateTableWrapper.tsx` `handleDeleteRow`: `is_base=true` 가드 → filter + sort_order 재번호 + `calc(visible)` 재계산 + '행 삭제' 스냅샷
+2. `components/estimate/ExcelLikeTable.tsx`: `onDeleteRow` prop + `item.is_base ? placeholder : <button>` 분기 + `data-testid="delete-btn-{rowIdx}"`
+
+**근본원인 (1차 e068b5f 배포 직후 가드 뚫림 — 2차 862b73a 핫픽스)**:
+- `lib/estimate/constants.ts` 의 `COMPLEX_BASE`/`URETHANE_BASE` 가 `BaseItem.isBase` 를 일관되게 세팅하지 않음. 오직 `바탕조정제미장` 만 `isBase: false` 명시 (pre-#10 잔재), 나머지는 필드 미정의.
+- `lib/estimate/buildItems.ts:71` 의 `is_base: b.isBase ?? false` → 모든 기본 공종이 `is_base: false` → ExcelLikeTable 가드 분기가 항상 button 쪽.
+- 해결:
+  - `buildItems.ts`: `is_base: true` 고정 (buildItems 는 정의상 BASE 배열만 빌드. 장비는 `appendEquipmentRows`, 자유행은 UI 헬퍼 경로 분리)
+  - `constants.ts`: 벗어난 `isBase: false` 2건 제거
+  - `types.ts`: `BaseItem.isBase` 필드 삭제 — vestigial, 재발 방지
+
+**건드리기 전 읽기**:
+- `buildItems` 는 **오로지** BASE 배열에서만 호출된다. 새 공종을 하드코딩 추가하려면 `is_base: true` 가 자동으로 붙는다는 걸 기억할 것.
+- 장비 옵션 (`ladder`/`sky`/`waste`/`dryvit`)은 `appendEquipmentRows` 경유 → 명시적으로 `is_base: false`.
+- 칩 (`quickChipConfig.chipToEstimateItem`) → 명시적으로 `is_base: false`.
+- 자유 행 (`EstimateTableWrapper.handleAddFreeItem`) → 명시적으로 `is_base: false`.
+- 음성 ADD (`lib/voice/commands.ts`) → 명시적으로 `is_base: false`.
+
+**커밋 체인**:
+- `e068b5f` feat(#11): 칩 추가 행 삭제 버튼 — 기본 8공종은 숨김 전용 유지
+- `862b73a` fix(#11): 기본 8공종 is_base=true 하드코딩 — 삭제 버튼 가드 복구
+
+**검증**:
+- vitest: 478/478 PASS
+- build/lint: PASS
+- 브라우저 실측 대기
 
 ### 3.21 평단가 칩 미표시 버그 (1dd90a6 직전 DB hotfix, 확정 — 코드 변경 없음)
 **증상**: 견적서 편집 화면에서 복합/우레탄 평단가 칩이 빈 배열 → 칩 자체가 안 보임.
@@ -266,7 +302,7 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 저장소: `hyuntarella/BSMG-V4` **Public**
 - 브랜치: 이번 세션부터 feature/h* 단발 브랜치 → main merge --no-ff → push (feature/lens-integration 은 H4 까지)
 - URL: https://bsmg-v5.vercel.app
-- **main HEAD: `552742a`** (H8 완료 시점, Merge feature/h8-outside-click-commit)
+- **main HEAD: `862b73a`** (fix(#11): 기본 8공종 is_base=true 하드코딩 — 삭제 버튼 가드 복구)
 - 프로젝트 경로: `C:\Users\lazdo\projects\bsmg-v5` (랩탑 교체 후 경로 변경)
 - 로컬 브랜치: main
 - git identity (로컬): `bsmg-v4 <lazdor2@gmail.com>` — 2026-04-11 설정됨
@@ -289,23 +325,27 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - ~~H6 우레탄 0.5mm 재설계~~ ✅
 - ~~H7 셀 편집 UX 2종~~ ✅
 - ~~H7-DEBUG 로그 9개 제거~~ ✅
-- **잔여**: #10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 잔여 / 셀 편집 race 브라우저 재조사
+- ~~H8 셀 클릭 편집 UX~~ ✅
+- ~~#10 BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed~~ ✅
+- ~~#10-FIX 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 DB hotfix~~ ✅
+- ~~#11 행 삭제 버튼 + is_base 가드 핫픽스~~ ✅
+- **잔여**: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
 - price_matrix 20평이하/우레탄 (Phase 10)
 - price_matrix effective_from 2026-04-08 → Phase 10
 - 음성 → 폼 escalation 트리거 (Phase 8)
 - 외벽/주차장 자동화 (Phase 4.6+)
 - tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (별도 처리)
 
-## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 H7-DEBUG-CLEANUP)
-- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP 이어짐
-- **main HEAD**: (H7-DEBUG-CLEANUP 머지 이후 갱신)
+## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 #11 핫픽스 완료)
+- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 이어짐
+- **main HEAD**: `862b73a` (fix(#11): 기본 8공종 is_base=true 하드코딩)
 - 테스트: 478/478 통과
 - Build/Lint: 클린 (경고만, 사전 존재)
+- Vercel: e068b5f → 862b73a 두 번 자동 배포 트리거
 - 다음 작업 후보:
-  1. 셀 편집 race 브라우저 실측 + devtools 타임라인 수집 (최우선 — UX 차단)
-  2. #10 빠른공종 추가 칩
-  3. #2 acdb_entries seed 데이터 적재
-  4. #5 Ctrl+F 잔여 확인 (거의 자동 pass 예상)
+  1. #11 브라우저 실측 확인 — 기본 8공종 휴지통 미노출, 칩/장비/자유 행 휴지통 노출 + 삭제 시 합계 재계산
+  2. #5 Ctrl+F 잔여 확인 (거의 자동 pass 예상)
+  3. Phase 4I 공식 종료 선언
 
 ## 13. 파일 위치 정보 (2026-04-11 갱신 — 랩탑 교체 후 경로)
 - SESSION_STATE: `C:\Users\lazdo\projects\bsmg-v5\docs\SESSION_STATE.md`
@@ -320,24 +360,26 @@ v4 §7.1~§7.12 그대로. v5 추가:
 ## 인수 완료
 
 ### 프로젝트 파악
-- bsmg-v5, Phase 4I 후반 (H4 종료 → H5-1 → 장비exp → H6 → H7 → H7-DEBUG-CLEANUP)
-- main HEAD: (최신 확인 필요 — git log 1개)
+- bsmg-v5, Phase 4I 후반 (H4 종료 → H5-1 → 장비exp → H6 → H7 → H7-DEBUG-CLEANUP → H8 → #10 → #10-FIX → #11)
+- main HEAD: `862b73a` (fix(#11): 기본 8공종 is_base=true 하드코딩)
 - Vercel: https://bsmg-v5.vercel.app
 - 저장소 Public: hyuntarella/BSMG-V4
 
-### 핵심 교훈 적용 (H4 + H5~H7 누적)
+### 핵심 교훈 적용 (H4 + H5~H8 + #10 + #11 누적)
 - 파생 상태는 effect 금지, 이벤트 콜백 1회 (H4-2-CHIP)
 - 합산 계산은 역산 금지, 의도 항목 직접 합산 (H4-3)
 - 전역 단축키 window capture 선점 (H4-2-KEYBIND)
 - 플래그 의존 설계 전 grep 확인 (H4-3)
 - 장비 4종은 경비(exp) 컬럼 — labor 에 쓰면 안 됨 (장비exp이전)
 - 우레탄 0.5mm 는 base05 × 배수 공식 (H6)
+- 편집 중 외부 value 변경이 editValue 덮는 race 는 useEffect deps 에서 value 제거로 차단 (H8)
+- clickaway 는 input.onBlur 단독 불완전 → document mousedown 리스너 병용 필수 (H8)
+- `is_base: true` 는 `buildItems` 에서 하드코딩으로 보장. `BaseItem.isBase` 는 삭제됨 — constants.ts 에 추가할 필요 없음 (#11)
 
 ### 잔여 작업
-1. 셀 편집 race 브라우저 재조사 (최우선 — UX 차단)
-2. #10 빠른공종 칩
-3. #2 acdb_entries seed
-4. #5 Ctrl+F 잔여 확인
+1. #11 브라우저 실측 확인 (기본 8공종 휴지통 미노출, 칩/장비/자유 행 휴지통 노출 + 삭제 시 합계 재계산)
+2. #5 Ctrl+F 잔여 확인 (거의 자동 pass 예상)
+3. Phase 4I 공식 종료 선언
 
 ### 대기
 사장 지시 받으면 해당 항목 박스 작성 → CC → 실측 → 다음 항목

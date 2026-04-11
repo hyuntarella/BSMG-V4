@@ -12,10 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / **4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix)**
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / **4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스)**
 - 진행중: 없음. Phase 4I-H5 잔여 항목(#5 Ctrl+F 잔여 확인) 대기
 - 다음: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
-- **main HEAD: `1dd90a6`** (fix(#10): 빠른공종 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS 갱신)
+- **main HEAD: `862b73a`** (fix(#11): 기본 8공종 is_base=true 하드코딩 — 삭제 버튼 가드 복구)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -426,6 +426,44 @@
 **미해결**:
 - UI 수동 브라우저 실측 보류 (사용자 실측 대기) — 칩 wrap, hover 색상, Tailwind brand
 - Figma 디자인 토큰 대조 미실시 (Figma 스펙 없음, 기존 컴포넌트 톤 차용)
+
+### Phase 4I-#11: 칩 추가 행 삭제 버튼 + is_base 가드 핫픽스 (2026-04-11)
+**사장 요구**: (1) 행 삭제 기능 추가. 기본 8공종(is_base=true)은 숨김만, 칩으로 추가한 공종(is_base=false)에는 삭제 버튼 표시. 잠금/숨김 옆에 휴지통 배치, 삭제 시 행 제거 + 합계 재계산.
+(2) 1차 작업 후 사장 실측: **기본 8공종에도 휴지통이 표시됨** — is_base 가드가 뚫려 긴급 핫픽스.
+
+**1차 커밋 `e068b5f`** — feat: 칩 추가 행 삭제 버튼 UI + 핸들러
+- `components/estimate/EstimateTableWrapper.tsx`
+  - `handleDeleteRow(itemIndex)` 추가: `is_base=true` 가드 → filter + sort_order 재번호 + grand_total 재계산 + '행 삭제' 스냅샷
+- `components/estimate/ExcelLikeTable.tsx`
+  - `onDeleteRow` prop 추가
+  - 버튼 열 폭 `50px → 72px` (3버튼 수용)
+  - 휴지통 버튼: `item.is_base ? <span placeholder/> : <button>` 분기, `window.confirm(품명)` → onDeleteRow
+  - `data-testid="delete-btn-{rowIdx}"`
+
+**2차 커밋 `862b73a`** — fix: is_base 가드 복구 (근본원인)
+- **근본원인**: `lib/estimate/constants.ts`의 `COMPLEX_BASE`/`URETHANE_BASE` 항목이 `BaseItem.isBase`를 일관되게 세팅하지 않음. `바탕조정제미장`만 `isBase: false` 명시 (pre-#10 잔재). 나머지 7/7 항목은 필드 자체가 미정의.
+- `lib/estimate/buildItems.ts:71` 에서 `is_base: b.isBase ?? false` → **모든 기본 공종이 `is_base: false`로 떨어짐** → ExcelLikeTable 가드 분기가 항상 button 쪽으로.
+- 수정:
+  - `buildItems.ts`: `is_base: true` 고정 (buildItems는 정의상 BASE 배열만 빌드. 장비는 `appendEquipmentRows`, 자유행은 UI 헬퍼 경로 분리)
+  - `constants.ts`: `바탕조정제미장`의 벗어난 `isBase:false` 2건 제거
+  - `types.ts`: `BaseItem.isBase` 필드 삭제 — 재발 방지 (vestigial 필드)
+
+**검증**:
+- vitest: **478/478 PASS**
+- npm run build: PASS
+- npm run lint: PASS (사전 경고만, 신규 에러 0)
+- `e068b5f..862b73a main -> main` 푸시 → Vercel 자동 배포 트리거
+
+**동작 확인 (로직)**:
+- 기본 8공종 (바탕정리, 바탕조정제미장, 하도 프라이머, 복합 시트, 쪼인트 실란트, 노출 우레탄, 벽체 우레탄, 우레탄 상도): `is_base: true` → 휴지통 미노출 (placeholder span)
+- 칩 추가 행: `chipToEstimateItem` → `is_base: false` → 휴지통 노출
+- 장비 옵션 (사다리차/스카이차/폐기물처리비): `appendEquipmentRows` → `is_base: false` → 휴지통 노출
+- 자유 입력 행: `handleAddFreeItem` → `is_base: false` → 휴지통 노출
+
+**미해결**:
+- 브라우저 실측 보류 (사용자 실측 대기) — 2차 핫픽스 반영 확인
+
+**main HEAD**: `862b73a`
 
 **main HEAD**: `0d7ad23`
 
