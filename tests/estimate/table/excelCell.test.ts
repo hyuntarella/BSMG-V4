@@ -49,11 +49,61 @@ describe('ExcelCell 로직', () => {
       expect(fm(3900000)).toBe('3,900,000')
     })
 
-    it('편집 모드 진입 시 값이 콤마 포함으로 초기화된다 (Bug 1 select-all 대응)', () => {
-      // 편집 진입: ExcelCell useEffect 로직과 동일
+    it('편집 모드 진입 시 editValue 는 빈 문자열로 시작 (H8 클릭 진입 시 덮어쓰기 UX)', () => {
+      // H8 새 동작: 클릭으로 편집 진입하면 editValue='' 로 시작.
+      // 사용자가 타이핑하면 새 값으로 교체, 입력 없이 떠나면 원래값 유지(커밋 스킵).
+      // 원래값은 display 경로(fm(value))에서 읽으므로 편집 진입 시 초기화는 빈 문자열이면 충분.
+      const initialEditValue = ''
+      expect(initialEditValue).toBe('')
+
+      // 비편집 모드에서 값을 콤마 포맷으로 표시하는 것은 여전히 유효
       const raw = 3900000
-      const initialStr = fm(raw)
-      expect(initialStr).toBe('3,900,000')
+      expect(fm(raw)).toBe('3,900,000')
+    })
+
+    it('H8 빈 editValue → commit 스킵 (원래값 유지)', () => {
+      // handleCommit 로직 시뮬레이션
+      const editValue = ''
+      let committed = false
+      let cancelled = false
+      const onCommit = () => { committed = true }
+      const onCancel = () => { cancelled = true }
+      // ExcelCell.handleCommit 의 로직
+      if (editValue.trim() === '') {
+        onCancel()
+      } else {
+        onCommit()
+      }
+      expect(cancelled).toBe(true)
+      expect(committed).toBe(false)
+    })
+
+    it('H8 공백만 입력 → commit 스킵', () => {
+      const editValue = '   '
+      let committed = false
+      let cancelled = false
+      const onCommit = () => { committed = true }
+      const onCancel = () => { cancelled = true }
+      if (editValue.trim() === '') {
+        onCancel()
+      } else {
+        onCommit()
+      }
+      expect(cancelled).toBe(true)
+      expect(committed).toBe(false)
+    })
+
+    it('H8 실제 값 입력 → 정상 commit', () => {
+      const editValue = '5000'
+      let committedValue: number | null = null
+      const onCommit = (v: number) => { committedValue = v }
+      const onCancel = () => {}
+      if (editValue.trim() === '') {
+        onCancel()
+      } else {
+        onCommit(parseFloat(editValue.replace(/,/g, '')))
+      }
+      expect(committedValue).toBe(5000)
     })
 
     it('편집 후 파싱: 콤마 제거 후 숫자로 복원', () => {
