@@ -11,17 +11,26 @@
 - 지시서: docs/SYSTEM_BUILD_SPEC.md
 - lens 인터페이스: docs/brief-quote.md §4
 
-## 🚧 세션 일시중단 (2026-04-11)
-> **다음 세션 첫 액션:** 사장이 규칙서 재설계 완료 후 **전달할 내용이 남아있음** 을 명시함.
-> 컴퓨터 끄고 켜는 중. 새 세션에서 인수 완료 보고 후, 사장이 이어서 전달할 지시(피드백/추가 요구/UAT 결과)를 받을 준비만 하고 **선제 행동 금지**.
-> 박스 템플릿 준수. 받은 내용 정리 → 박스로 재검증 → 승인 후 실행.
-
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / 4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스) / **4I-규칙서재설계 (8탭 → 3메뉴 사이드바 + acdb 복구 + 저장 시 신규 공종 자동 등록)**
-- 진행중: **세션 중단 — 사장 추가 전달 대기**
-- 다음: 사장 추가 전달 수령 → 박스 재설계 → 작업 재개
-- **main HEAD: `72f0048`** (docs(#settings): SESSION_STATE + HANDOFF — 규칙서 재설계 반영)
-- 규칙서재설계 커밋: `2a6bdd0` (feat) → `ce81ce9` (chore) → `72f0048` (docs)
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / 4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스) / 4I-규칙서재설계 (8탭 → 3메뉴 사이드바 + acdb 복구 + 저장 시 신규 공종 자동 등록) / **4I-#12 (단가표 3단계 드릴다운 + acdb seed 519건 재주입)**
+- 진행중: 브라우저 UAT 대기
+- 다음: 사장 UAT 결과 수령 → 피드백 반영 또는 Phase 4I 종료 선언
+- **main HEAD: `1081481`** (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
+- #12 커밋: `064c24d` (feat 단가표 3단계 드릴다운) → `1081481` (fix acdb seed 재주입)
+
+### #12 (2026-04-11) — 단가표 UX + acdb 핫픽스
+- **단가표 3단계 드릴다운** (`components/settings/PriceMatrix*.tsx`)
+  - 1단계: 면적대 + 공법 드롭다운 (유지)
+  - 2단계: 평단가 칩 (`PriceMatrixChips.tsx` 신규, `bg-brand text-white` / `bg-gray-100`)
+  - 3단계: 공종×재료/인건/경비 4열 표 (`PriceMatrixDetailTable.tsx` 신규, `table-fixed` 40/20/20/20)
+  - 가로 스크롤 완전 제거 (`overflow-x-auto` 삭제)
+  - 200줄 규칙 준수: Editor 200줄 / Controls 80줄 / Chips 39줄 / DetailTable 120줄
+  - 보존: `PriceMatrixRow` 타입, `rows` state shape, GET/PUT API 호출, `commitEdit` 새 행 분기 전부 동일
+  - 추가 상태: `selectedPpp: number | null` 1개만 (`areaRange`/`method` 변경 시 useEffect 리셋)
+- **acdb seed 재주입** — 진단 결과 `acdb_entries` DB row 0건. 규칙서재설계(#2a6bdd0)에서 API 프록시 전환은 했으나 실제 DB 데이터는 비어 있었음
+  - `scripts/diag-acdb.ts` 신규 — 상태 진단 (companies / acdb_entries count / cost_config.favorites)
+  - `scripts/import-acdb-seed.ts` 신규 — `data/acdb-seed.json` 519건을 `source='seed'` 로 주입 (`lib/acdb/import.ts` 멱등 정책 재현)
+  - 실행 결과: 부성에이티 회사에 519건 주입 (사후 count=519 확인)
 
 ### 규칙서 재설계 (2026-04-11)
 - 구조: 사이드바 3메뉴 — 단가표 / 자주 쓰는 공종 / 기타 설정

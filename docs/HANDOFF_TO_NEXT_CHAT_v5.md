@@ -2,7 +2,7 @@
 
 > 새 Claude: 이 문서 먼저 흡수. v4 폐기. §14 양식대로 "인수 완료" 보고 후 사장 메시지 대응.
 > v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점부터의 차이를 기록한다.
-> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed) / **#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스)** 반영.
+> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #11 / 규칙서재설계 / **#12 (단가표 3단계 드릴다운 + acdb seed 519건 재주입)** 반영.
 
 ---
 
@@ -336,44 +336,33 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 외벽/주차장 자동화 (Phase 4.6+)
 - tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (별도 처리)
 
-## 🚧 세션 일시중단 플래그 (2026-04-11)
+## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 #12 완료)
+- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 / 규칙서재설계 → **#12 (단가표 UX + acdb 핫픽스)**
+- **main HEAD**: `1081481` (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
+- **직전 커밋**: `064c24d` (feat(#settings): 단가표 3단계 드릴다운 — 가로 스크롤 제거)
+- Build: 통과. Lint: 경고만 (사전 존재). 테스트 166/166 (acdb + estimate 범위). tsc: 기존 vadLogic 에러 1건만 잔존
+- Vercel: 064c24d + 1081481 연달아 자동 배포 트리거됨
 
-> 사장이 컴퓨터를 껐다 켜는 중. 규칙서 재설계 완료 보고 직후 **"전달할 내용이 남아있는데 지금 꺼야한다"** 고 말함.
-> 새 세션의 **첫 응답**은 §14 양식대로 인수 완료 보고만 하고, **선제 행동 금지**. 사장이 이어서 보내는 메시지(UAT 결과 / 피드백 / 추가 지시 / 수정 요청)를 받을 준비만.
-> 박스 템플릿으로 수신 내용 재검증 → 승인 후 실행 원칙 유지.
-> main push 완료 상태라 다른 기기에서 clone/pull 해도 동일 상태 복원 가능.
-
----
-
-## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 규칙서 재설계 완료)
-- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 → **규칙서재설계**
-- **main HEAD**: `ce81ce9` (chore(#settings): 레거시 탭/에디터 파일 제거)
-- **직전 커밋**: `2a6bdd0` (feat(#settings,#estimate): 규칙서 3메뉴 재설계 + acdb 복구 + 저장 시 신규 공종 자동 등록)
-- Build: 통과. Lint: 경고만 (사전 존재, 이번 변경 무관)
-- Vercel: 2a6bdd0 + ce81ce9 연달아 자동 배포 트리거됨
-
-### 이번 세션 변경 요약 (규칙서재설계)
-1. **설정 구조 개편** — 상단 8탭 → 좌측 사이드바 3메뉴
-   - 단가표 (PriceMatrixEditor 그대로)
-   - 자주 쓰는 공종 (즐겨찾기/기타/신규 3섹션 한 페이지)
-   - 기타 설정 (원가+규칙+장비+보증 단일 스크롤)
-2. **즐겨찾기 동적화** — `cost_config.favorites` 도입. QuickAddChips 가 `useFavorites` 훅 사용. 하드코딩 QUICK_CHIP_CATEGORIES 는 fallback 기본값으로만 잔존
-3. **기타 공종** — `cost_config.other_items` + acdb 셀렉터(`/api/settings/acdb-list` 프록시). 즐겨찾기 승격 버튼
-4. **신규 공종** — `cost_config.new_items`. 견적 저장 시 `is_base=false` 공종 중 미등록분 자동 upsert
-5. **acdb 자동완성 복구** — `/api/acdb/list` 신규 프록시 (서비스롤 + cost_config 폴백 병합). useAcdbSuggest 는 이 API 경유로 전환
-6. **레거시 제거** — SettingsTabs.tsx, ExtraItemsEditor.tsx 삭제. extra_items schema 는 유지
-7. **범위 밖 유지** — `components/estimate/SettingsPanel.tsx` (견적서 내 사이드 패널) 는 기존 탭 구조 그대로. BaseItemsEditor / PresetsEditor 파일 유지 (SettingsPanel 에서 계속 사용)
+### 이번 세션 변경 요약 (#12)
+1. **단가표 3단계 드릴다운** — 면적대/공법 → 평단가 칩 → 공종별 4열 표
+   - 기존: 면적대+공법 선택 시 모든 평단가가 colSpan=3 으로 가로 펼침 → 가로 스크롤 과다
+   - 신규 분리: `PriceMatrixEditor` (200줄) / `PriceMatrixControls` (80줄) / `PriceMatrixChips` (39줄) / `PriceMatrixDetailTable` (120줄)
+   - 새 상태 1개만 추가: `selectedPpp: number | null` (areaRange/method 변경 시 useEffect 리셋)
+   - 보존: `PriceMatrixRow` 타입, `rows` state shape, `/api/settings/price-matrix` GET/PUT, `commitEdit` 새 행 추가 분기 전부 동일
+   - `overflow-x-auto` 제거 → 페이지 폭에 맞는 `table-fixed` (40/20/20/20 colgroup)
+2. **acdb 자동완성 복구 (실측 기반)** — 규칙서재설계(#2a6bdd0)에서 API 프록시 전환은 했으나 실제 DB가 비어 있었던 사실을 이번 세션에서 발견
+   - `scripts/diag-acdb.ts` 신규 — 진단 결과 acdb_entries count = 0, cost_config.favorites = 0
+   - `scripts/import-acdb-seed.ts` 신규 — `data/acdb-seed.json` 519건을 `source='seed'` 로 service role 주입 (`lib/acdb/import.ts` 멱등 정책 재현: 기존 seed 행 있으면 skip)
+   - 사후 진단: 부성에이티 acdb_entries count = 519
 
 ### 다음 작업 후보
 1. **브라우저 UAT** — 사장 실측
-   - /settings: 사이드바 3메뉴 정상 전환
-   - 즐겨찾기 편집 → 저장 → 견적서 QuickAddChips 반영 확인
-   - 기타 공종: acdb 검색 → 단가 입력 → 승격
-   - 신규 공종: 견적서에서 규칙서 없는 공종 추가 → 저장 → 규칙서 신규 섹션에 자동 등록 확인
-   - 견적서 품명 셀에서 "바" 입력 시 드롭다운 복귀 확인
-2. #5 Ctrl+F 잔여 확인
-3. Phase 4I 공식 종료 선언
-4. (선택) SettingsPanel 도 사이드바 구조로 통일
+   - /settings 단가표: 면적대 선택 → 평단가 칩 → 칩 선택 → 4열 표 → 셀 편집/저장/새로고침 후 유지. 가로 스크롤바 없음.
+   - 견적서 품명 셀: "바" 타이핑 → 드롭다운 (바탕정리 등) 최대 8개 → 클릭/키보드 선택 반영
+2. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
+3. #5 Ctrl+F 잔여 확인
+4. Phase 4I 공식 종료 선언
+5. (선택) SettingsPanel 도 사이드바 구조로 통일
 
 ## 13. 파일 위치 정보 (2026-04-11 갱신 — 랩탑 교체 후 경로)
 - SESSION_STATE: `C:\Users\lazdo\projects\bsmg-v5\docs\SESSION_STATE.md`
@@ -384,18 +373,19 @@ v4 §7.1~§7.12 그대로. v5 추가:
 
 ## 14. 새 채팅 첫 응답 양식
 
-> **중단 재개 모드:** 이 양식으로 인수 완료만 보고하고, 사장이 이어서 전달할 메시지를 기다린다. 선제 행동 / 추측 작업 금지.
+> 일반 모드. §10 우선순위대로 SESSION_STATE + 이 문서 + CLAUDE.md 흡수 후 이 양식으로 인수 완료 보고, 이어서 사장 메시지 대응.
 
 ```markdown
-## 인수 완료 — 규칙서 재설계 직후 중단 재개
+## 인수 완료 — #12 (단가표 UX + acdb 핫픽스) 직후
 
 ### 프로젝트 파악
-- bsmg-v5, Phase 4I 후반 (… → #11 → 규칙서재설계 → **세션 중단**)
-- main HEAD: `72f0048` (docs 업데이트 포함, 규칙서재설계 3커밋 완료)
+- bsmg-v5, Phase 4I 후반 (… → 규칙서재설계 → **#12**)
+- main HEAD: `1081481` (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
+- 직전: `064c24d` (feat(#settings): 단가표 3단계 드릴다운 — 가로 스크롤 제거)
 - Vercel: https://bsmg-v5.vercel.app (자동 배포 트리거됨)
 - 저장소 Public: hyuntarella/BSMG-V4
 
-### 핵심 교훈 적용 (H4 + H5~H8 + #10 + #11 누적)
+### 핵심 교훈 적용 (H4 + H5~H8 + #10 + #11 + #12 누적)
 - 파생 상태는 effect 금지, 이벤트 콜백 1회 (H4-2-CHIP)
 - 합산 계산은 역산 금지, 의도 항목 직접 합산 (H4-3)
 - 전역 단축키 window capture 선점 (H4-2-KEYBIND)
@@ -404,18 +394,16 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 우레탄 0.5mm 는 base05 × 배수 공식 (H6)
 - 편집 중 외부 value 변경이 editValue 덮는 race 는 useEffect deps 에서 value 제거로 차단 (H8)
 - clickaway 는 input.onBlur 단독 불완전 → document mousedown 리스너 병용 필수 (H8)
-- `is_base: true` 는 `buildItems` 에서 하드코딩으로 보장. `BaseItem.isBase` 는 삭제됨 — constants.ts 에 추가할 필요 없음 (#11)
+- `is_base: true` 는 `buildItems` 에서 하드코딩으로 보장 (#11)
+- **DB 의존 기능 "복구" 는 코드 프록시 전환만으로는 부족. 실제 row 존재 여부를 진단 스크립트로 확인하라 (#12 교훈)**
+- **200줄 규칙 초과 시 순수 렌더 컴포넌트로 분리 — 상태/로직은 상위에 두고 하위는 props 로만 (PriceMatrix 4-file 분리 패턴)**
 
-### 잔여 작업 (규칙서재설계 UAT 대기 중)
-1. 사장 브라우저 UAT — `/settings` 3메뉴 + 즐겨찾기/기타/신규 동작 + acdb "바" 자동완성 복구 + 신규 공종 자동 등록
-2. #5 Ctrl+F 잔여 확인
-3. Phase 4I 공식 종료 선언
-4. (선택) SettingsPanel.tsx 도 사이드바 구조로 통일
-
-### 중단 재개 모드 — 대기 자세
-사장이 컴퓨터 껐다 켜는 중. **"전달할 내용이 남아있다"** 고 명시함.
-→ 이 응답은 인수 완료 보고만. 선제 행동 금지.
-→ 사장 메시지 수신 시: 내용 정리 → 박스 템플릿으로 재설계 → 승인 후 실행.
+### 잔여 작업
+1. 사장 브라우저 UAT — `/settings` 단가표 3단계 드릴다운 + 견적서 품명 셀 "바" 자동완성 복구
+2. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
+3. #5 Ctrl+F 잔여 확인
+4. Phase 4I 공식 종료 선언
+5. (선택) SettingsPanel.tsx 도 사이드바 구조로 통일
 ```
 
 **END v5**
