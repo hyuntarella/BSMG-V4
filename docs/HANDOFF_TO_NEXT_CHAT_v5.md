@@ -1,7 +1,8 @@
 # HANDOFF_TO_NEXT_CHAT_v5.md — 채팅 세션 인계서
 
 > 새 Claude: 이 문서 먼저 흡수. v4 폐기. §14 양식대로 "인수 완료" 보고 후 사장 메시지 대응.
-> v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점에서의 차이만 기록한다.
+> v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점부터의 차이를 기록한다.
+> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP 반영.
 
 ---
 
@@ -41,6 +42,32 @@ v4 §3.1~§3.11 유지. v5 추가:
 - EstimateEditorV5에 window 레벨 keydown 리스너(capture 단계) 설치 — 포커스가 `<input type="number">`여도 네이티브 input undo보다 먼저 선점
 - 커스텀 undo는 sheets만 복원, m2 포함 메타 필드는 현재값 유지
 
+### 3.15 폐기물 muted 컬럼 (H5-1 + 장비exp이전 이후, 확정)
+- 폐기물처리/드라이비트하부절개/사다리차/스카이차 장비 4종은 구조적으로 **경비(exp) 컬럼** 항목
+- 과거 buildItems/applyOverrides fallback 이 labor 에 쓰던 버그는 e0fe46a 에서 전면 수정
+- 폐기물처리 기본값 반투명 표시는 **exp 컬럼** 에서만 (isWasteDefaultExp, original_exp 기준)
+- 이름 fallback Set (`EQUIPMENT_NAMES`) 으로 is_equipment 플래그 누락 구 데이터 커버
+
+### 3.16 우레탄 0.5mm 기준 단가 맞춤 (H6, 확정)
+- CustomerInfoCard 체크박스 제거 → 탭 바 아래 **UrethaneBase05Control** 컴포넌트로 이동
+- syncUrethane 재설계: 노출 우레탄 3종 = base05 × {2, 3, 4} 비율
+  - 우레탄 1차 = base05 × 2 / 노출우레탄(복합) = base05 × 3 / 우레탄 2차 = base05 × 4
+- 벽체/상도는 기존 1:1 복사 유지
+- 양쪽 시트 (복합/우레탄) 어느 쪽에서 편집해도 동기화 (EstimateTableWrapper 이벤트 핸들러)
+- 두 견적서 나란히 볼 때 두께 대비 단가 3:4:2 비율이 수식으로 보장됨 (사장 신뢰도 목적)
+
+### 3.17 셀 편집 UX (H7, 확정)
+- Bug 1: 숫자 셀 편집 진입 시 기존 값 전체선택 — input onFocus select() + useEffect rAF select() 이중 안전장치
+- Bug 2: 숫자 입력 시 실시간 천단위 콤마 — lib/utils/format.ts formatNumericEdit
+- 저장값은 항상 parseFloat(콤마 제거) 유지
+
+### 3.18 셀 편집 race 오픈 이슈 (H7-DEBUG 이후 재조사 대기)
+- 증상 (작성자 보고): 첫 셀 편집 직후 다음 셀 먹통
+- d8c6dc5 WIP 에서 시도한 fix 는 브라우저 실측 실패
+- H7-DEBUG-CLEANUP 에서 로그 9개만 제거. 방어적 코드(커서 복원, pendingValueRef.row, 단일 클릭 편집)는 유지
+- **정적 분석**: 코드 경로상 재현 불가. 이벤트 순서/React 18 batching 모두 정상
+- 다음 조사: 브라우저 devtools 로 실제 이벤트 타임라인 수집
+
 ## 4. Phase 4I-H4 종료 (완료)
 
 ### 4.1 H4 세부 커밋 (main HEAD 6deab19)
@@ -60,7 +87,7 @@ v4 §3.1~§3.11 유지. v5 추가:
 | H4-4 | 637e0f0 | CompareTable 신규 — 공종별 단가 나란히 |
 | **merge** | **6deab19** | **main HEAD** (H4-4 Merge feature/lens-integration) |
 
-### 4.2 13개 지적 잔여
+### 4.2 13개 지적 잔여 (2026-04-11 갱신)
 | # | 지적 | 우선 | 단계 |
 |---|---|---|---|
 | ~~4~~ | ~~편집 원복~~ | ~~P0~~ | ✅ H3 종료 |
@@ -69,12 +96,15 @@ v4 §3.1~§3.11 유지. v5 추가:
 | ~~11~~ | ~~평단가 현황~~ | ~~P1~~ | ✅ H4-3 종료 (6차 수정) |
 | ~~12~~ | ~~비교 탭 공종별 단가~~ | ~~P2~~ | ✅ H4-4 종료 |
 | ~~Undo~~ | ~~표 셀 undo~~ | ~~P2~~ | ✅ H4-2 KEYBIND 종료 |
-| 1 | 폐기물 인건비 20만 반투명 | P0 | **H5** |
-| 6 | 우레탄 0.5mm 체크박스 재검증 | P1 | **H5** |
-| 10 | 빠른공종추가 칩 | P2 | **H5** |
-| 2 | acdb_entries seed | P2 | **H5** |
-| 5 | Ctrl+F 행 스크롤 제거 | P3 | **H5** (v4 §9에서 H6였으나 H5로 흡수) |
-| — | **console.log 19개 제거 (기술부채)** | P0 | **H5 1차 작업** |
+| ~~console.log 19개~~ | ~~H3-DEBUG 로그~~ | ~~P0~~ | ✅ **H5-LOGS 종료** (d9cbdbc) |
+| ~~1~~ | ~~폐기물 인건비 반투명~~ | ~~P0~~ | ✅ **H5-1 종료** (2f2057b + a9fb5ee + 6109785 + e0fe46a 이후 exp 컬럼 기준) |
+| ~~6~~ | ~~우레탄 0.5mm 재설계~~ | ~~P1~~ | ✅ **H6 종료** (cff0dec) |
+| ~~셀 편집 UX 2종~~ | ~~전체선택 + 실시간 콤마~~ | ~~P0~~ | ✅ **H7 종료** (f90acf4) |
+| ~~[H7-DEBUG] 로그 9개~~ | ~~d8c6dc5 WIP 로그~~ | ~~P0~~ | ✅ **H7-DEBUG-CLEANUP 종료** |
+| 10 | 빠른공종추가 칩 | P2 | **잔여** |
+| 2 | acdb_entries seed | P2 | **잔여** |
+| 5 | Ctrl+F 행 스크롤 제거 | P3 | **잔여** |
+| (신규) | 셀 편집 race 브라우저 재조사 | P1 | **잔여** (d8c6dc5 오픈 이슈) |
 | 8 | 규칙서 UI | P4 | Phase 5+ |
 
 ### 4.3 이 세션 핵심 교훈 (H4 종료)
@@ -140,30 +170,29 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 전역 window capture 리스너로 Ctrl+Z 선점
 - EstimateEditorV5에만 리스너 설치. 중복 설치 금지
 
-## 8. H5 작업 범위
+## 8. H5 작업 범위 (2026-04-11 갱신)
 
-### 8.1 포함 항목 (6개)
-1. **console.log 19개 제거 (기술부채 P0)** — H3-DEBUG에서 삽입된 [CELL]/[USE_EST]/[RECALC]/[MARK_EDITED]/[BUILD]/[EDITOR]/[WRAPPER] 로그 전부 제거
-   - 파일: ExcelCell.tsx(4), useEstimate.ts(4), tableLogic.ts(4), buildItems.ts(2), EstimateEditorV5.tsx(1), EstimateTableWrapper.tsx(2), ExcelLikeTable.tsx(2)
-   - 로직 변경 0, 순수 삭제만
-2. **#1 폐기물 인건비 20만 반투명** (P0) — 폐기물 항목의 인건비 셀 반투명 처리 (사장 지시)
-3. **#6 우레탄 0.5mm 체크박스 재검증** (P1) — CustomerInfoCard 토글, sync_urethane 경로 재검증
-4. **#10 빠른공종추가 칩** (P2) — 칩 클릭 → 공종 추가 UX
-5. **#2 acdb_entries seed** (P2) — acdb 자동완성 데이터 부재 문제 해결
-6. **#5 Ctrl+F 행 스크롤 제거** (P3) — H3-VERIFY에서 이미 처리됨 (rowRefs 제거) 확인만 / 잔여 코드 있으면 제거
+### 8.1 완료 항목
+1. ~~console.log 19개 제거 (H5-LOGS)~~ ✅
+2. ~~#1 폐기물 반투명 (H5-1)~~ ✅ — exp 컬럼 기준으로 재조정됨 (e0fe46a 장비exp이전)
+3. ~~#6 우레탄 0.5mm 재설계 (H6)~~ ✅ — UrethaneBase05Control + base05 × 배수 공식
+4. ~~H7 셀 편집 UX (전체선택 + 실시간 콤마)~~ ✅
+5. ~~H7-DEBUG 로그 9개 제거~~ ✅
 
-### 8.2 H5 박스 작성 전 PM 확인 필요
-- 박스 1번은 console.log 19개 제거만 단일 스코프로 실행 (다른 기능과 섞지 말 것)
-- #6 우레탄 체크박스는 코드 경로 먼저 확인 — sync_urethane 플래그가 실제로 반영되는지 useEstimate에서 추적
-- #10 칩은 H4-2-CHIP의 useCostChips 구조와 충돌 없는지 확인
+### 8.2 잔여 항목 (H5 원래 범위 + 신규)
+1. **#10 빠른공종추가 칩** (P2) — 칩 클릭 → 공종 추가 UX. useCostChips 구조와 충돌 없는지 먼저 확인
+2. **#2 acdb_entries seed** (P2) — 테이블에 데이터 0건. data/acdb-seed.json 기반 시드 스크립트 실행 필요
+3. **#5 Ctrl+F 행 스크롤 잔여 확인** (P3) — H3-VERIFY 에서 rowRefs 제거 완료. 잔여 코드 없는지 확인만
+4. **셀 편집 race 재조사** (P1, 신규) — d8c6dc5 에서 작성자 브라우저 실측 먹통 보고했으나 정적 분석 재현 불가. 브라우저 devtools 로 실제 이벤트 타임라인 수집 필요
 
 ## 9. 환경 (v4 §10 + 업데이트)
 - 저장소: `hyuntarella/BSMG-V4` **Public**
 - 브랜치: feature/lens-integration 작업 → main merge → Vercel 자동배포
 - URL: https://bsmg-v5.vercel.app
-- **main HEAD: `6deab19`** (H4 종료 시점, H4-4 Merge)
-- 프로젝트 경로: `C:\Users\나\bsmg-v5`
-- 로컬 브랜치: main (H4-4 merge 반영)
+- **main HEAD: (커밋 예정, H7-DEBUG-CLEANUP 이후 갱신)**
+- 직전 확인 머지: `f90acf4` (H7 Merge feature/h7-cell-ux-fixes)
+- 프로젝트 경로: `C:\Users\lazdo\projects\bsmg-v5` (랩탑 교체 후 경로 변경)
+- 로컬 브랜치: main
 
 ## 10. 컨텍스트 복원 우선순위
 1. 이 문서 (v5)
@@ -177,29 +206,36 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - ~~#11 평단가 현황 (6차)~~ ✅
 - ~~#12 비교 탭 테이블~~ ✅
 - ~~Undo 표 셀 (H4-2-KEYBIND)~~ ✅
-- **H5 진입 대기**. 순서: console.log 제거 → #1 → #6 → #10 → #2 → #5
+- ~~H5-LOGS 디버그 로그 19개~~ ✅
+- ~~H5-1 #1 폐기물 반투명 + 장비 readonly~~ ✅
+- ~~장비 exp 컬럼 이전 + 마이그레이션 012~~ ✅
+- ~~H6 우레탄 0.5mm 재설계~~ ✅
+- ~~H7 셀 편집 UX 2종~~ ✅
+- ~~H7-DEBUG 로그 9개 제거~~ ✅
+- **잔여**: #10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 잔여 / 셀 편집 race 브라우저 재조사
 - price_matrix 20평이하/우레탄 (Phase 10)
 - price_matrix effective_from 2026-04-08 → Phase 10
 - 음성 → 폼 escalation 트리거 (Phase 8)
 - 외벽/주차장 자동화 (Phase 4.6+)
+- tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (별도 처리)
 
-## 12. 마지막 상태 (이 세션 종료 시점)
-- Phase 4I-H4 **종료 선언** (2026-04-10)
-- H5 진입 준비
-- main HEAD: `6deab19`
-- 테스트: 452/453 통과 (INFER-004 Phase 8 이월, 기존과 동일)
-- 다음 작업: **H5 박스 작성**. 순서:
-  1. PM이 먼저 `console.log('[` 19개 위치 grep → 단일 삭제 박스 작성
-  2. PM이 폐기물(#1) 인건비 20만 반투명 위치 확인 (buildItems의 폐기물 생성 경로)
-  3. #6 우레탄 체크박스 코드 경로 raw fetch로 재검증
-  4. 박스 작성 → CC → 실측 → 반영
+## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 H7-DEBUG-CLEANUP)
+- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP 이어짐
+- **main HEAD**: (H7-DEBUG-CLEANUP 머지 이후 갱신)
+- 테스트: 478/478 통과
+- Build/Lint: 클린 (경고만, 사전 존재)
+- 다음 작업 후보:
+  1. 셀 편집 race 브라우저 실측 + devtools 타임라인 수집 (최우선 — UX 차단)
+  2. #10 빠른공종 추가 칩
+  3. #2 acdb_entries seed 데이터 적재
+  4. #5 Ctrl+F 잔여 확인 (거의 자동 pass 예상)
 
-## 13. 파일 위치 정보
-- SESSION_STATE: `C:\Users\나\bsmg-v5\docs\SESSION_STATE.md`
-- 이 인계서: `C:\Users\나\bsmg-v5\docs\HANDOFF_TO_NEXT_CHAT_v5.md`
-- 프로젝트 규칙: `C:\Users\나\bsmg-v5\CLAUDE.md` (수정 금지)
-- 지시서: `C:\Users\나\bsmg-v5\docs\SYSTEM_BUILD_SPEC.md`
-- lens 인터페이스: `C:\Users\나\bsmg-v5\docs\brief-quote.md` §4
+## 13. 파일 위치 정보 (2026-04-11 갱신 — 랩탑 교체 후 경로)
+- SESSION_STATE: `C:\Users\lazdo\projects\bsmg-v5\docs\SESSION_STATE.md`
+- 이 인계서: `C:\Users\lazdo\projects\bsmg-v5\docs\HANDOFF_TO_NEXT_CHAT_v5.md`
+- 프로젝트 규칙: `C:\Users\lazdo\projects\bsmg-v5\CLAUDE.md` (수정 금지)
+- 지시서: `C:\Users\lazdo\projects\bsmg-v5\docs\SYSTEM_BUILD_SPEC.md`
+- lens 인터페이스: `C:\Users\lazdo\projects\bsmg-v5\docs\brief-quote.md` §4
 
 ## 14. 새 채팅 첫 응답 양식
 
@@ -207,32 +243,27 @@ v4 §7.1~§7.12 그대로. v5 추가:
 ## 인수 완료
 
 ### 프로젝트 파악
-- bsmg-v5, Phase 4I-H4 종료, H5 진입 준비
-- main HEAD: 6deab19
-- Vercel: https://bsmg-v5.vercel.app (정상)
+- bsmg-v5, Phase 4I 후반 (H4 종료 → H5-1 → 장비exp → H6 → H7 → H7-DEBUG-CLEANUP)
+- main HEAD: (최신 확인 필요 — git log 1개)
+- Vercel: https://bsmg-v5.vercel.app
 - 저장소 Public: hyuntarella/BSMG-V4
 
-### H4 종료 확인
-- H4-1 표 2열 압축 / H4-2 undo 통합 / H4-3 평단가 현황(6차) / H4-4 비교 탭 테이블 전부 main 반영
-- 13개 지적 중 #13/#11/#12/Undo 종결. H5 이월 6개
+### 핵심 교훈 적용 (H4 + H5~H7 누적)
+- 파생 상태는 effect 금지, 이벤트 콜백 1회 (H4-2-CHIP)
+- 합산 계산은 역산 금지, 의도 항목 직접 합산 (H4-3)
+- 전역 단축키 window capture 선점 (H4-2-KEYBIND)
+- 플래그 의존 설계 전 grep 확인 (H4-3)
+- 장비 4종은 경비(exp) 컬럼 — labor 에 쓰면 안 됨 (장비exp이전)
+- 우레탄 0.5mm 는 base05 × 배수 공식 (H6)
 
-### 이번 세션 핵심 교훈 적용
-- 파생 상태는 effect 금지, 이벤트 콜백 1회
-- 합산 계산은 역산 금지, 의도 항목 직접 합산
-- 전역 단축키 window capture 선점
-- 플래그 의존 설계 전 grep으로 실제 값 존재 확인
-
-### H5 작업 범위
-- console.log 19개 제거 (기술부채 P0, 1차)
-- #1 폐기물 인건비 20만 반투명 (P0)
-- #6 우레탄 0.5mm 체크박스 재검증 (P1)
-- #10 빠른공종추가 칩 (P2)
-- #2 acdb_entries seed (P2)
-- #5 Ctrl+F 행 스크롤 잔여 확인 (P3)
+### 잔여 작업
+1. 셀 편집 race 브라우저 재조사 (최우선 — UX 차단)
+2. #10 빠른공종 칩
+3. #2 acdb_entries seed
+4. #5 Ctrl+F 잔여 확인
 
 ### 대기
-사장이 H5 시작 지시하면 → PM이 먼저 `console.log('[` 19개 위치 grep →
-단일 삭제 박스 작성 → CC → 실측 → 다음 항목
+사장 지시 받으면 해당 항목 박스 작성 → CC → 실측 → 다음 항목
 ```
 
 **END v5**

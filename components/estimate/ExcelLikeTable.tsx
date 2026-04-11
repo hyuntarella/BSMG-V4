@@ -99,32 +99,18 @@ export default function ExcelLikeTable({
   prevOverThresholdRef.current = isOverThreshold
 
   const commitValue = useCallback(() => {
-    console.log('[H7-DEBUG parent-commit]', {
-      pending: pendingValueRef.current,
-      activeCell,
-      isEditing,
-      keyboardCommitted: keyboardCommittedRef.current,
-    })
-    if (!pendingValueRef.current) {
-      console.log('[H7-DEBUG parent-commit] SKIPPED — pendingValueRef is null')
-      return
-    }
+    if (!pendingValueRef.current) return
     const { value, field, row } = pendingValueRef.current
     const item = items[row]
-    if (!item) {
-      console.log('[H7-DEBUG parent-commit] SKIPPED — item not found', { row })
-      return
-    }
+    if (!item) return
 
     const edited = markAsEdited(item, field as 'qty' | 'mat' | 'labor' | 'exp' | 'name' | 'spec' | 'unit', value)
     const newItems = [...items]
     newItems[row] = edited
-    const prevValue = (item as unknown as Record<string, unknown>)[field]
-    console.log('[H7-DEBUG parent-commit] APPLIED', { row, field, value, prevValue })
     onChange(newItems)
     pendingValueRef.current = null
     keyboardCommittedRef.current = true
-  }, [items, onChange, activeCell, isEditing])
+  }, [items, onChange])
 
   const cancelEdit = useCallback(() => {
     pendingValueRef.current = null
