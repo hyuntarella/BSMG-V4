@@ -12,10 +12,28 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / **4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스)**
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / 4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스) / **4I-규칙서재설계 (8탭 → 3메뉴 사이드바 + acdb 복구 + 저장 시 신규 공종 자동 등록)**
 - 진행중: 없음. Phase 4I-H5 잔여 항목(#5 Ctrl+F 잔여 확인) 대기
-- 다음: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
-- **main HEAD: `862b73a`** (fix(#11): 기본 8공종 is_base=true 하드코딩 — 삭제 버튼 가드 복구)
+- 다음: Vercel 배포 확인 (ce81ce9) → 사용자 UAT → Phase 4I 종료 선언
+- **main HEAD: `ce81ce9`** (chore(#settings): 레거시 탭/에디터 파일 제거 — 규칙서 재설계 후속 정리)
+- **직전 커밋: `2a6bdd0`** (feat(#settings,#estimate): 규칙서 3메뉴 재설계 + acdb 복구 + 저장 시 신규 공종 자동 등록)
+
+### 규칙서 재설계 (2026-04-11)
+- 구조: 사이드바 3메뉴 — 단가표 / 자주 쓰는 공종 / 기타 설정
+- **자주 쓰는 공종 3섹션:**
+  - 즐겨찾기 (cost_config.favorites) — QuickAddChips 와 동기화, 하드코딩 fallback 유지
+  - 기타 (cost_config.other_items) — acdb 셀렉터로 공종 선택 후 자체 단가 입력, 즐겨찾기 승격 가능
+  - 신규 (cost_config.new_items) — 저장 시 자동 등록, 즐겨찾기/기타 승격 가능
+- **acdb 자동완성 복구:** `/api/acdb/list` 프록시 라우트 신설 (서비스롤 쿼리 + cost_config 폴백 병합)
+- **save-all 자동등록:** `is_base=false` 공종 중 미등록분을 `cost_config.new_items` 에 upsert
+- **데이터 보존:** `cost_config.extra_items` schema 유지 (삭제 금지). UI만 흡수됨
+- **삭제된 컴포넌트:** SettingsTabs.tsx, ExtraItemsEditor.tsx (고아)
+- **신설 파일:**
+  - `lib/estimate/favorites.ts` — 타입 가드 + 마이그레이션 유틸
+  - `hooks/{useFavorites,useOtherItems,useNewItems,useAcdbSuggest}.ts`
+  - `components/settings/{SettingsSidebar,FavoriteItemsPage,OtherSettingsPage,FavoritesEditor,FavoriteChipTable,OtherItemsEditor,OtherItemsTable,NewItemsEditor,NewItemsTable}.tsx`
+  - `app/api/{acdb/list,settings/acdb-list}/route.ts`
+- **SettingsPanel.tsx (견적서 사이드 패널) 은 범위 밖 — 미수정, BaseItemsEditor/PresetsEditor 계속 사용 중**
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비

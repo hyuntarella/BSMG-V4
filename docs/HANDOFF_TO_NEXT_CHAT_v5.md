@@ -336,16 +336,35 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 외벽/주차장 자동화 (Phase 4.6+)
 - tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (별도 처리)
 
-## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 #11 핫픽스 완료)
-- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 이어짐
-- **main HEAD**: `862b73a` (fix(#11): 기본 8공종 is_base=true 하드코딩)
-- 테스트: 478/478 통과
-- Build/Lint: 클린 (경고만, 사전 존재)
-- Vercel: e068b5f → 862b73a 두 번 자동 배포 트리거
-- 다음 작업 후보:
-  1. #11 브라우저 실측 확인 — 기본 8공종 휴지통 미노출, 칩/장비/자유 행 휴지통 노출 + 삭제 시 합계 재계산
-  2. #5 Ctrl+F 잔여 확인 (거의 자동 pass 예상)
-  3. Phase 4I 공식 종료 선언
+## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 규칙서 재설계 완료)
+- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 → **규칙서재설계**
+- **main HEAD**: `ce81ce9` (chore(#settings): 레거시 탭/에디터 파일 제거)
+- **직전 커밋**: `2a6bdd0` (feat(#settings,#estimate): 규칙서 3메뉴 재설계 + acdb 복구 + 저장 시 신규 공종 자동 등록)
+- Build: 통과. Lint: 경고만 (사전 존재, 이번 변경 무관)
+- Vercel: 2a6bdd0 + ce81ce9 연달아 자동 배포 트리거됨
+
+### 이번 세션 변경 요약 (규칙서재설계)
+1. **설정 구조 개편** — 상단 8탭 → 좌측 사이드바 3메뉴
+   - 단가표 (PriceMatrixEditor 그대로)
+   - 자주 쓰는 공종 (즐겨찾기/기타/신규 3섹션 한 페이지)
+   - 기타 설정 (원가+규칙+장비+보증 단일 스크롤)
+2. **즐겨찾기 동적화** — `cost_config.favorites` 도입. QuickAddChips 가 `useFavorites` 훅 사용. 하드코딩 QUICK_CHIP_CATEGORIES 는 fallback 기본값으로만 잔존
+3. **기타 공종** — `cost_config.other_items` + acdb 셀렉터(`/api/settings/acdb-list` 프록시). 즐겨찾기 승격 버튼
+4. **신규 공종** — `cost_config.new_items`. 견적 저장 시 `is_base=false` 공종 중 미등록분 자동 upsert
+5. **acdb 자동완성 복구** — `/api/acdb/list` 신규 프록시 (서비스롤 + cost_config 폴백 병합). useAcdbSuggest 는 이 API 경유로 전환
+6. **레거시 제거** — SettingsTabs.tsx, ExtraItemsEditor.tsx 삭제. extra_items schema 는 유지
+7. **범위 밖 유지** — `components/estimate/SettingsPanel.tsx` (견적서 내 사이드 패널) 는 기존 탭 구조 그대로. BaseItemsEditor / PresetsEditor 파일 유지 (SettingsPanel 에서 계속 사용)
+
+### 다음 작업 후보
+1. **브라우저 UAT** — 사장 실측
+   - /settings: 사이드바 3메뉴 정상 전환
+   - 즐겨찾기 편집 → 저장 → 견적서 QuickAddChips 반영 확인
+   - 기타 공종: acdb 검색 → 단가 입력 → 승격
+   - 신규 공종: 견적서에서 규칙서 없는 공종 추가 → 저장 → 규칙서 신규 섹션에 자동 등록 확인
+   - 견적서 품명 셀에서 "바" 입력 시 드롭다운 복귀 확인
+2. #5 Ctrl+F 잔여 확인
+3. Phase 4I 공식 종료 선언
+4. (선택) SettingsPanel 도 사이드바 구조로 통일
 
 ## 13. 파일 위치 정보 (2026-04-11 갱신 — 랩탑 교체 후 경로)
 - SESSION_STATE: `C:\Users\lazdo\projects\bsmg-v5\docs\SESSION_STATE.md`
@@ -360,8 +379,8 @@ v4 §7.1~§7.12 그대로. v5 추가:
 ## 인수 완료
 
 ### 프로젝트 파악
-- bsmg-v5, Phase 4I 후반 (H4 종료 → H5-1 → 장비exp → H6 → H7 → H7-DEBUG-CLEANUP → H8 → #10 → #10-FIX → #11)
-- main HEAD: `862b73a` (fix(#11): 기본 8공종 is_base=true 하드코딩)
+- bsmg-v5, Phase 4I 후반 (H4 종료 → H5-1 → 장비exp → H6 → H7 → H7-DEBUG-CLEANUP → H8 → #10 → #10-FIX → #11 → 규칙서재설계)
+- main HEAD: `ce81ce9` (chore(#settings): 레거시 탭/에디터 파일 제거)
 - Vercel: https://bsmg-v5.vercel.app
 - 저장소 Public: hyuntarella/BSMG-V4
 
