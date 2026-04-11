@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import type { Estimate, EstimateItem, EstimateSheet, PriceMatrixRaw } from '@/lib/estimate/types'
 import { buildItems } from '@/lib/estimate/buildItems'
 import { calc } from '@/lib/estimate/calc'
+import { DEFAULT_WARRANTY_OPTION_BY_METHOD, deriveYearsBond } from '@/lib/estimate/warrantyOptions'
 import { getMargin } from '@/lib/estimate/margin'
 import { getAR } from '@/lib/estimate/areaRange'
 import type { VoiceCommand } from '@/lib/voice/commands'
@@ -99,6 +100,28 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
       markCell(`sheet:${sheetIndex}:${field}`)
     },
     [priceMatrix, saveSnapshot, markCell],
+  )
+
+  // ── 하자보증 옵션 변경 (option + derived years/bond 동시 업데이트) ──
+  const updateSheetWarranty = useCallback(
+    (sheetIndex: number, option: '8/5' | '5/3' | '3/3') => {
+      saveSnapshot(`시트${sheetIndex} 하자보증 변경 → ${option}`, 'manual')
+      const { years, bond } = deriveYearsBond(option)
+      setEstimate(prev => {
+        const sheets = [...prev.sheets]
+        if (!sheets[sheetIndex]) return prev
+        sheets[sheetIndex] = {
+          ...sheets[sheetIndex],
+          warranty_option: option,
+          warranty_years: years,
+          warranty_bond: bond,
+        }
+        return { ...prev, sheets }
+      })
+      setIsDirty(true)
+      markCell(`sheet:${sheetIndex}:warranty_option`)
+    },
+    [saveSnapshot, markCell],
   )
 
   // ── 평단가 변경 (재생성 여부 분기) ──
@@ -225,11 +248,15 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
           options: DEFAULT_EQUIPMENT_OPTIONS,
         })
 
+        const wOption = DEFAULT_WARRANTY_OPTION_BY_METHOD[type]
+        const wDerived = deriveYearsBond(wOption)
         const newSheet: EstimateSheet = {
           type,
           title: type === '복합' ? '복합방수' : '우레탄방수',
           price_per_pyeong: ppp,
-          warranty_years: 5, warranty_bond: 3,
+          warranty_option: wOption,
+          warranty_years: wDerived.years,
+          warranty_bond: wDerived.bond,
           grand_total: calcResult.grandTotal,
           sort_order: type === '복합' ? 0 : 1,
           items,
@@ -387,9 +414,12 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
             method: '복합', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
             options: DEFAULT_EQUIPMENT_OPTIONS,
           })
+          const cOpt = DEFAULT_WARRANTY_OPTION_BY_METHOD['복합']
+          const cDer = deriveYearsBond(cOpt)
           sheets.push({
             type: '복합', title: '복합방수', price_per_pyeong: ppp,
-            warranty_years: 5, warranty_bond: 3, grand_total: calcResult.grandTotal,
+            warranty_option: cOpt, warranty_years: cDer.years, warranty_bond: cDer.bond,
+            grand_total: calcResult.grandTotal,
             sort_order: 0, items,
           })
         }
@@ -405,9 +435,12 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
             method: '우레탄', m2, wallM2, pricePerPyeong: ppp, priceMatrix,
             options: DEFAULT_EQUIPMENT_OPTIONS,
           })
+          const uOpt = DEFAULT_WARRANTY_OPTION_BY_METHOD['우레탄']
+          const uDer = deriveYearsBond(uOpt)
           sheets.push({
             type: '우레탄', title: '우레탄방수', price_per_pyeong: ppp,
-            warranty_years: 5, warranty_bond: 3, grand_total: calcResult.grandTotal,
+            warranty_option: uOpt, warranty_years: uDer.years, warranty_bond: uDer.bond,
+            grand_total: calcResult.grandTotal,
             sort_order: 1, items,
           })
         }
@@ -571,6 +604,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     updateMeta,
     updateSheet,
     updateSheetPpp,
+    updateSheetWarranty,
     updateItem,
     updateItemText,
     addItem,

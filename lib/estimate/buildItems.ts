@@ -10,6 +10,7 @@ import { getAR } from './areaRange'
 import { getPD } from './priceData'
 import { applyOverrides } from './applyOverrides'
 import { calc } from './calc'
+import { DEFAULT_WARRANTY_OPTION_BY_METHOD, deriveYearsBond } from './warrantyOptions'
 
 /**
  * 핵심 함수: 면적·공법·평단가 → 견적서 공종 배열 + 계산 결과
@@ -210,12 +211,18 @@ function makeEquipmentRow(args: {
 export function buildSheet(input: BuildItemsInput): EstimateSheet {
   const { items, calcResult } = buildItems(input)
 
+  // 메서드별 하자보증 기본 옵션 (복합=8/5, 우레탄=3/3)
+  // 실제 사용자 기본값은 EstimateEditor 마운트 시 cost_config.warranty 에서 덮어씀.
+  const warrantyOption = DEFAULT_WARRANTY_OPTION_BY_METHOD[input.method]
+  const { years, bond } = deriveYearsBond(warrantyOption)
+
   return {
     type: input.method,
     title: input.method === '복합' ? '복합방수' : '우레탄방수',
     price_per_pyeong: input.pricePerPyeong,
-    warranty_years: 5,
-    warranty_bond: 3,
+    warranty_option: warrantyOption,
+    warranty_years: years,
+    warranty_bond: bond,
     grand_total: calcResult.grandTotal,
     sort_order: input.method === '복합' ? 0 : 1,
     items,

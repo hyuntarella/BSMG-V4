@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
@@ -12,7 +12,10 @@ import CoverSheet from './CoverSheet'
 import WorkSheet from './WorkSheet'
 import CompareSheet from './CompareSheet'
 import BasePriceBar from './BasePriceBar'
+import WarrantySelect from './WarrantySelect'
 import CompareTable from './CompareTable'
+import { useWarrantyDefaults } from '@/hooks/useWarrantyDefaults'
+import { deriveYearsBond, DEFAULT_WARRANTY_OPTION_BY_METHOD } from '@/lib/estimate/warrantyOptions'
 import VoiceBarContainer from '@/components/voice/VoiceBarContainer'
 import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
@@ -42,11 +45,13 @@ export default function EstimateEditor({
 
   const {
     estimate,
+    setEstimate,
     isDirty,
     markClean,
     updateMeta,
     updateSheet,
     updateSheetPpp,
+    updateSheetWarranty,
     updateItem,
     updateItemText,
     addItem,
@@ -62,6 +67,27 @@ export default function EstimateEditor({
   } = useEstimate(initialEstimate, priceMatrix)
 
   useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
+
+  // --- 규칙서 보증 기본값 → 신규 sheet 에 적용 ---
+  // id 없는 신규 sheet 에만 적용. 사용자가 이미 변경한 값은 유지(하드코딩 default 와 일치할 때만 덮어씀).
+  const { defaults: warrantyDefaults, loaded: warrantyLoaded } = useWarrantyDefaults()
+  useEffect(() => {
+    if (!warrantyLoaded) return
+    setEstimate(prev => {
+      let touched = false
+      const sheets = prev.sheets.map(s => {
+        if (s.id) return s
+        const hardcoded = DEFAULT_WARRANTY_OPTION_BY_METHOD[s.type]
+        if (s.warranty_option !== hardcoded) return s
+        const target = warrantyDefaults[s.type]
+        if (target === s.warranty_option) return s
+        touched = true
+        const { years, bond } = deriveYearsBond(target)
+        return { ...s, warranty_option: target, warranty_years: years, warranty_bond: bond }
+      })
+      return touched ? { ...prev, sheets } : prev
+    })
+  }, [warrantyLoaded, warrantyDefaults, setEstimate])
 
   const activeSheetIndex =
     activeTab === 'complex-cover' || activeTab === 'complex-detail'
@@ -254,9 +280,13 @@ export default function EstimateEditor({
       {/* 탭 */}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} hasComplex={hasComplex} hasUrethane={hasUrethane} />
 
-      {/* 평단가 현황 바 — detail 탭에서만 */}
+      {/* 평단가 현황 바 + 하자보증 선택 — detail 탭에서만 */}
       {(activeTab === 'complex-detail' || activeTab === 'urethane-detail') && activeSheetIndex >= 0 && (
-        <div className="mx-auto w-full max-w-5xl px-3 pt-2 flex justify-end">
+        <div className="mx-auto w-full max-w-5xl px-3 pt-2 flex items-center justify-end gap-3">
+          <WarrantySelect
+            sheet={estimate.sheets[activeSheetIndex]}
+            onChange={(opt) => updateSheetWarranty(activeSheetIndex, opt)}
+          />
           <BasePriceBar sheet={estimate.sheets[activeSheetIndex]} m2={estimate.m2} />
         </div>
       )}

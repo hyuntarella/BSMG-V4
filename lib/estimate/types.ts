@@ -85,6 +85,8 @@ export interface EstimateSheet {
   price_per_pyeong: number
   warranty_years: number
   warranty_bond: number
+  /** 하자보증 옵션 — '8/5' | '5/3' | '3/3'. warranty_years/bond는 이 값에서 파생. 하위호환용 optional. */
+  warranty_option?: '8/5' | '5/3' | '3/3'
   grand_total: number
   sort_order: number
   items: EstimateItem[]

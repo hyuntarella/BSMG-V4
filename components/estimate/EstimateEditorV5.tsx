@@ -6,12 +6,15 @@ import { useEstimate } from '@/hooks/useEstimate'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useCostChips } from '@/hooks/useCostChips'
 import { useAcdbSuggest } from '@/hooks/useAcdbSuggest'
+import { useWarrantyDefaults } from '@/hooks/useWarrantyDefaults'
+import { deriveYearsBond, DEFAULT_WARRANTY_OPTION_BY_METHOD } from '@/lib/estimate/warrantyOptions'
 import CostChipsPanel from './CostChipsPanel'
 import EstimateTableWrapper from './EstimateTableWrapper'
 import SaveButton from './SaveButton'
 import LoadButton from './LoadButton'
 import CustomerInfoCard from './CustomerInfoCard'
 import BasePriceBar from './BasePriceBar'
+import WarrantySelect from './WarrantySelect'
 import CompareTable from './CompareTable'
 import UrethaneBase05Control from './UrethaneBase05Control'
 
@@ -35,6 +38,7 @@ export default function EstimateEditorV5({
     markClean,
     updateMeta,
     updateSheetPpp,
+    updateSheetWarranty,
     addSheet,
     undo,
     saveSnapshot,
@@ -66,6 +70,28 @@ export default function EstimateEditorV5({
     if (!hasComposite) addSheet('복합')
     if (!hasUrethane) addSheet('우레탄')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- 규칙서 보증 기본값 → 신규 sheet 에 적용 ---
+  // DB 로드가 아닌 신규 sheet(= id 없음)이고, warranty_option 이 하드코딩 default 와 일치할 때만
+  // 규칙서 값으로 덮어쓴다. 사용자가 이미 변경한 값은 유지.
+  const { defaults: warrantyDefaults, loaded: warrantyLoaded } = useWarrantyDefaults()
+  useEffect(() => {
+    if (!warrantyLoaded) return
+    setEstimate(prev => {
+      let touched = false
+      const sheets = prev.sheets.map(s => {
+        if (s.id) return s // DB 에서 온 sheet 는 건드리지 않음
+        const hardcoded = DEFAULT_WARRANTY_OPTION_BY_METHOD[s.type]
+        if (s.warranty_option !== hardcoded) return s // 사용자가 변경했거나 이미 세팅됨
+        const target = warrantyDefaults[s.type]
+        if (target === s.warranty_option) return s
+        touched = true
+        const { years, bond } = deriveYearsBond(target)
+        return { ...s, warranty_option: target, warranty_years: years, warranty_bond: bond }
+      })
+      return touched ? { ...prev, sheets } : prev
+    })
+  }, [warrantyLoaded, warrantyDefaults, setEstimate])
 
   // --- 사용자가 칩을 눌렀을 때만 sheet.ppp를 동기화 (useEffect 재트리거 방지) ---
   // estimateRef로 최신 sheets를 참조 — useCallback 재생성 없이 직접 조회
@@ -203,10 +229,22 @@ export default function EstimateEditorV5({
             </button>
           </div>
           {activeTab === 'composite' && compositeIdx >= 0 && (
-            <BasePriceBar sheet={estimate.sheets[compositeIdx]} m2={estimate.m2} />
+            <div className="flex items-center gap-3">
+              <WarrantySelect
+                sheet={estimate.sheets[compositeIdx]}
+                onChange={(opt) => updateSheetWarranty(compositeIdx, opt)}
+              />
+              <BasePriceBar sheet={estimate.sheets[compositeIdx]} m2={estimate.m2} />
+            </div>
           )}
           {activeTab === 'urethane' && urethaneIdx >= 0 && (
-            <BasePriceBar sheet={estimate.sheets[urethaneIdx]} m2={estimate.m2} />
+            <div className="flex items-center gap-3">
+              <WarrantySelect
+                sheet={estimate.sheets[urethaneIdx]}
+                onChange={(opt) => updateSheetWarranty(urethaneIdx, opt)}
+              />
+              <BasePriceBar sheet={estimate.sheets[urethaneIdx]} m2={estimate.m2} />
+            </div>
           )}
         </div>
 
