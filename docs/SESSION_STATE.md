@@ -12,10 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS
-- 진행중: Phase 4I-H5 (1/6 완료 — 디버그 로그 제거)
-- 다음: #1 폐기물 반투명 → #6 우레탄 체크박스 재검증 → #10 빠른공종 칩 → #2 acdb seed → #5 Ctrl+F 잔여 확인
-- main HEAD: d9cbdbc (Merge feature/lens-integration: H5 디버그 로그 19개 제거)
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / **4I-H7-DEBUG-CLEANUP**
+- 진행중: 없음. Phase 4I-H5 잔여 항목(#10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 잔여 확인) 대기
+- 다음: #10 빠른공종 칩 → #2 acdb seed → #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
+- main HEAD: (커밋 예정) — H7-DEBUG-CLEANUP 이후 갱신 필요
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -273,6 +273,65 @@
 - 기술 부채 이월: console.log 19개 제거 (H3-DEBUG에서 삽입, H5 1차 작업으로 처리)
 - main HEAD: 6deab19
 
+### Phase 4I-H5-1: 폐기물처리 인건비 반투명 + 장비 readonly 수정 (#1)
+- **98169ed** feat: isMuted prop 추가. 폐기물처리 is_equipment=true labor 셀 + original_labor 없으면 반투명
+- **7f6f484** fix: isLumpReadonly 에 `!item.is_equipment` 조건 추가 — 장비 단가 셀 편집 잠김 버그 수정
+- **e56ba03** fix: is_equipment 플래그 누락 구 데이터 대비 EQUIPMENT_NAMES Set 이름 fallback 병행
+- main 머지: 2f2057b → a9fb5ee → 6109785
+
+### Phase 4I-장비exp이전 (직커밋 e0fe46a)
+- 사다리차/스카이차/폐기물처리/드라이비트하부절개는 구조적으로 경비(exp) 항목인데 buildItems/applyOverrides fallback 이 labor 컬럼에 쓰던 버그 전면 수정
+- buildItems: 장비 기본단가 fallback 을 finalExp 에 기록. exp===0 && labor===0 조건으로 이중계상 방지
+- applyOverrides: 장비 unitPrice 를 updated.exp 에. '폐기물 처리' 공백 버그 복구
+- realtimeParser.matchField: 장비 + 단가 문맥 labor → exp
+- ExcelLikeTable: 폐기물 muted 기본값 표시 labor → exp 컬럼 이동 (isWasteDefaultExp, original_exp)
+- priceData.getPD: fallback 배열 길이 COMPLEX_BASE/URETHANE_BASE 동적 사용
+- convert-pvalue-to-seed: COMPLEX/URETHANE_CANONICAL_MAP 인덱스를 BASE 상수와 1:1 정렬 (COMPLEX 12 / URETHANE 11)
+- migration 012_equipment_column_fix.sql: estimate_items 장비 행 labor → exp 이전 (exp=0 안전 조건)
+- scripts/reimport-pvalue-seed.ts: price_matrix 덮어쓰기 재임포트 도구
+- 461 테스트 통과
+
+### Phase 4I-H6: 우레탄 0.5mm 기준 단가 맞춤 재설계 (#6)
+- CustomerInfoCard 체크박스 제거 → 탭 바 아래 UrethaneBase05Control 컴포넌트 신규
+- syncUrethane.ts 재작성: base05 × 배수 공식
+  - 우레탄 1차 = base05 × 2
+  - 우레탄 2차 = base05 × 4
+  - 복합 노출우레탄 = base05 × 3
+  - 벽체/상도는 기존 1:1 복사 유지
+- 신규 API: applyUrethaneBase05, deriveBase05FromItem, deriveBase05Default, syncWallAndTop
+- EstimateTableWrapper: 노출 우레탄 3종 편집 시 배수 역산 → 양쪽 시트 동시 갱신
+- 테스트: overrideFreeSync 9개 추가, phase4f.test 업데이트, 469 전체 통과
+- 목적: 두 견적서 나란히 볼 때 두께 대비 단가 3:4:2 비율이 수식으로 보장
+- main 머지: cff0dec
+
+### Phase 4I-H7: 셀 편집 UX 2종 수정
+- Bug 1: 숫자 셀 편집 진입 시 기존 값 전체선택
+  - input onFocus={(e) => e.currentTarget.select()} (initialChar 경로 제외)
+  - 편집 초기값을 fm(value) 포맷으로 설정 → select() 가 포맷된 문자열 전체 선택
+- Bug 2: 숫자 입력 시 천단위 콤마 실시간 표시
+  - lib/utils/format.ts formatNumericEdit 헬퍼: 정수/소수/음수/paste 콤마/중간 상태 모두 보존
+  - ExcelCell handleChange 에서 type='number' 일 때 formatNumericEdit 적용
+  - 저장값은 항상 parseFloat(콤마 제거) 숫자 유지
+- 테스트: 9개 추가 (formatNumericEdit 7 + 편집 진입 2), 478 전체 통과
+- main 머지: f90acf4
+
+### Phase 4I-H7-DEBUG (WIP 스냅샷 d8c6dc5) → H7-DEBUG-CLEANUP 에서 정리됨
+- WIP 커밋 d8c6dc5: 셀 편집 race ("첫 셀 편집 직후 다음 셀 먹통") 추가 조사, 미검증
+- 시도한 변경:
+  - ExcelCell: onClick 싱글클릭 편집, pendingCursorRef+useLayoutEffect 커서 위치 보정, initialChar 경로 acdb 드롭다운 트리거, onBlur rAF 제거 → 동기 handleCommit, [H7-DEBUG] 로그 5개
+  - ExcelLikeTable: pendingValueRef 에 row 필드 추가 — A→B 연속 클릭 race 차단 시도, lastActiveCellRef 제거, [H7-DEBUG] 로그 4개
+- 작성자 보고: vitest 155/155 통과했으나 브라우저 실측 먹통 증상 미해결
+- 미파악 의심 후보: (1) sync_urethane 재계산이 편집 중 value prop 변경 → useEffect 재실행 → editValue 리셋 / (2) saveSnapshot deep-clone + setSnapshots 연쇄 재렌더 / (3) React 18 auto-batching 에서 setIsEditing(false)+(true) 연속 호출 bailout
+
+### Phase 4I-H5-DEBUG-CLEANUP (랩탑 핸드오프 + H7-DEBUG 정리)
+- 랩탑 핸드오프 직커밋 04dc77b: .claude/agents 5 + .claude/skills 6 + data/templates xlsx 45 + p-value 파이프라인 스크립트 + HANDOFF_TO_NEXT_CHAT_v5.md + brief-quote.md
+- H7-DEBUG 로그 정리 (이번 작업):
+  - 정적 분석 결론: d8c6dc5 의 race 가설은 코드 경로상 재현 불가. 이벤트 순서/React 18 batching 모두 정상. 테스트 블러/커밋 race 커버리지 0건이라 vitest 통과는 무의미.
+  - 조치: 9개 [H7-DEBUG] console.log 전부 제거. 나머지 방어적 개선은 유지 (pendingCursorRef 커서 복원, initialChar acdb 트리거, pendingValueRef.row 가드, 단일 클릭 편집).
+  - 한 가지 수정: commitValue useCallback deps 에서 쓰이지 않게 된 activeCell/isEditing 제거.
+  - 셀 편집 race 버그는 브라우저 실측이 있을 때 재조사 (SESSION_STATE 에 오픈 이슈로 기록).
+- 검증: 478/478 테스트 통과, build 성공, lint 경고만 (사전 존재), tsc 에러 1건 (tests/voice/vadLogic.test.ts "speaking" 타입 — 사전 존재, 무관)
+
 ### Phase 4I-H5-LOGS: H3-DEBUG 디버그 로그 19개 전부 제거
 - 태그: [BUILD], [USE_EST], [WRAPPER], [CELL], [RECALC], [MARK_EDITED], [EDITOR], [COMMIT]
 - 파일별 제거:
@@ -290,8 +349,14 @@
 - Vercel bsmg-v5 배포 성공 (status=success)
 
 ## 테스트 상태
-- 전체: 452/453 통과
-- 실패 1건: tests/voice/parser-corpus.test.ts INFER-004 (Phase 8 이월)
+- 전체: 478/478 통과 (2026-04-11 H7-DEBUG-CLEANUP 시점)
+- INFER-004: 장비exp이전 커밋에서 field labor→exp 수정과 함께 해결됨
+- tsc: tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (사전 존재, 별도 처리 필요)
+
+## 오픈 이슈
+- **셀 편집 race ("첫 셀 편집 직후 다음 셀 먹통")**: d8c6dc5 에서 WIP 조사 후 H7-DEBUG-CLEANUP 에서 로그만 정리. 작성자 브라우저 실측에서 재현 보고했으나, 정적 분석으로는 재현 경로 확인 불가. 브라우저 실측 + devtools 로 다음 세션에서 재조사 필요.
+  - 의심 후보 (작성자 추정): sync_urethane 재계산 / saveSnapshot 연쇄 재렌더 / React 18 batching bailout
+  - 첫 조사 단계: 실제 이벤트 타임라인 수집 (A 편집 → A.onBlur → parent onChange → B.onClick → B.useEffect 순서) + `<input>` 의 document.activeElement 추적
 
 ## 알려진 파일 상태
 - docs/brief-quote.md: §4 lens 인터페이스 v4 최종 설계 (items 삭제, 2-Document)

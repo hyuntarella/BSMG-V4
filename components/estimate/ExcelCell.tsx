@@ -76,7 +76,6 @@ export default function ExcelCell({
   // 원래 useEffect + rAF 패턴으로 복귀. race 방지는 pendingValueRef.row (부모측) 가 담당.
   useEffect(() => {
     if (!isEditing || type === 'select') return
-    console.log('[H7-DEBUG edit-enter]', { type, initialChar, value, editValue })
     if (initialChar) {
       // 타이핑으로 진입: 첫 글자로 덮어쓰기 (단일 문자라 포맷 불필요)
       setEditValue(initialChar)
@@ -110,7 +109,6 @@ export default function ExcelCell({
   }, [isEditing, value, initialChar])
 
   const handleCommit = useCallback(() => {
-    console.log('[H7-DEBUG handleCommit]', { editValue, type })
     if (type === 'number') {
       const parsed = parseFloat(editValue.replace(/,/g, ''))
       onCommit(isNaN(parsed) ? 0 : parsed)
@@ -253,12 +251,9 @@ export default function ExcelCell({
             if (!initialChar) e.currentTarget.select()
           }}
           onBlur={() => {
-            const activeEl = document.activeElement?.tagName
-            console.log('[H7-DEBUG blur]', { editValue, activeEl })
-            if (dropdownRef.current?.contains(document.activeElement)) {
-              console.log('[H7-DEBUG blur] skipped (dropdown focused)')
-              return
-            }
+            // 드롭다운 클릭 시 blur 무시 (dropdown item 의 onMouseDown preventDefault 로
+            // focus 가 input 에 유지되지만, 안전장치로 containment 체크 유지)
+            if (dropdownRef.current?.contains(document.activeElement)) return
             handleCommit()
           }}
           onKeyDown={handleKeyDown}
@@ -306,7 +301,6 @@ export default function ExcelCell({
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={() => {
         const canEdit = !isLocked || type === 'text'
-        console.log('[H7-DEBUG click]', { type, value, isSelected, canEdit })
         if (!isSelected) onSelect()
         if (canEdit) onStartEditing()
       }}
