@@ -12,9 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND
-- 진행중: Phase 4I-H4-3 평단가 현황 (표 오른쪽 위 요약 바)
-- 다음: Phase 4I-H4-4 비교 탭 공종별 단가 나란히 → console.log 19개 제거 → Phase 5
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS
+- 진행중: Phase 4I-H5 (1/6 완료 — 디버그 로그 제거)
+- 다음: #1 폐기물 반투명 → #6 우레탄 체크박스 재검증 → #10 빠른공종 칩 → #2 acdb seed → #5 Ctrl+F 잔여 확인
+- main HEAD: d9cbdbc (Merge feature/lens-integration: H5 디버그 로그 19개 제거)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -241,6 +242,52 @@
   preventDefault + stopPropagation → useEstimate.undo() 호출. 포커스 위치와 무관하게 커스텀 undo 발동
 - 사용자 실측 통과: 면적 유지 + items 복원 확인
 - 커밋: 697d80b
+
+### Phase 4I-H4-3: 평단가 현황 바 (선택 vs 실제 비교)
+- **1차(dab9f94)**: BasePriceBar 신규 — is_base && !is_hidden 필터, 탭 줄 우측 뱃지 flex-wrap
+- **2차(755b70e)**: is_base 필터 폐기 — COMPLEX_BASE/URETHANE_BASE 어디에도 isBase:true 없어 항상 빈 배열.
+  새 필터: !is_hidden && !is_equipment && !is_fixed_qty && unit==='m²' && (mat+labor+exp)>0
+- **3차(5b18f29)**: /estimate/new, /estimate/[id] 경로(구버전 EstimateEditor)에도 BasePriceBar 부착 —
+  detail 탭에서만 렌더, cover/compare 제외
+- **4차(492d0e8)**: 바 재설계 — 공종별 나열 폐기. "선택 {price_per_pyeong} → 실제 {round(grand_total/m2)} (±{diff}원/m²)"
+  색상: diff>0 빨강, diff<0 파랑, diff==0 회색. estimate.m2>0 조건. BasePriceBar(sheet, m2) 시그니처
+- **5차(ce6601b)**: 실제 평단가 계산식 변경 — grand_total/m2 역산 폐기(장비·lump·경비 왜곡).
+  직접 합산: items 중 !is_hidden && !is_equipment && unit!=='식' 단가합(mat+labor+exp) 직접 합계
+- **6차(c31e1c9)**: 벽체 우레탄(name==='벽체 우레탄') 제외 — price_matrix_pvalue_seed.json 42조합 검증 결과
+  price_per_pyeong은 바닥(m²) 공종 단가합 기준으로 설계됨. 벽체 우레탄은 qty=wallM² 별도 항목이라 제외해야
+  42조합 전체에서 단가합 == price_per_pyeong 일치. 예: 복합 50~100평 40000 = 1500+2000+17000+3000+12500+4000
+
+### Phase 4I-H4-4: 비교 탭 공종별 단가 나란히 테이블
+- components/estimate/CompareTable.tsx 신규 (94줄) — name 기준 복합↔우레탄 단가합 매칭
+- 필터: !is_equipment && !is_hidden (식 항목 포함 표시)
+- 한쪽만 있으면 '-' (gray-300), 양쪽 있을 때만 차이 = 우레탄 - 복합
+- 차이 색상: 양수 빨강, 음수 파랑, 0 회색. undefined prop 허용
+- EstimateEditorV5.tsx: 비교 탭 기존 CompareCard 아래에 CompareTable 배치
+- EstimateEditor.tsx (구버전): CompareSheet 아래에도 동일 배치 → /estimate/new, /estimate/[id]에서도 노출
+- 커밋: 637e0f0 → main merge 6deab19
+
+### Phase 4I-H4 종료 선언 (2026-04-10)
+- H4 전체 완료: H4-1(2열 압축) / H4-2(undo 통합 + FIX/CHIP/KEYBIND) / H4-3(평단가 현황 6차 수정) / H4-4(비교 탭 테이블)
+- 13개 지적 잔여 처리: #13 ✅ / #11 ✅ / #12 ✅ / Undo 표셀 ✅
+- H5 이월: #1 폐기물 반투명 / #6 우레탄 0.5mm 체크박스 재검증 / #10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 행 스크롤 제거
+- 기술 부채 이월: console.log 19개 제거 (H3-DEBUG에서 삽입, H5 1차 작업으로 처리)
+- main HEAD: 6deab19
+
+### Phase 4I-H5-LOGS: H3-DEBUG 디버그 로그 19개 전부 제거
+- 태그: [BUILD], [USE_EST], [WRAPPER], [CELL], [RECALC], [MARK_EDITED], [EDITOR], [COMMIT]
+- 파일별 제거:
+  - lib/estimate/buildItems.ts: 2 ([BUILD] enter / result)
+  - lib/estimate/tableLogic.ts: 4 ([RECALC] 2 + [MARK_EDITED] 2)
+  - hooks/useEstimate.ts: 4 ([USE_EST] updateMeta/updateSheetPpp/updateItem/setState done)
+  - components/estimate/EstimateTableWrapper.tsx: 2 ([WRAPPER] render / updateItems)
+  - components/estimate/ExcelCell.tsx: 4 ([CELL] edit enter / handleCommit / select onChange / onClick)
+  - components/estimate/EstimateEditorV5.tsx: 1 ([EDITOR] handleAreaChange)
+  - components/estimate/ExcelLikeTable.tsx: 2 ([COMMIT] commitValue / onCommit skipped)
+- 운영 경고 `console.warn('P매트릭스에 ... 데이터 없음')` (priceData.ts:19) **유지** (태그 없음, 운영 필요)
+- 로직 변경 0, 순수 삭제만. 7 files, 1 insertion(+), 27 deletions(-)
+- 빌드/린트/TS typecheck 통과, 테스트 452/453 (INFER-004 Phase 8 이월)
+- 커밋: ff367fa → main merge d9cbdbc
+- Vercel bsmg-v5 배포 성공 (status=success)
 
 ## 테스트 상태
 - 전체: 452/453 통과

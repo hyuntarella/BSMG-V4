@@ -1,0 +1,404 @@
+{
+  "total_files": 45,
+  "total_items": 477,
+  "canonical_counts": {
+    "바탕정리": 45,
+    "바탕조정제부분미장": 45,
+    "하도프라이머": 45,
+    "복합시트": 27,
+    "쪼인트실란트보강포부착": 27,
+    "노출우레탄": 27,
+    "벽체우레탄": 45,
+    "우레탄상도": 45,
+    "사다리차": 45,
+    "폐기물처리": 45,
+    "드라이비트절개": 45,
+    "노출우레탄1차": 18,
+    "노출우레탄2차": 18
+  },
+  "anomaly_count": 0,
+  "anomalies": [],
+  "amount_only_count": 63,
+  "amount_only_items": [
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 복합_32,000원(0.5mm당 1600원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 복합_33,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 복합_34,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 복합_35,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 우레탄_25,000원(0.5mm당 1600원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 우레탄_26,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 우레탄_27,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "100평~200평 미만\\100평~200평 미만 우레탄_28,000원(0.5mm당 2000원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 미만 우레탄_23,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 미만 우레탄_24,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 미만 우레탄_25,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 미만 우레탄_26,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 복합_29,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 복합_30,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 복합_31,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "200평 이상\\200평 이상 복합_32,000원(0.5mm당 1500원).xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\20평 이하 소형평수_48,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\20평 이하 소형평수_50,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_38,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_39,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_40,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_41,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_42,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_43,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 복합_44,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 우레탄_35,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 우레탄_36,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\50평 미만 우레탄_37,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "바탕정리",
+      "total_amt": 100000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "하도 프라이머",
+      "total_amt": 200000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "복합 시트",
+      "total_amt": 1300000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "쪼인트 실란트 \n보강포 부착",
+      "total_amt": 300000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "노출 우레탄",
+      "total_amt": 1100000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "우레탄 상도",
+      "total_amt": 300000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 330만원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "바탕정리",
+      "total_amt": 150000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "하도 프라이머",
+      "total_amt": 200000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "복합 시트",
+      "total_amt": 1500000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "쪼인트 실란트 \n보강포 부착",
+      "total_amt": 400000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "노출 우레탄",
+      "total_amt": 1150000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "우레탄 상도",
+      "total_amt": 400000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 380만원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "바탕정리",
+      "total_amt": 150000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "하도 프라이머",
+      "total_amt": 250000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "복합 시트",
+      "total_amt": 1800000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "쪼인트 실란트 \n보강포 부착",
+      "total_amt": 450000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "노출 우레탄",
+      "total_amt": 1250000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "우레탄 상도",
+      "total_amt": 400000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평 미만\\소형평수 430만원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_36,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_37,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_38,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_39,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_40,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_41,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 복합_42,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_31,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_32,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_33,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_34,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_35,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_36,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    },
+    {
+      "file": "50평~100평 미만\\50평~100평 미만 우레탄_37,000원.xlsx",
+      "item": "사다리차",
+      "total_amt": 120000.0,
+      "reason": "unit_price=0, amount_only"
+    }
+  ],
+  "parse_failure_count": 0,
+  "parse_failures": []
+}
