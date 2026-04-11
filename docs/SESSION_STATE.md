@@ -12,11 +12,28 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / 4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스) / 4I-규칙서재설계 (8탭 → 3메뉴 사이드바 + acdb 복구 + 저장 시 신규 공종 자동 등록) / **4I-#12 (단가표 3단계 드릴다운 + acdb seed 519건 재주입)**
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / 4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입) / 4I-#10-FIX (칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 칩 DB hotfix) / 4I-#11 (칩 추가 행 삭제 버튼 + is_base 가드 핫픽스) / 4I-규칙서재설계 (8탭 → 3메뉴 사이드바 + acdb 복구 + 저장 시 신규 공종 자동 등록) / 4I-#12 (단가표 3단계 드릴다운 + acdb seed 519건 재주입) / **4I-#13 (단가표 평단가 추가/삭제 — 칩 직접 편집 + DELETE API)**
 - 진행중: 브라우저 UAT 대기
 - 다음: 사장 UAT 결과 수령 → 피드백 반영 또는 Phase 4I 종료 선언
-- **main HEAD: `1081481`** (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
-- #12 커밋: `064c24d` (feat 단가표 3단계 드릴다운) → `1081481` (fix acdb seed 재주입)
+- **main HEAD: `4fc90f4`** (feat(#settings): 단가표 평단가 추가/삭제 — 칩 직접 편집)
+- #13 커밋: `4fc90f4` (feat 평단가 추가/삭제 — `+ 평단가 추가` 버튼 + 칩 × 삭제 + DELETE API + usePriceMatrixEditor 훅 분리)
+
+### #13 (2026-04-11) — 단가표 평단가 추가/삭제
+- **목적**: #12 드릴다운 구조에서는 이미 존재하는 평단가만 편집 가능. 사장은 칩 단에서 직접 새 평단가를 추가하거나 특정 평단가 전체를 삭제해야 함.
+- **구현 파일**
+  - `components/settings/PriceMatrixChips.tsx` (141줄) — `+ 평단가 추가` 버튼 / 인라인 `<input type="number">` / 확인·취소 / 중복·비정수 입력 시 인라인 에러 / 각 칩 내부에 `×` 삭제 버튼 (active 칩은 `text-white/80 hover:bg-white/20`, inactive 는 `text-gray-400 hover:bg-gray-300`)
+  - `components/settings/usePriceMatrixEditor.ts` (214줄, **신규 훅**) — 기존 `PriceMatrixEditor` 의 상태/핸들러 전체를 이 훅으로 격리 (200줄 규칙 준수용)
+  - `components/settings/PriceMatrixEditor.tsx` (72줄로 축소) — 순수 렌더. `const s = usePriceMatrixEditor()` 후 하위 컴포넌트에 props 분배
+  - `app/api/settings/price-matrix/route.ts` — `DELETE` 핸들러 추가 (`area_range+method+price_per_pyeong` 쿼리 파라미터, 서비스롤 `.delete().eq()x3`)
+- **핸들러 동작**
+  - `handleAddPpp(ppp)`: `baseItems.map` 으로 전 공종 (복합 8 / 우레탄 7) 을 `{mat:0, labor:0, exp:0}` 로컬 rows 에 시드 → `selectedPpp` 즉시 설정 → 유저가 셀 편집 → 기존 PUT upsert 경로로 자연스럽게 insert (onConflict=`company_id,area_range,method,price_per_pyeong,item_index`)
+  - `handleDeletePpp(ppp)`: `window.confirm("평당 {ppp}원 전체를 삭제합니다. ({areaRange} / {method}) 되돌릴 수 없습니다.")` → DELETE 호출 → 성공 시 로컬 `rows.filter(r => r.price_per_pyeong !== ppp)` + `selectedPpp` 해제 + 토스트 "삭제됨"
+  - 중복 검증: `pppList.includes(parsed)` 로 칩 UI 내부에서 1차 차단 (에러 "이미 존재하는 평단가")
+- **빈 상태 재설계**: 기존엔 `rows.length === 0` 시 칩 영역 자체를 숨기고 안내 문구만 표시 → 새 평단가 추가가 불가능. 수정: 칩 영역은 항상 렌더 → `pppList.length === 0` 이면 표 영역에 "위 + 평단가 추가 를 눌러 시작하세요" 안내
+- **200줄 규칙 준수 패턴**: 기존 `PriceMatrixEditor` (200줄, 한계치) 에 add/delete 핸들러 추가 시 249줄로 초과 → 상태/핸들러를 `usePriceMatrixEditor.ts` 훅으로 분리. 훅 파일은 컴포넌트가 아니므로 214줄 허용. Editor 는 72줄 순수 렌더로 축소.
+- **검증**: `npm run build` PASS / `npm run lint` 경고만 (사전 존재, 신규 0) / DELETE API 실측 안됨 (브라우저 UAT 대기)
+- **커밋**: `4fc90f4` → `cf33a30..4fc90f4 main -> main` 푸시 → Vercel 자동 배포 트리거
+- **미검증**: 브라우저 UAT — 칩 추가 → 셀 편집 → 저장 시 DB insert 실측, 칩 삭제 → confirm → DB row 전체 삭제 실측
 
 ### #12 (2026-04-11) — 단가표 UX + acdb 핫픽스
 - **단가표 3단계 드릴다운** (`components/settings/PriceMatrix*.tsx`)

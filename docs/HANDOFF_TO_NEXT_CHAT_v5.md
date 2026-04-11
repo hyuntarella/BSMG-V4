@@ -2,7 +2,7 @@
 
 > 새 Claude: 이 문서 먼저 흡수. v4 폐기. §14 양식대로 "인수 완료" 보고 후 사장 메시지 대응.
 > v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점부터의 차이를 기록한다.
-> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #11 / 규칙서재설계 / **#12 (단가표 3단계 드릴다운 + acdb seed 519건 재주입)** 반영.
+> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #11 / 규칙서재설계 / #12 / **#13 (단가표 평단가 추가/삭제 — 칩 직접 편집 + DELETE API + usePriceMatrixEditor 훅 분리)** 반영.
 
 ---
 
@@ -104,6 +104,36 @@ v4 §3.1~§3.11 유지. v5 추가:
 **커밋**:
 - `0d7ad23` feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입
 - `1dd90a6` fix(#10): 빠른공종 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS 갱신
+
+### 3.23 단가표 평단가 추가/삭제 (#13, 확정 — 건드리기 전 읽기)
+**사장 요구**: #12 드릴다운에서는 기존 평단가 편집만 가능. 칩 단에서 직접 새 평단가 추가, 칩 옆 × 로 특정 평단가 전체 삭제 필요.
+
+**확정 구조**:
+- `components/settings/PriceMatrixChips.tsx` (141줄): 칩 뒤에 `+ 평단가 추가` 버튼 → 클릭 시 인라인 `<input>` → 확인/취소. 각 칩 내부에 `×` 삭제 버튼 (active/inactive 분기 스타일).
+- `components/settings/usePriceMatrixEditor.ts` (214줄, **훅 파일**): Editor 의 상태/핸들러 전체 격리. 200줄 규칙 대비 패턴 — **컴포넌트가 200줄을 넘으면 훅으로 상태/로직을 분리하고 컴포넌트는 순수 렌더로 축소**.
+- `components/settings/PriceMatrixEditor.tsx` (72줄): `const s = usePriceMatrixEditor()` 후 props 분배만.
+- `app/api/settings/price-matrix/route.ts`: `DELETE` 핸들러 추가. `area_range+method+price_per_pyeong` 3개 쿼리 파라미터 필수, 서비스롤 `.delete().eq()x3`.
+
+**동작 계약**:
+1. `handleAddPpp(ppp)` — `baseItems.map` 으로 전 공종 (복합 8 / 우레탄 7) 을 `{mat:0, labor:0, exp:0, company_id:'', ...}` 로 로컬 `rows` 시드 → `selectedPpp` 즉시 설정 → 사용자가 셀 편집 → `handleSave` 가 기존 PUT upsert 경로로 insert (onConflict=`company_id,area_range,method,price_per_pyeong,item_index`). DB 쓰기는 **저장 버튼 누를 때**.
+2. `handleDeletePpp(ppp)` — `window.confirm("평당 {ppp}원 전체를 삭제합니다. ({areaRange} / {method}) 되돌릴 수 없습니다.")` → DELETE API → 성공 시 로컬 rows filter + `selectedPpp` 해제 + 토스트. DB 삭제는 **× 클릭 즉시**.
+3. 중복 검증: 칩 UI 내부에서 `pppList.includes(parsed)` 차단 → 에러 텍스트 "이미 존재하는 평단가".
+4. 빈 상태 재설계: 기존엔 `rows.length === 0` 시 칩 영역 자체를 숨겨 새 ppp 추가 불가능 → 칩 영역은 항상 렌더, 표 영역만 "위 + 평단가 추가 를 눌러 시작하세요" 안내.
+
+**대칭성 주의**:
+- Add 는 **로컬 시드만** (DB 쓰기 = 저장). Delete 는 **즉시 DB DELETE**. 이 비대칭은 의도적임 — Add 후 사용자가 셀 편집 전에 이탈하면 DB 오염 방지.
+- Add/Delete 경로 둘 다 `setSelectedPpp(null)` + `setEditingCell(null)` 로 유령 셀 편집 상태 차단.
+
+**건드리지 말 것**:
+- `commitEdit` 의 기존 "새 행 추가 (DB에 없었던 경우)" 분기 — Add 시드가 이미 모든 item_index 를 채워두지만, 과거 경로 호환을 위해 유지.
+- `canSave={rows.length > 0}` — Add 직후 rows 에 시드가 들어가므로 자연스럽게 저장 활성화.
+- `usePriceMatrixEditor` 반환 객체 shape — Editor 가 얇은 렌더라서 키 이름이 전부 참조됨.
+
+**커밋**: `4fc90f4` feat(#settings): 단가표 평단가 추가/삭제 — 칩 직접 편집
+
+**검증**: build PASS / lint PASS (사전 경고만) / 브라우저 UAT 대기
+
+---
 
 ### 3.22 칩 추가 행 삭제 버튼 + is_base 가드 핫픽스 (#11, 확정 — 건드리지 말 것)
 **사장 요구**: 기본 8공종(is_base=true)은 숨김만, 칩으로 추가한 공종(is_base=false)에는 휴지통 버튼 표시. 잠금/숨김 옆 배치. 삭제 시 행 제거 + 합계 재계산.
@@ -302,7 +332,7 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 저장소: `hyuntarella/BSMG-V4` **Public**
 - 브랜치: 이번 세션부터 feature/h* 단발 브랜치 → main merge --no-ff → push (feature/lens-integration 은 H4 까지)
 - URL: https://bsmg-v5.vercel.app
-- **main HEAD: `862b73a`** (fix(#11): 기본 8공종 is_base=true 하드코딩 — 삭제 버튼 가드 복구)
+- **main HEAD: `4fc90f4`** (feat(#settings): 단가표 평단가 추가/삭제 — 칩 직접 편집)
 - 프로젝트 경로: `C:\Users\lazdo\projects\bsmg-v5` (랩탑 교체 후 경로 변경)
 - 로컬 브랜치: main
 - git identity (로컬): `bsmg-v4 <lazdor2@gmail.com>` — 2026-04-11 설정됨
@@ -329,6 +359,8 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - ~~#10 BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed~~ ✅
 - ~~#10-FIX 칩 정리 + 폐기물처리비 리네임 + UNIT_OPTIONS + 평단가 DB hotfix~~ ✅
 - ~~#11 행 삭제 버튼 + is_base 가드 핫픽스~~ ✅
+- ~~#12 단가표 3단계 드릴다운 + acdb seed 재주입~~ ✅
+- ~~#13 단가표 평단가 추가/삭제 (칩 직접 편집 + DELETE API)~~ ✅
 - **잔여**: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
 - price_matrix 20평이하/우레탄 (Phase 10)
 - price_matrix effective_from 2026-04-08 → Phase 10
@@ -336,33 +368,35 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - 외벽/주차장 자동화 (Phase 4.6+)
 - tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (별도 처리)
 
-## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 #12 완료)
-- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 / 규칙서재설계 → **#12 (단가표 UX + acdb 핫픽스)**
-- **main HEAD**: `1081481` (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
-- **직전 커밋**: `064c24d` (feat(#settings): 단가표 3단계 드릴다운 — 가로 스크롤 제거)
-- Build: 통과. Lint: 경고만 (사전 존재). 테스트 166/166 (acdb + estimate 범위). tsc: 기존 vadLogic 에러 1건만 잔존
-- Vercel: 064c24d + 1081481 연달아 자동 배포 트리거됨
+## 12. 마지막 상태 (이 세션 종료 시점: 2026-04-11 #13 완료)
+- Phase 4I-H4 종료 (2026-04-10) → H5-LOGS / H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / #10 / #10-FIX / #11 / 규칙서재설계 / #12 → **#13 (단가표 평단가 추가/삭제)**
+- **main HEAD**: `4fc90f4` (feat(#settings): 단가표 평단가 추가/삭제 — 칩 직접 편집)
+- **직전 커밋**: `1081481` (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입) → `064c24d` (feat(#settings): 단가표 3단계 드릴다운)
+- Build: 통과. Lint: 경고만 (사전 존재, 신규 0). tsc: 기존 vadLogic 에러 1건만 잔존
+- Vercel: 4fc90f4 자동 배포 트리거됨 (`cf33a30..4fc90f4 main -> main`)
 
-### 이번 세션 변경 요약 (#12)
-1. **단가표 3단계 드릴다운** — 면적대/공법 → 평단가 칩 → 공종별 4열 표
-   - 기존: 면적대+공법 선택 시 모든 평단가가 colSpan=3 으로 가로 펼침 → 가로 스크롤 과다
-   - 신규 분리: `PriceMatrixEditor` (200줄) / `PriceMatrixControls` (80줄) / `PriceMatrixChips` (39줄) / `PriceMatrixDetailTable` (120줄)
-   - 새 상태 1개만 추가: `selectedPpp: number | null` (areaRange/method 변경 시 useEffect 리셋)
-   - 보존: `PriceMatrixRow` 타입, `rows` state shape, `/api/settings/price-matrix` GET/PUT, `commitEdit` 새 행 추가 분기 전부 동일
-   - `overflow-x-auto` 제거 → 페이지 폭에 맞는 `table-fixed` (40/20/20/20 colgroup)
-2. **acdb 자동완성 복구 (실측 기반)** — 규칙서재설계(#2a6bdd0)에서 API 프록시 전환은 했으나 실제 DB가 비어 있었던 사실을 이번 세션에서 발견
-   - `scripts/diag-acdb.ts` 신규 — 진단 결과 acdb_entries count = 0, cost_config.favorites = 0
-   - `scripts/import-acdb-seed.ts` 신규 — `data/acdb-seed.json` 519건을 `source='seed'` 로 service role 주입 (`lib/acdb/import.ts` 멱등 정책 재현: 기존 seed 행 있으면 skip)
-   - 사후 진단: 부성에이티 acdb_entries count = 519
+### 이번 세션 변경 요약 (#13)
+1. **단가표 칩 직접 편집 — 평단가 추가/삭제**
+   - `components/settings/PriceMatrixChips.tsx` (39→141줄): `+ 평단가 추가` 버튼 → 인라인 `<input type="number">` → 확인/취소 → 중복·비정수 입력 시 인라인 에러. 각 칩 내부 `×` 삭제 버튼 (active `text-white/80 hover:bg-white/20` / inactive `text-gray-400 hover:bg-gray-300`).
+   - `components/settings/usePriceMatrixEditor.ts` **신규** (214줄): 기존 Editor 상태/핸들러 전체 격리. 200줄 규칙 대비 패턴 — 훅 파일이라 컴포넌트 규칙 적용 안 됨.
+   - `components/settings/PriceMatrixEditor.tsx` (200→72줄): 순수 렌더로 축소. `const s = usePriceMatrixEditor()` 후 props 분배만.
+2. **DELETE API**
+   - `app/api/settings/price-matrix/route.ts`: `DELETE` 핸들러 추가. `area_range+method+price_per_pyeong` 쿼리 파라미터 필수. 서비스롤 `.delete().eq()x3`.
+3. **빈 상태 재설계**: 기존엔 `rows.length === 0` 시 칩 영역 자체를 숨겨 새 ppp 추가 불가 → 칩 영역은 항상 렌더, 표 영역만 "위 + 평단가 추가 를 눌러 시작하세요" 안내.
+4. **핸들러 비대칭 의도**
+   - `handleAddPpp`: **로컬 시드만** (baseItems.map 으로 {mat:0, labor:0, exp:0} × 8/7) → 저장 버튼 눌러야 DB insert (기존 PUT upsert 경로 재사용)
+   - `handleDeletePpp`: **즉시 DB DELETE** (window.confirm 후 API 호출 → 로컬 filter) — Add 후 이탈 시 DB 오염 방지가 목적
 
 ### 다음 작업 후보
-1. **브라우저 UAT** — 사장 실측
-   - /settings 단가표: 면적대 선택 → 평단가 칩 → 칩 선택 → 4열 표 → 셀 편집/저장/새로고침 후 유지. 가로 스크롤바 없음.
-   - 견적서 품명 셀: "바" 타이핑 → 드롭다운 (바탕정리 등) 최대 8개 → 클릭/키보드 선택 반영
-2. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
-3. #5 Ctrl+F 잔여 확인
-4. Phase 4I 공식 종료 선언
-5. (선택) SettingsPanel 도 사이드바 구조로 통일
+1. **브라우저 UAT #13** — 사장 실측 (핵심)
+   - /settings 단가표: 면적대+공법 선택 → `+ 평단가 추가` → 금액 입력 → 확인 → 빈 표 → 셀 편집 → 저장 → 새로고침 후 유지
+   - 칩 `×` 클릭 → confirm → 삭제됨 토스트 → 칩 사라짐 → 새로고침 후 유지
+   - 중복 금액 입력 시 인라인 에러 "이미 존재하는 평단가"
+2. 브라우저 UAT #12 잔여 (단가표 드릴다운, 품명 자동완성)
+3. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
+4. #5 Ctrl+F 잔여 확인
+5. Phase 4I 공식 종료 선언
+6. (선택) SettingsPanel 도 사이드바 구조로 통일
 
 ## 13. 파일 위치 정보 (2026-04-11 갱신 — 랩탑 교체 후 경로)
 - SESSION_STATE: `C:\Users\lazdo\projects\bsmg-v5\docs\SESSION_STATE.md`
@@ -376,16 +410,16 @@ v4 §7.1~§7.12 그대로. v5 추가:
 > 일반 모드. §10 우선순위대로 SESSION_STATE + 이 문서 + CLAUDE.md 흡수 후 이 양식으로 인수 완료 보고, 이어서 사장 메시지 대응.
 
 ```markdown
-## 인수 완료 — #12 (단가표 UX + acdb 핫픽스) 직후
+## 인수 완료 — #13 (단가표 평단가 추가/삭제) 직후
 
 ### 프로젝트 파악
-- bsmg-v5, Phase 4I 후반 (… → 규칙서재설계 → **#12**)
-- main HEAD: `1081481` (fix(#acdb): 견적서 품명 자동완성 복구 — 519건 시드 재주입)
-- 직전: `064c24d` (feat(#settings): 단가표 3단계 드릴다운 — 가로 스크롤 제거)
+- bsmg-v5, Phase 4I 후반 (… → 규칙서재설계 → #12 → **#13**)
+- main HEAD: `4fc90f4` (feat(#settings): 단가표 평단가 추가/삭제 — 칩 직접 편집)
+- 직전: `1081481` (fix(#acdb)) → `064c24d` (feat(#settings) 드릴다운)
 - Vercel: https://bsmg-v5.vercel.app (자동 배포 트리거됨)
 - 저장소 Public: hyuntarella/BSMG-V4
 
-### 핵심 교훈 적용 (H4 + H5~H8 + #10 + #11 + #12 누적)
+### 핵심 교훈 적용 (H4 + H5~H8 + #10 + #11 + #12 + #13 누적)
 - 파생 상태는 effect 금지, 이벤트 콜백 1회 (H4-2-CHIP)
 - 합산 계산은 역산 금지, 의도 항목 직접 합산 (H4-3)
 - 전역 단축키 window capture 선점 (H4-2-KEYBIND)
@@ -399,11 +433,12 @@ v4 §7.1~§7.12 그대로. v5 추가:
 - **200줄 규칙 초과 시 순수 렌더 컴포넌트로 분리 — 상태/로직은 상위에 두고 하위는 props 로만 (PriceMatrix 4-file 분리 패턴)**
 
 ### 잔여 작업
-1. 사장 브라우저 UAT — `/settings` 단가표 3단계 드릴다운 + 견적서 품명 셀 "바" 자동완성 복구
-2. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
-3. #5 Ctrl+F 잔여 확인
-4. Phase 4I 공식 종료 선언
-5. (선택) SettingsPanel.tsx 도 사이드바 구조로 통일
+1. 사장 브라우저 UAT #13 — `/settings` 단가표 `+ 평단가 추가` → 빈 표 편집 → 저장 / 칩 `×` 삭제 → confirm → 즉시 반영
+2. 사장 브라우저 UAT #12 잔여 — 드릴다운 + 견적서 품명 "바" 자동완성
+3. 규칙서재설계 UAT 잔여 (즐겨찾기/기타/신규/자동 등록)
+4. #5 Ctrl+F 잔여 확인
+5. Phase 4I 공식 종료 선언
+6. (선택) SettingsPanel.tsx 도 사이드바 구조로 통일
 ```
 
 **END v5**
