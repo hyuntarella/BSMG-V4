@@ -144,6 +144,21 @@ export default function EstimateTableWrapper({
     onChange({ ...estimate, sheets })
   }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
+  // --- 행 삭제 ---
+  // 기본 8공종(is_base=true)은 삭제 불가 — 숨김만 허용. 칩으로 추가한 is_base=false 행만 제거한다.
+  const handleDeleteRow = useCallback((itemIndex: number) => {
+    const target = items[itemIndex]
+    if (!target || target.is_base) return
+    onSaveSnapshot?.('행 삭제')
+    const newItems = items
+      .filter((_, i) => i !== itemIndex)
+      .map((it, i) => ({ ...it, sort_order: i + 1 }))
+    const calcResult = calc(newItems.filter(i => !i.is_hidden))
+    const sheets = [...estimate.sheets]
+    sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems, grand_total: calcResult.grandTotal }
+    onChange({ ...estimate, sheets })
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
+
   // --- 자유입력 행 추가 ---
   const handleAddFreeItem = useCallback(() => {
     onSaveSnapshot?.('행 추가')
@@ -217,6 +232,7 @@ export default function EstimateTableWrapper({
       onRedo={undefined}
       onToggleLock={handleToggleLock}
       onToggleHide={handleToggleHide}
+      onDeleteRow={handleDeleteRow}
       onAddFreeItem={handleAddFreeItem}
       onQuickAdd={handleQuickAdd}
       searchQuery={estimateSearch.query}

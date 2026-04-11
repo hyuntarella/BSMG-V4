@@ -23,6 +23,8 @@ interface ExcelLikeTableProps {
   // Phase 4F props
   onToggleLock?: (itemIndex: number) => void
   onToggleHide?: (itemIndex: number) => void
+  /** #11 행 삭제 — is_base=false(칩으로 추가한 행)만 실제로 삭제된다. 기본 공종은 노옵. */
+  onDeleteRow?: (itemIndex: number) => void
   onAddFreeItem?: () => void
   /** #10 빠른공종추가 칩 — 칩 클릭 시 해당 공종 즉시 행 추가 */
   onQuickAdd?: (chip: QuickChip) => void
@@ -65,6 +67,7 @@ export default function ExcelLikeTable({
   maxRows = 15,
   onToggleLock,
   onToggleHide,
+  onDeleteRow,
   onAddFreeItem,
   onQuickAdd,
   searchQuery,
@@ -273,8 +276,8 @@ export default function ExcelLikeTable({
         {/* 헤더 */}
         <thead className="sticky top-0 z-10">
           <tr className="bg-brand text-white font-semibold" style={{ height: `${tier.headerHeight}px` }}>
-            <th className="w-[50px] border border-gray-300 px-1 text-center">
-              {/* 잠금/숨김 아이콘 열 */}
+            <th className="w-[72px] border border-gray-300 px-1 text-center">
+              {/* 잠금/숨김/삭제 아이콘 열 */}
             </th>
             {EDITABLE_COLS.map((col) => (
               <th
@@ -307,8 +310,8 @@ export default function ExcelLikeTable({
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
               >
-                {/* 잠금/숨김 버튼 */}
-                <td className="border border-gray-300 px-0.5 text-center w-[50px]">
+                {/* 잠금/숨김/삭제 버튼 */}
+                <td className="border border-gray-300 px-0.5 text-center w-[72px]">
                   <div className="flex items-center justify-center gap-0.5">
                     <button
                       type="button"
@@ -346,6 +349,30 @@ export default function ExcelLikeTable({
                         )}
                       </svg>
                     </button>
+                    {/* 삭제 버튼 — 기본 8공종(is_base=true)은 숨김만 허용하므로 비표시. 칩 추가 행만 삭제 가능. */}
+                    {item.is_base ? (
+                      <span className="w-5 h-5" aria-hidden="true" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`"${item.name || '(이름 없음)'}" 행을 삭제할까요?`)) {
+                            onDeleteRow?.(rowIdx)
+                          }
+                        }}
+                        className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500"
+                        title="행 삭제"
+                        data-testid={`delete-btn-${rowIdx}`}
+                      >
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4a2 2 0 012-2h2a2 2 0 012 2v2" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </td>
 
