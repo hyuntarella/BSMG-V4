@@ -103,7 +103,7 @@ describe('장비 컬럼 정확성: 모든 장비 비용은 경비(exp) 컬럼', 
       method: '복합', m2: 150, pricePerPyeong: 35000, priceMatrix,
       options: { waste: { days: 1 } },
     })
-    const waste = items.find(i => i.name === '폐기물처리')!
+    const waste = items.find(i => i.name === '폐기물처리비')!
     expect(waste).toBeDefined()
     expect(waste.labor).toBe(0)
     expect(waste.exp).toBeGreaterThan(0)
@@ -125,7 +125,7 @@ describe('장비 컬럼 정확성: 모든 장비 비용은 경비(exp) 컬럼', 
       method: '복합', m2: 150, pricePerPyeong: 35000, priceMatrix,
       options: { ladder: { days: 1 }, waste: { days: 1 } },
     })
-    for (const name of ['사다리차', '폐기물처리']) {
+    for (const name of ['사다리차', '폐기물처리비']) {
       const it = items.find(i => i.name === name)!
       // labor=0, exp>0 이어야 하므로 total = exp_amount
       expect(it.total).toBe(it.exp_amount)

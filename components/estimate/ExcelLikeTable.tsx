@@ -37,7 +37,7 @@ interface ExcelLikeTableProps {
 }
 
 /** 단위 선택 옵션 */
-const UNIT_OPTIONS = ['m²', '식', '일', '평', 'm', '본', 'EA', 'SET', '회'] as const
+const UNIT_OPTIONS = ['m²', '식', '일', '대', '인', 'm', 'EA', 'SET'] as const
 
 /** 편집 가능한 열 정의 */
 const EDITABLE_COLS = [
@@ -53,7 +53,7 @@ const EDITABLE_COLS = [
 const COL_COUNT = EDITABLE_COLS.length
 
 /** 장비 공종 이름 — is_equipment 플래그가 누락된 구 데이터 대비 fallback */
-const EQUIPMENT_NAMES = new Set(['사다리차', '스카이차', '폐기물처리', '드라이비트하부절개'])
+const EQUIPMENT_NAMES = new Set(['사다리차', '스카이차', '폐기물처리비', '폐기물처리', '드라이비트하부절개'])
 
 export default function ExcelLikeTable({
   items,
@@ -368,12 +368,12 @@ export default function ExcelLikeTable({
 
                   const isUnitCol = col.key === 'unit'
 
-                  // H5-1: 폐기물처리 행의 경비단가 기본값 표시 (반투명)
+                  // H5-1: 폐기물처리비 행의 경비단가 기본값 표시 (반투명)
                   // 사용자가 값을 수정하면 original_exp가 기록되어 반투명 해제됨
                   // (장비는 구조적으로 경비 컬럼. 과거엔 labor 컬럼에 잘못 표시했었음)
                   const isWasteDefaultExp =
                     col.key === 'exp' &&
-                    item.name === '폐기물처리' &&
+                    (item.name === '폐기물처리비' || item.name === '폐기물처리') &&
                     item.original_exp == null
 
                   // 타이핑 편집 진입: 해당 셀만 initialChar 전달 후 ref 클리어

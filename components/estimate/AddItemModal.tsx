@@ -23,7 +23,7 @@ const DEFAULT_PRESETS: PresetRow[] = [
 const EQUIPMENT_PRESETS = [
   { key: 'ladder', name: '사다리차', unit: '일', mat: DEFAULT_EQUIPMENT_PRICES.ladder },
   { key: 'sky',    name: '스카이차', unit: '일', mat: DEFAULT_EQUIPMENT_PRICES.sky },
-  { key: 'waste',  name: '폐기물처리', unit: '식', mat: DEFAULT_EQUIPMENT_PRICES.waste },
+  { key: 'waste',  name: '폐기물처리비', unit: '식', mat: DEFAULT_EQUIPMENT_PRICES.waste },
 ] as const
 
 type EquipKey = typeof EQUIPMENT_PRESETS[number]['key']

@@ -15,7 +15,7 @@ import { calc } from './calc'
  * 핵심 함수: 면적·공법·평단가 → 견적서 공종 배열 + 계산 결과
  *
  * #10 이후: BASE는 방수 공종만 (복합 8, 우레탄 7).
- * 장비(사다리차/스카이차/폐기물처리/드라이비트하부절개)는 옵션으로 들어올 때만
+ * 장비(사다리차/스카이차/폐기물처리비/드라이비트하부절개)는 옵션으로 들어올 때만
  * 행을 동적으로 추가한다. (BASE에서 분리)
  */
 export function buildItems(input: BuildItemsInput): {
@@ -124,7 +124,7 @@ export function buildItems(input: BuildItemsInput): {
 /**
  * 옵션에 지정된 장비를 공종 배열 끝에 추가한다.
  * - 단가: 옵션의 unitPrice → fallback DEFAULT_EQUIPMENT_PRICES → 0
- * - 수량: days (사다리차/스카이차/폐기물처리) 또는 1 (드라이비트)
+ * - 수량: days (사다리차/스카이차/폐기물처리비) 또는 1 (드라이비트)
  * - 전부 경비(exp) 컬럼에 기록
  */
 function appendEquipmentRows(
@@ -155,7 +155,7 @@ function appendEquipmentRows(
 
   if (options.waste && options.waste.days > 0) {
     equipmentRows.push(makeEquipmentRow({
-      name: '폐기물처리',
+      name: '폐기물처리비',
       unit: '식',
       qty: options.waste.days,
       exp: options.waste.unitPrice ?? DEFAULT_EQUIPMENT_PRICES.waste,

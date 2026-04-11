@@ -33,7 +33,7 @@
     "input": "폐기물 추가",
     "expected": {
       "action": "add_item",
-      "item_name": "폐기물처리",
+      "item_name": "폐기물처리비",
       "position": null,
       "field": null,
       "value": null
@@ -179,7 +179,7 @@
     "input": "폐기물 3일 추가해줘",
     "expected": {
       "action": "add_item",
-      "item_name": "폐기물처리",
+      "item_name": "폐기물처리비",
       "qty": 3,
       "unit": "일",
       "position": null,
@@ -391,7 +391,7 @@
     "input": "폐기물 단가 5만원 올려",
     "expected": {
       "action": "update_item",
-      "item_name": "폐기물처리",
+      "item_name": "폐기물처리비",
       "field": "exp",
       "delta": 50000,
       "position": null
@@ -521,7 +521,7 @@
     "input": "폐기물 제거해줘",
     "expected": {
       "action": "remove_item",
-      "item_name": "폐기물처리",
+      "item_name": "폐기물처리비",
       "position": null,
       "field": null,
       "value": null
@@ -880,7 +880,7 @@
     "input": "폐기물 1번에 추가",
     "expected": {
       "action": "add_item",
-      "item_name": "폐기물처리",
+      "item_name": "폐기물처리비",
       "position": 1,
       "field": null,
       "value": null

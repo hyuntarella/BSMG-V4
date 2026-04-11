@@ -45,13 +45,8 @@ export const QUICK_CHIP_CATEGORIES: QuickChipCategory[] = [
         is_equipment: true,
       },
       {
-        name: '폐기물처리', label: '폐기물처리', unit: '식', qty: 1,
+        name: '폐기물처리비', label: '폐기물처리비', unit: '식', qty: 1,
         mat: 0, labor: 0, exp: DEFAULT_EQUIPMENT_PRICES.waste,
-        is_equipment: true,
-      },
-      {
-        name: '드라이비트하부절개', label: '드라이비트하부절개', unit: '식', qty: 1,
-        mat: 0, labor: 0, exp: 0,
         is_equipment: true,
       },
       {
@@ -59,14 +54,13 @@ export const QUICK_CHIP_CATEGORIES: QuickChipCategory[] = [
         mat: 0, labor: 0, exp: DEFAULT_EQUIPMENT_PRICES.sky,
         is_equipment: true,
       },
-      // 이하: acdb median 값 베이크 (data/acdb-seed.json 기준)
       {
-        name: '포크레인', label: '포크레인', unit: '일', qty: 1,
+        name: '포크레인', label: '포크레인', unit: '대', qty: 1,
         mat: 0, labor: 0, exp: 700000,
         is_equipment: true,
       },
       {
-        name: '크레인', label: '크레인', unit: '일', qty: 1,
+        name: '크레인', label: '크레인', unit: '대', qty: 1,
         mat: 0, labor: 0, exp: 1500000,
         is_equipment: true,
       },
@@ -78,63 +72,24 @@ export const QUICK_CHIP_CATEGORIES: QuickChipCategory[] = [
     ],
   },
   {
-    label: '바탕·보수',
+    label: '보수·추가',
     chips: [
       {
+        // 단위 식 + 경비(exp) 적용. acdb median(n=2)이 이상치이므로 0으로 두고 사용자 직접 입력.
         name: '바탕조정제 부분미장', label: '바탕조정제 부분미장', unit: '식', qty: 1,
-        mat: 3500, labor: 6500, exp: 500,
-        is_equipment: false,
-      },
-      {
-        name: '크랙보수', label: '크랙보수', unit: 'm', qty: 1,
-        mat: 1600, labor: 1600, exp: 0,
-        is_equipment: false,
-      },
-      {
-        // acdb 미존재 — 0 단가, 사용자가 직접 입력
-        name: '옥탑방수', label: '옥탑방수', unit: '식', qty: 1,
-        mat: 0, labor: 0, exp: 0,
-        is_equipment: false,
-      },
-    ],
-  },
-  {
-    label: '철거·토목',
-    chips: [
-      {
-        name: '데크철거', label: '데크철거', unit: 'm²', qty: 1,
-        mat: 3000, labor: 9000, exp: 2500,
-        is_equipment: false,
-      },
-      {
-        name: '화단흙제거', label: '화단흙제거', unit: 'm³', qty: 1,
-        mat: 19000, labor: 29500, exp: 3500,
-        is_equipment: false,
-      },
-      {
-        name: '화단철거', label: '화단철거', unit: '식', qty: 1,
-        mat: 200000, labor: 1200000, exp: 300000,
-        is_equipment: false,
-      },
-      {
-        // acdb 미존재 — 0 단가
-        name: '배수구처리', label: '배수구처리', unit: '식', qty: 1,
         mat: 0, labor: 0, exp: 0,
         is_equipment: false,
       },
       {
-        name: '드라이비트부분절개', label: '드라이비트부분절개', unit: '식', qty: 1,
-        mat: 0, labor: 480000, exp: 0,
+        // acdb 미존재 — 0 단가, 사용자 직접 입력
+        name: '드라이비트 하부절개', label: '드라이비트 하부절개', unit: '식', qty: 1,
+        mat: 0, labor: 0, exp: 0,
         is_equipment: false,
       },
-    ],
-  },
-  {
-    label: '기타',
-    chips: [
       {
-        name: '트렌치설치', label: '트렌치설치', unit: 'm', qty: 1,
-        mat: 50000, labor: 45000, exp: 15000,
+        // acdb 미존재 — 0 단가, 사용자 직접 입력
+        name: '드라이비트 부분절개', label: '드라이비트 부분절개', unit: '식', qty: 1,
+        mat: 0, labor: 0, exp: 0,
         is_equipment: false,
       },
     ],

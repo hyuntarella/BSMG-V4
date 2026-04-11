@@ -18,7 +18,7 @@ const EQUIPMENT_DEFAULTS: EquipmentPrices = {
 const EQUIPMENT_LABELS: { key: keyof EquipmentPrices; name: string; unit: string }[] = [
   { key: 'ladder', name: '사다리차', unit: '일당' },
   { key: 'sky', name: '스카이차', unit: '일당' },
-  { key: 'waste', name: '폐기물처리', unit: '식' },
+  { key: 'waste', name: '폐기물처리비', unit: '식' },
 ]
 
 export default function EquipmentEditor() {
