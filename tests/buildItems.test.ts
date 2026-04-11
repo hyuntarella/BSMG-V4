@@ -22,10 +22,10 @@ describe('getAR (면적대 판별)', () => {
 })
 
 describe('getPD (P매트릭스 조회)', () => {
-  it('50평미만/복합/38000 → 11개 또는 12개 항목 (seed 버전에 따라)', () => {
+  it('50평미만/복합/38000 → 8개 항목 (방수 공종만, 장비 제외)', () => {
     const pd = getPD(priceMatrix, '50평미만', '복합', 38000)
-    // root price_matrix_seed.json은 11개, pvalue seed는 12개 (스카이차 placeholder 포함)
-    expect([11, 12]).toContain(pd.length)
+    // #10 이후: 장비 4개 BASE 제외 → 복합 8개, 우레탄 7개
+    expect(pd.length).toBe(8)
   })
 
   it('바탕정리 mat=300, labor=700', () => {

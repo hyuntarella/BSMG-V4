@@ -10,6 +10,7 @@ import {
   syncWallAndTop,
 } from '@/lib/estimate/syncUrethane'
 import { calc } from '@/lib/estimate/calc'
+import { chipToEstimateItem, type QuickChip } from '@/lib/estimate/quickChipConfig'
 import ExcelLikeTable from './ExcelLikeTable'
 
 interface AcdbSuggestHook {
@@ -169,6 +170,21 @@ export default function EstimateTableWrapper({
     onChange({ ...estimate, sheets })
   }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
+  // --- #10 빠른공종추가 칩 클릭 ---
+  const handleQuickAdd = useCallback((chip: QuickChip) => {
+    onSaveSnapshot?.(`빠른 추가: ${chip.name}`)
+    const newItem = chipToEstimateItem(chip, items.length + 1)
+    const newItems = [...items, newItem as EstimateItem]
+    const calcResult = calc(newItems.filter(i => !i.is_hidden))
+    const sheets = [...estimate.sheets]
+    sheets[sheetIndex] = {
+      ...sheets[sheetIndex],
+      items: newItems,
+      grand_total: calcResult.grandTotal,
+    }
+    onChange({ ...estimate, sheets })
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
+
   // --- Undo ---
   const handleUndo = useCallback(() => {
     onUndo?.()
@@ -202,6 +218,7 @@ export default function EstimateTableWrapper({
       onToggleLock={handleToggleLock}
       onToggleHide={handleToggleHide}
       onAddFreeItem={handleAddFreeItem}
+      onQuickAdd={handleQuickAdd}
       searchQuery={estimateSearch.query}
       onSearch={estimateSearch.search}
       matchingRowIndexes={matchingRowIndexes}

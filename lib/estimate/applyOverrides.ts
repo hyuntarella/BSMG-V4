@@ -1,19 +1,16 @@
 import type { EstimateItem } from './types'
 
 /**
- * 옵션에 따라 공종 단가/수량을 오버라이드
+ * 공종 단가/수량을 옵션으로 오버라이드.
  *
- * v1 L535-575: applyUnitOver
- * - 사다리차/스카이차/폐기물: days → qty, unitPrice → 단가
- * - 벽체실링: wallM2가 있으면 qty = wallM2
+ * #10 이후: 장비(사다리차/스카이차/폐기물처리/드라이비트하부절개)는
+ * buildItems.appendEquipmentRows에서 별도로 처리하므로 여기서는 제외한다.
+ * 현재는 벽체실링 수량 오버라이드만 담당.
  */
 export function applyOverrides(
   items: EstimateItem[],
   options: {
     wallM2?: number
-    ladder?: { days: number; unitPrice?: number }
-    sky?: { days: number; unitPrice?: number }
-    waste?: { days: number; unitPrice?: number }
   }
 ): EstimateItem[] {
   return items.map(item => {
@@ -22,30 +19,6 @@ export function applyOverrides(
     // 벽체실링 수량 오버라이드
     if (item.name === '벽체실링' && options.wallM2 && options.wallM2 > 0) {
       updated.qty = options.wallM2
-    }
-
-    // 사다리차 (장비 → 경비 컬럼)
-    if (item.name === '사다리차' && options.ladder) {
-      updated.qty = options.ladder.days
-      if (options.ladder.unitPrice) {
-        updated.exp = options.ladder.unitPrice
-      }
-    }
-
-    // 스카이차 (장비 → 경비 컬럼)
-    if (item.name === '스카이차' && options.sky) {
-      updated.qty = options.sky.days
-      if (options.sky.unitPrice) {
-        updated.exp = options.sky.unitPrice
-      }
-    }
-
-    // 폐기물처리 (장비 → 경비 컬럼) — BASE 상수는 공백 없는 '폐기물처리'
-    if (item.name === '폐기물처리' && options.waste) {
-      updated.qty = options.waste.days
-      if (options.waste.unitPrice) {
-        updated.exp = options.waste.unitPrice
-      }
     }
 
     // 금액 재계산

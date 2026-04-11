@@ -1,5 +1,9 @@
 /**
  * P값 시드 변환 + getPD 호출 테스트
+ *
+ * #10 이후: 장비 4개(사다리차/스카이차/폐기물처리/드라이비트)는 BASE에서 제거되어
+ *   - 복합 8개, 우레탄 7개 항목으로 축소.
+ *   - 장비는 옵션/빠른추가 칩을 통해 동적으로 행 추가.
  */
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -24,45 +28,24 @@ describe('P값 시드 변환 검증', () => {
     expect(items![3]).toEqual([8800, 5000, 300])
   })
 
-  test('샘플 3: 50~100평/우레탄/31000 — 11개 항목, 바탕정리 존재', () => {
+  test('샘플 3: 50~100평/우레탄/31000 — 7개 항목, 바탕정리 존재', () => {
     const items = seed['50~100평']?.['우레탄']?.['31000']
     expect(items).toBeDefined()
-    expect(items!.length).toBe(11)
+    expect(items!.length).toBe(7)
     // 바탕정리(index 0)는 mat > 0 or labor > 0
     expect(items![0][0] + items![0][1]).toBeGreaterThan(0)
   })
 
-  test('복합은 12개 항목, 우레탄은 11개 항목 (스카이차 placeholder 포함)', () => {
+  test('복합은 8개 항목, 우레탄은 7개 항목 (장비 BASE에서 제외)', () => {
     for (const area of Object.keys(seed)) {
       for (const method of Object.keys(seed[area])) {
         for (const price of Object.keys(seed[area][method])) {
           const items = seed[area][method][price]
-          const expected = method === '복합' ? 12 : 11
+          const expected = method === '복합' ? 8 : 7
           expect(items.length).toBe(expected)
         }
       }
     }
-  })
-
-  test('사다리차는 경비(exp) 컬럼에 120000 (복합 idx 8)', () => {
-    const items = seed['100~200평']?.['복합']?.['32000']
-    expect(items).toBeDefined()
-    // [mat, labor, exp] — 장비는 exp에 기록
-    expect(items![8]).toEqual([0, 0, 120000])
-  })
-
-  test('폐기물처리 placeholder (복합 idx 10, 우레탄 idx 9) = [0,0,0]', () => {
-    const complexItems = seed['100~200평']?.['복합']?.['32000']
-    expect(complexItems![10]).toEqual([0, 0, 0])
-    const urethaneItems = seed['50~100평']?.['우레탄']?.['31000']
-    expect(urethaneItems![9]).toEqual([0, 0, 0])
-  })
-
-  test('스카이차 placeholder (복합 idx 9, 우레탄 idx 8) = [0,0,0]', () => {
-    const complexItems = seed['100~200평']?.['복합']?.['32000']
-    expect(complexItems![9]).toEqual([0, 0, 0])
-    const urethaneItems = seed['50~100평']?.['우레탄']?.['31000']
-    expect(urethaneItems![8]).toEqual([0, 0, 0])
   })
 
   test('lump template (price=0) 행이 없음', () => {
@@ -81,29 +64,29 @@ describe('P값 시드 변환 검증', () => {
 })
 
 describe('getPD 호출 테스트 (P값 시드 데이터)', () => {
-  test('정확 일치: 100~200평/복합/32000 (복합은 12개)', () => {
+  test('정확 일치: 100~200평/복합/32000 (복합은 8개)', () => {
     const result = getPD(seed, '100~200평', '복합', 32000)
-    expect(result.length).toBe(12)
+    expect(result.length).toBe(8)
     expect(result[0]).toEqual([300, 700, 0])
   })
 
   test('보간: 100~200평/복합/32500 (32000~33000 사이)', () => {
     const result = getPD(seed, '100~200평', '복합', 32500)
-    expect(result.length).toBe(12)
+    expect(result.length).toBe(8)
     // 바탕정리는 32000/33000 모두 [300, 700, 0]이므로 보간 후에도 동일
     expect(result[0]).toEqual([300, 700, 0])
   })
 
   test('범위 밖(하한): 100~200평/복합/30000 → 최저 가격 사용', () => {
     const result = getPD(seed, '100~200평', '복합', 30000)
-    expect(result.length).toBe(12)
+    expect(result.length).toBe(8)
     // 최저가 32000의 데이터 반환
     expect(result[0]).toEqual([300, 700, 0])
   })
 
-  test('데이터 없는 면적대: 20평이하 → 기본값 [0,0,0]×12 (복합 BASE 길이)', () => {
+  test('데이터 없는 면적대: 20평이하 → 기본값 [0,0,0]×8 (복합 BASE 길이)', () => {
     const result = getPD(seed, '20평이하', '복합', 48000)
-    expect(result.length).toBe(12)
+    expect(result.length).toBe(8)
     expect(result[0]).toEqual([0, 0, 0])
   })
 })

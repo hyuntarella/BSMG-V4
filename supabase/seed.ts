@@ -151,10 +151,73 @@ async function seedData(companyId: string) {
   }, {
     onConflict: 'company_id',
   })
-  if (costErr) console.error('원가 ���류:', costErr)
+  if (costErr) console.error('원가 오류:', costErr)
   else console.log('✅ 원가 테이블 완료')
 
+  // 5. acdb_entries seed (data/acdb-seed.json — 519개 기본 항목)
+  await importAcdbSeed(companyId)
+
   console.log('🎉 Seed 완료!')
+}
+
+/**
+ * data/acdb-seed.json → acdb_entries 테이블로 주입.
+ * 단위 '㎡' → 'm²' 로 치환하여 DB 유니코드 일관성 유지.
+ * company_id + canon unique 제약에 맞춰 upsert.
+ */
+async function importAcdbSeed(companyId: string) {
+  const acdbPath = resolve(__dirname, '..', 'data', 'acdb-seed.json')
+  const raw = JSON.parse(readFileSync(acdbPath, 'utf-8')) as {
+    entries: Array<{
+      canon: string
+      display: string
+      aliases: string[]
+      unit: string
+      spec_default: string
+      spec_options: string[]
+      usedCount: number
+      mat: { median?: number | null } | null
+      labor: { median?: number | null } | null
+      exp: { median?: number | null } | null
+      year_history: Record<string, unknown>
+    }>
+  }
+
+  const rows = raw.entries.map(e => ({
+    company_id: companyId,
+    canon: e.canon,
+    display: e.display,
+    aliases: e.aliases ?? [],
+    unit: normalizeUnit(e.unit),
+    spec_default: e.spec_default ?? '',
+    spec_options: e.spec_options ?? [],
+    used_count: e.usedCount ?? 0,
+    mat_stats: e.mat ?? null,
+    labor_stats: e.labor ?? null,
+    exp_stats: e.exp ?? null,
+    year_history: e.year_history ?? {},
+    source: 'seed',
+  }))
+
+  console.log(`📚 acdb_entries: ${rows.length} rows`)
+
+  // 배치 insert (200개씩 — JSONB 필드가 크므로 작게)
+  for (let i = 0; i < rows.length; i += 200) {
+    const batch = rows.slice(i, i + 200)
+    const { error } = await supabase.from('acdb_entries').upsert(batch, {
+      onConflict: 'company_id,canon',
+    })
+    if (error) console.error(`acdb batch ${i} 오류:`, error)
+  }
+  console.log('✅ acdb_entries 완료')
+}
+
+function normalizeUnit(unit: string): string {
+  // acdb-seed.json은 '㎡' / '㎥' 등 원본 유니코드를 사용.
+  // 견적서 쪽 단위 상수(m²)와 일관되게 맞추되, 정보 손실 없는 1:1 치환만 수행.
+  if (unit === '㎡') return 'm²'
+  if (unit === '㎥') return 'm³'
+  return unit
 }
 
 main().catch(console.error)

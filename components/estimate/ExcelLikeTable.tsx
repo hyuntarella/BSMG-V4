@@ -8,7 +8,9 @@ import { useExcelSelection } from '@/hooks/useExcelSelection'
 import { useTableKeyboard } from '@/hooks/useTableKeyboard'
 import { recalcAllTotals, markAsEdited } from '@/lib/estimate/tableLogic'
 import { calcTableTier } from '@/lib/estimate/tableLayout'
+import type { QuickChip } from '@/lib/estimate/quickChipConfig'
 import ExcelCell from './ExcelCell'
+import QuickAddChips from './QuickAddChips'
 
 interface ExcelLikeTableProps {
   items: EstimateItem[]
@@ -22,6 +24,8 @@ interface ExcelLikeTableProps {
   onToggleLock?: (itemIndex: number) => void
   onToggleHide?: (itemIndex: number) => void
   onAddFreeItem?: () => void
+  /** #10 빠른공종추가 칩 — 칩 클릭 시 해당 공종 즉시 행 추가 */
+  onQuickAdd?: (chip: QuickChip) => void
   // 검색
   searchQuery?: string
   onSearch?: (query: string) => void
@@ -62,6 +66,7 @@ export default function ExcelLikeTable({
   onToggleLock,
   onToggleHide,
   onAddFreeItem,
+  onQuickAdd,
   searchQuery,
   onSearch,
   matchingRowIndexes,
@@ -449,6 +454,9 @@ export default function ExcelLikeTable({
           </tr>
         </tfoot>
       </table>
+
+      {/* 빠른공종추가 칩 (#10) — 표 하단 "행 추가" 버튼 위 */}
+      {onQuickAdd && <QuickAddChips onChipAdd={onQuickAdd} />}
 
       {/* 행 추가 버튼 */}
       {onAddFreeItem && (

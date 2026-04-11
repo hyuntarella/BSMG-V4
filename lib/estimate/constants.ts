@@ -1,9 +1,10 @@
 import type { BaseItem } from './types'
 
 /**
- * 복합방수 기본 공종 배열 (11개)
- * v1 원본(견적서.html L48-106)과 1:1 대응
- * P매트릭스 item_index 순서와 1:1 대응
+ * 복합방수 기본 공종 배열 (8개 — 방수 공종만)
+ * 장비(사다리차/스카이차/폐기물처리/드라이비트하부절개)는 BASE에서 제외.
+ * 옵션·빠른추가 칩을 통해 동적으로 추가된다 (#10).
+ * P매트릭스 item_index 순서와 1:1 대응.
  */
 export const COMPLEX_BASE: BaseItem[] = [
   { name: '바탕정리',               spec: '',                    unit: 'm²', isArea: true },
@@ -14,16 +15,12 @@ export const COMPLEX_BASE: BaseItem[] = [
   { name: '노출 우레탄',            spec: '중도 1.5mm(2회)',      unit: 'm²', isArea: true },
   { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
   { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
-  { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '스카이차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
-  { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
 
 /**
- * 우레탄방수 기본 공종 배열 (10개)
- * v1 원본(견적서.html L107-161)과 1:1 대응
- * P매트릭스 item_index 순서와 1:1 대응
+ * 우레탄방수 기본 공종 배열 (7개 — 방수 공종만)
+ * 장비는 BASE에서 제외. 옵션·빠른추가 칩을 통해 동적으로 추가 (#10).
+ * P매트릭스 item_index 순서와 1:1 대응.
  */
 export const URETHANE_BASE: BaseItem[] = [
   { name: '바탕정리',               spec: '그라인더 연삭',         unit: 'm²', isArea: true },
@@ -33,10 +30,6 @@ export const URETHANE_BASE: BaseItem[] = [
   { name: '노출 우레탄 2차',        spec: '중도 2mm',             unit: 'm²', isArea: true },
   { name: '벽체 우레탄',            spec: '중도 1mm(2회)',        unit: 'm²', isWall: true },
   { name: '우레탄 상도',            spec: '탑코팅',              unit: 'm²', isArea: true },
-  { name: '사다리차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '스카이차',               spec: '',                    unit: '일', isEquipment: true, isFixedQty: true },
-  { name: '폐기물처리',             spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
-  { name: '드라이비트하부절개',       spec: '',                    unit: '식', isEquipment: true, isFixedQty: true },
 ]
 
 /** 공과잡비 비율 */
