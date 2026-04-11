@@ -12,10 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / **4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과)**
-- 진행중: 없음. Phase 4I-H5 잔여 항목(#10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 잔여 확인) 대기
-- 다음: #10 빠른공종 칩 → #2 acdb seed → #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
-- **main HEAD: `552742a`** (Merge feature/h8-outside-click-commit)
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / 4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과) / **4I-#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입)**
+- 진행중: 없음. Phase 4I-H5 잔여 항목(#5 Ctrl+F 잔여 확인) 대기
+- 다음: #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
+- **main HEAD: `0d7ad23`** (feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -369,6 +369,65 @@
   - 한 가지 수정: commitValue useCallback deps 에서 쓰이지 않게 된 activeCell/isEditing 제거.
   - 셀 편집 race 버그는 브라우저 실측이 있을 때 재조사 (SESSION_STATE 에 오픈 이슈로 기록).
 - 검증: 478/478 테스트 통과, build 성공, lint 경고만 (사전 존재), tsc 에러 1건 (tests/voice/vadLogic.test.ts "speaking" 타입 — 사전 존재, 무관)
+
+### Phase 4I-#10: BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed 주입 (2026-04-11)
+**사장 요구**: (1) BASE는 방수 공종만 남기고 장비·보조는 빠른추가 칩으로 옮긴다.
+(2) acdb-seed.json을 DB에 주입해서 칩 단가 베이크의 근거로 삼는다.
+
+**한 커밋 통합 (`0d7ad23`)**:
+
+1. BASE 장비 4종 제거
+   - COMPLEX_BASE 12→8 (방수 8공종만), URETHANE_BASE 11→7
+   - 제거: 사다리차/스카이차/폐기물처리/드라이비트하부절개
+   - buildItems.ts: `appendEquipmentRows` 헬퍼로 옵션→동적 행 추가 (기존 분기 로직 대체)
+   - applyOverrides.ts: 장비 오버라이드 전면 제거, 벽체실링 수량만 유지 (signature 단순화)
+   - calc.ts 완전 불변 — `is_equipment` 플래그 기반 overhead/profit 제외 로직 재사용
+   - **기존 8공종 단가 계산식 완전 보존** (기존 견적 재현 가능)
+
+2. P매트릭스 seed 재정렬
+   - `price_matrix_seed.json`: 복합 11→8, 우레탄 10→7
+   - `supabase/price_matrix_pvalue_seed.json`: 복합 12→8, 우레탄 11→7
+   - 기존 장비 슬롯이 모두 `[0,0,0]` placeholder였던 덕에 단순 `slice(0, 8|7)`로 안전 축소
+   - DB 마이그레이션 `013_remove_equipment_from_base.sql`: price_matrix + estimate_items 전량 삭제
+   - `supabase/run-migration-013.ts`: supabase CLI 미링크 환경용 supabase-js 러너
+
+3. 빠른공종추가 칩 UI
+   - `lib/estimate/quickChipConfig.ts`: 4개 카테고리 16개 칩
+     - 장비·인력 7: 사다리차/폐기물처리/드라이비트하부절개/스카이차/포크레인/크레인/로프공
+     - 바탕·보수 3: 바탕조정제 부분미장/크랙보수/옥탑방수
+     - 철거·토목 5: 데크철거/화단흙제거/화단철거/배수구처리/드라이비트부분절개
+     - 기타 1: 트렌치설치
+   - 단가 소스: `DEFAULT_EQUIPMENT_PRICES` (장비 3종) + `data/acdb-seed.json` median 베이크
+   - `components/estimate/QuickAddChips.tsx`: 카테고리별 구분선+헤더, 클릭 즉시 행 추가
+   - ExcelLikeTable + EstimateTableWrapper: `onQuickAdd` 배선, calc 재계산 + 스냅샷 연동
+   - 표 하단 "행 추가" 버튼 **위에** 배치 (사용자 요구)
+   - 화단철거 단가 이상치 주의: acdb median 그대로 베이크 (배포 후 이상치 발견 시 p25 대체 검토)
+   - 추후 외벽/주차장 칩은 구현 제외, 주석에 확장 지점 명시
+
+4. acdb seed 주입
+   - `supabase/seed.ts`: `importAcdbSeed()` 추가 (519 rows upsert)
+   - 단위 정규화: `㎡`→`m²`, `㎥`→`m³` (견적서 UNIT_OPTIONS와 일관)
+   - 배치 크기 200 (JSONB 필드 고려)
+   - company_id + canon unique 제약 기준 onConflict
+
+**배포 후속 작업 완료**:
+- migration 013 적용: estimate_items 5 rows, price_matrix 972 rows 삭제
+- seed.ts 재실행: price_matrix 318 rows (8/7 슬롯), acdb_entries 519 rows
+- dev server + /estimate/edit + /estimate/new 200 OK
+- 번들 검증: QuickAddChips 테스트 ID + 한글 라벨 5종 (포크레인/트렌치설치/화단흙제거/바탕조정제 부분미장/로프공) 확인
+- DB 교차 검증: `복합 50평미만 38000` item_indexes = 0..7
+
+**검증**:
+- npm run build: PASS
+- npm run lint: PASS (기존 경고만, 신규 에러 0)
+- vitest: 478/478 (32 test files)
+- tsc: 사전 존재 에러 1건 (tests/voice/vadLogic.test.ts, 본 작업과 무관)
+
+**미해결**:
+- UI 수동 브라우저 실측 보류 (사용자 실측 대기) — 칩 wrap, hover 색상, Tailwind brand
+- Figma 디자인 토큰 대조 미실시 (Figma 스펙 없음, 기존 컴포넌트 톤 차용)
+
+**main HEAD**: `0d7ad23`
 
 ### Phase 4I-H5-LOGS: H3-DEBUG 디버그 로그 19개 전부 제거
 - 태그: [BUILD], [USE_EST], [WRAPPER], [CELL], [RECALC], [MARK_EDITED], [EDITOR], [COMMIT]

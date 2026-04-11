@@ -2,7 +2,7 @@
 
 > 새 Claude: 이 문서 먼저 흡수. v4 폐기. §14 양식대로 "인수 완료" 보고 후 사장 메시지 대응.
 > v4의 §0~§7, §10~§12 전제는 그대로 유지. v5는 H4 종료 시점부터의 차이를 기록한다.
-> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP 반영.
+> **2026-04-11 갱신**: H5-1 / 장비exp / H6 / H7 / H7-DEBUG-CLEANUP / H8 / **#10 (BASE 장비 4종 제거 + 빠른공종 칩 + acdb seed)** 반영.
 
 ---
 
@@ -68,6 +68,39 @@ v4 §3.1~§3.11 유지. v5 추가:
   - d8c6dc5 작성자가 의심했던 후보 1번 ("sync_urethane 재계산 → useEffect 재실행 → editValue 리셋") 이 원인이었을 가능성 높음
 - 사용자 실측 통과 (2026-04-11 "다 됨")
 
+### 3.20 BASE 장비 4종 제거 + 빠른공종 칩 (#10, 확정 — 기존 8공종 단가 로직 건드리지 말 것)
+**사장 요구** (#10 진입 시점):
+- BASE는 방수 공종만 남기고 장비·보조는 빠른추가 칩으로 옮긴다.
+- 표 하단 "행 추가" 버튼 **위**에 카테고리별 칩. 클릭 1번으로 즉시 행 추가 (추가 클릭 없음).
+- acdb-seed.json 을 DB에 주입해서 칩 단가 베이크의 근거로 삼는다.
+
+**확정 구조**:
+- `COMPLEX_BASE` 8개 (방수 공종만), `URETHANE_BASE` 7개. 장비 4종(사다리차/스카이차/폐기물/드라이비트하부절개) BASE에서 제거.
+- 장비 옵션(ladder/sky/waste/dryvit)은 `buildItems.appendEquipmentRows`가 BASE 빌드 후 동적으로 행 추가. `applyOverrides`는 더 이상 장비 건드리지 않음 (signature: `{ wallM2 }` 만 받음).
+- P매트릭스 seed 2종 모두 8/7 슬롯으로 축소. 기존 장비 슬롯이 `[0,0,0]` placeholder였던 덕에 `slice(0, 8|7)`로 안전 축소. 기존 견적 재현 가능.
+- `calc.ts` 완전 불변 — `is_equipment` 플래그 기반 overhead/profit 제외 로직 재사용.
+- migration `013_remove_equipment_from_base.sql` + `supabase/run-migration-013.ts` (supabase CLI 미링크 환경용 supabase-js 러너).
+
+**칩 정의**: `lib/estimate/quickChipConfig.ts`
+| 카테고리 | 칩 | 단가 소스 |
+|---|---|---|
+| 장비·인력 (7) | 사다리차/폐기물처리/드라이비트하부절개/스카이차/포크레인/크레인/로프공 | DEFAULT_EQUIPMENT_PRICES 3종 + acdb median 4종 |
+| 바탕·보수 (3) | 바탕조정제 부분미장/크랙보수/옥탑방수 | acdb median (옥탑방수는 0, 사용자 입력) |
+| 철거·토목 (5) | 데크철거/화단흙제거/화단철거/배수구처리/드라이비트부분절개 | acdb median (배수구처리는 0) |
+| 기타 (1) | 트렌치설치 | acdb median |
+
+- 화단철거 median이 이상치(labor 1.2M)이므로 배포 후 재검토 여지 있음
+- 추후 외벽/주차장 칩은 구현 제외, quickChipConfig.ts 주석에 확장 지점 명시
+
+**acdb seed 주입**: `supabase/seed.ts.importAcdbSeed()` — 519 rows upsert, 단위 `㎡`→`m²` 정규화, company_id+canon unique 기준.
+
+**건드리지 말 것**:
+- 기존 8공종 단가 계산식 (BASE/P매트릭스/calc)
+- `is_equipment` 플래그 — overhead/profit 제외 로직의 핵심
+- migration 013 파괴적 DELETE — 재적용 시 운영 데이터 손실 주의
+
+**커밋**: `0d7ad23` feat(#10): BASE 장비 4종 제거 + 빠른공종추가 칩 + acdb seed 주입
+
 ### 3.19 셀 클릭 편집 진입 UX (H8, 확정 — 건드리지 말 것)
 **사장 요구** (H8 진입 시점): select-all + delete 과정 없이 바로 새 값 타이핑. 셀 밖 클릭해도 Enter 없이 원래값 유지/입력값 저장.
 
@@ -126,8 +159,8 @@ v4 §3.1~§3.11 유지. v5 추가:
 | ~~6~~ | ~~우레탄 0.5mm 재설계~~ | ~~P1~~ | ✅ **H6 종료** (cff0dec) |
 | ~~셀 편집 UX 2종~~ | ~~전체선택 + 실시간 콤마~~ | ~~P0~~ | ✅ **H7 종료** (f90acf4) |
 | ~~[H7-DEBUG] 로그 9개~~ | ~~d8c6dc5 WIP 로그~~ | ~~P0~~ | ✅ **H7-DEBUG-CLEANUP 종료** |
-| 10 | 빠른공종추가 칩 | P2 | **잔여** |
-| 2 | acdb_entries seed | P2 | **잔여** |
+| ~~10~~ | ~~빠른공종추가 칩~~ | ~~P2~~ | ✅ **#10 완료** (0d7ad23) |
+| ~~2~~ | ~~acdb_entries seed~~ | ~~P2~~ | ✅ **#10 완료** (0d7ad23, importAcdbSeed) |
 | 5 | Ctrl+F 행 스크롤 제거 | P3 | **잔여** |
 | ~~(신규)~~ | ~~셀 편집 race 브라우저 재조사~~ | ~~P1~~ | ✅ **H8 에서 구조적 차단** (사용자 실측 통과) |
 | ~~(H8)~~ | ~~셀 클릭 편집 진입 UX 재설계~~ | ~~P0~~ | ✅ **H8 완료** (b5616a1 + ae085fc + 552742a) |
