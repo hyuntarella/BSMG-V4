@@ -31,7 +31,7 @@ const PRESETS_DEFAULT = [
   { name: '바탕조정제', spec: '', unit: 'm²', mat: 0, labor: 0, exp: 0, category: 'base' },
   { name: '바탕미장', spec: '시멘트 액체 방수', unit: 'm²', mat: 700, labor: 1300, exp: 0, category: 'base' },
   { name: '복합시트', spec: '개량형 1.5T', unit: 'm²', mat: 9000, labor: 6000, exp: 500, category: 'complex' },
-  { name: '보호누름', spec: '시멘트 모르���르', unit: 'm²', mat: 1300, labor: 1700, exp: 0, category: 'complex' },
+  { name: '보호누름', spec: '시멘트 모르타르', unit: 'm²', mat: 1300, labor: 1700, exp: 0, category: 'complex' },
   { name: '우레탄도막', spec: '1차+2차 (KS)', unit: 'm²', mat: 7500, labor: 4500, exp: 500, category: 'complex' },
   { name: '상도 (톱코트)', spec: '불소계', unit: 'm²', mat: 5000, labor: 4300, exp: 500, category: 'common' },
   { name: '벽체실링', spec: '우레탄실링', unit: 'm', mat: 2200, labor: 1800, exp: 0, category: 'common' },
@@ -41,7 +41,7 @@ const PRESETS_DEFAULT = [
   { name: '드라이비트 절개', spec: '', unit: 'm', mat: 0, labor: 3500, exp: 0, category: 'extra' },
   { name: '사다리차', spec: '1톤', unit: '일', mat: 0, labor: 0, exp: 120000, category: 'equipment' },
   { name: '폐기물 처리', spec: '마대 및 운반', unit: '일', mat: 0, labor: 0, exp: 200000, category: 'equipment' },
-  { name: '스���이차', spec: '0.5톤', unit: '일', mat: 0, labor: 0, exp: 350000, category: 'equipment' },
+  { name: '스카이차', spec: '0.5톤', unit: '일', mat: 0, labor: 0, exp: 350000, category: 'equipment' },
 ]
 
 // ── 원가 테이블 ──
@@ -73,7 +73,7 @@ async function main() {
     .single()
 
   if (companyErr) {
-    console.error('Company 생��� 실패:', companyErr)
+    console.error('Company 생성 실패:', companyErr)
     // company가 이미 있을 수 있음 — 조회 시도
     const { data: existing } = await supabase.from('companies').select().limit(1).single()
     if (!existing) {

@@ -84,11 +84,11 @@ export default function WarrantyEditor() {
           </div>
         </div>
 
-        {/* 이행증권년수 */}
+        {/* 하자보증기간 */}
         <div className="rounded-lg border border-gray-200 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-700">이행증권년수</p>
+              <p className="text-sm font-medium text-gray-700">하자보증기간</p>
               <p className="mt-0.5 text-xs text-gray-400">이행보증보험 증권 기간</p>
             </div>
             <div className="flex items-center gap-2">

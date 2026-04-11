@@ -36,18 +36,32 @@ export default function SettingsSummary() {
       const presetsJson = await presetsRes.json()
       const cfg = (cfgJson.config ?? {}) as Record<string, unknown>
       const calcRules = (cfg.calc_rules ?? {}) as Record<string, number>
-      const equipment = (cfg.equipment_prices ?? {}) as Record<string, number>
+      const equipment = (cfg.equipment_prices ?? {}) as Record<string, unknown>
       const warranty = (cfg.warranty ?? {}) as Record<string, number>
       const baseItems = (cfg.base_items ?? {}) as Record<string, unknown[]>
       const presets: unknown[] = Array.isArray(presetsJson.presets) ? presetsJson.presets : []
+
+      // 장비 단가: 신형 {mat,labor,exp} / 레거시 number 둘 다 지원.
+      // 요약 바는 합계(=mat+labor+exp)를 표시한다.
+      const entryTotal = (raw: unknown, fallback: number): number => {
+        if (typeof raw === 'number') return raw
+        if (raw && typeof raw === 'object') {
+          const o = raw as Record<string, unknown>
+          const m = typeof o.mat === 'number' ? o.mat : 0
+          const l = typeof o.labor === 'number' ? o.labor : 0
+          const e = typeof o.exp === 'number' ? o.exp : 0
+          return m + l + e
+        }
+        return fallback
+      }
 
       setData({
         overheadRate: Math.round((calcRules.overhead_rate ?? 0.03) * 100),
         profitRate: Math.round((calcRules.profit_rate ?? 0.06) * 100),
         roundUnit: calcRules.round_unit ?? 100000,
-        ladderPrice: equipment.ladder ?? 120000,
-        skyPrice: equipment.sky ?? 350000,
-        wastePrice: equipment.waste ?? 200000,
+        ladderPrice: entryTotal(equipment.ladder, 120000),
+        skyPrice: entryTotal(equipment.sky, 350000),
+        wastePrice: entryTotal(equipment.waste, 200000),
         warrantyYears: warranty.years ?? 5,
         bondYears: warranty.bond_years ?? 3,
         laborCostPerPum:

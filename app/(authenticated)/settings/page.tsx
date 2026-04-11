@@ -6,6 +6,7 @@ import SettingsTabs from '@/components/settings/SettingsTabs'
 import PriceMatrixEditor from '@/components/settings/PriceMatrixEditor'
 import BaseItemsEditor from '@/components/settings/BaseItemsEditor'
 import PresetsEditor from '@/components/settings/PresetsEditor'
+import ExtraItemsEditor from '@/components/settings/ExtraItemsEditor'
 import CostEditor from '@/components/settings/CostEditor'
 import CalcRulesEditor from '@/components/settings/CalcRulesEditor'
 import EquipmentEditor from '@/components/settings/EquipmentEditor'
@@ -29,6 +30,7 @@ export default function SettingsPage() {
             {activeTab === '단가표' && <PriceMatrixEditor />}
             {activeTab === '기본공종' && <BaseItemsEditor />}
             {activeTab === '프리셋' && <PresetsEditor />}
+            {activeTab === '추가공종' && <ExtraItemsEditor />}
             {activeTab === '원가' && <CostEditor />}
             {activeTab === '계산규칙' && <CalcRulesEditor />}
             {activeTab === '장비단가' && <EquipmentEditor />}

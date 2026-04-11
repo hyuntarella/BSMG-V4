@@ -178,7 +178,7 @@ export default function CostEditor() {
       {/* 면적대별 원가 테이블 */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">면적대별 원가 브레이크포인트</h3>
+          <h3 className="text-sm font-semibold text-gray-700">면적대별 원가 기준</h3>
           <div className="flex items-center gap-2">
             {toast && (
               <span className="rounded bg-green-100 px-3 py-1 text-sm text-green-700">

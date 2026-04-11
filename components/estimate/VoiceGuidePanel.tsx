@@ -42,7 +42,7 @@ export default function VoiceGuidePanel({ open, onClose }: VoiceGuidePanelProps)
 
           {/* 규격별 규칙 */}
           <section>
-            <h3 className="text-sm font-bold text-ink mb-2">규격��� 입력 방식</h3>
+            <h3 className="text-sm font-bold text-ink mb-2">규격별 입력 방식</h3>
             <div className="space-y-2">
               <div className="rounded border border-gray-200 p-2.5">
                 <p className="font-semibold text-ink mb-1">m² (면적 항목)</p>

@@ -9,7 +9,7 @@ import type {
   PipelineStage,
 } from './inquiry-types';
 
-// ── Supabase 서버 클라이언트 (service role — API route에서만 사용) ─��
+// ── Supabase 서버 클라이언트 (service role — API route에서만 사용) ──
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +31,7 @@ export async function getAllInquiries(): Promise<Inquiry[]> {
     .select('*')
     .order('updated_at', { ascending: false });
 
-  if (error) throw new Error(`문의 조회 ��패: ${error.message}`);
+  if (error) throw new Error(`문의 조회 실패: ${error.message}`);
   return data as Inquiry[];
 }
 
@@ -72,7 +72,7 @@ export async function updateInquiry(id: string, input: InquiryUpdate): Promise<v
     .update(input)
     .eq('id', id);
 
-  if (error) throw new Error(`문의 수�� 실패: ${error.message}`);
+  if (error) throw new Error(`문의 수정 실패: ${error.message}`);
 }
 
 /** 파이프라인 단계 이동 */
@@ -129,7 +129,7 @@ export async function queryByPipelineStage(stage: PipelineStage): Promise<Inquir
     .eq('pipeline_stage', stage)
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(`��이프라인 조회 실패: ${error.message}`);
+  if (error) throw new Error(`파이프라인 조회 실패: ${error.message}`);
   return data as Inquiry[];
 }
 
@@ -158,6 +158,6 @@ export async function queryUnsent(): Promise<Inquiry[]> {
     .is('estimate_amount', null)
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(`미발��� 조회 실패: ${error.message}`);
+  if (error) throw new Error(`미발송 조회 실패: ${error.message}`);
   return data as Inquiry[];
 }

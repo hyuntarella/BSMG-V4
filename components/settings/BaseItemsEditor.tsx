@@ -150,10 +150,10 @@ export default function BaseItemsEditor() {
               <th className="border border-gray-200 px-3 py-2 font-medium text-gray-600">공종명</th>
               <th className="border border-gray-200 px-3 py-2 font-medium text-gray-600">규격</th>
               <th className="border border-gray-200 px-3 py-2 font-medium text-gray-600 w-16">단위</th>
-              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">면적연동</th>
-              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">벽체연동</th>
+              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">면적 적용</th>
+              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">벽체 적용</th>
               <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-12">장비</th>
-              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">고정수량</th>
+              <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-16">수량고정</th>
               <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-20">순서/삭제</th>
             </tr>
           </thead>

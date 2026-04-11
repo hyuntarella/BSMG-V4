@@ -5,7 +5,7 @@ interface SettingsTabsProps {
   onTabChange: (tab: string) => void
 }
 
-const TABS = ['단가표', '기본공종', '프리셋', '원가', '계산규칙', '장비단가', '보증']
+const TABS = ['단가표', '기본공종', '프리셋', '추가공종', '원가', '계산규칙', '장비단가', '보증']
 
 export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
   return (

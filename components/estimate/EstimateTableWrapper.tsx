@@ -11,6 +11,7 @@ import {
 } from '@/lib/estimate/syncUrethane'
 import { calc } from '@/lib/estimate/calc'
 import { chipToEstimateItem, type QuickChip } from '@/lib/estimate/quickChipConfig'
+import { useRuntimeChipPrices } from '@/hooks/useRuntimeChipPrices'
 import ExcelLikeTable from './ExcelLikeTable'
 
 interface AcdbSuggestHook {
@@ -40,6 +41,9 @@ export default function EstimateTableWrapper({
   const sheet = estimate.sheets[sheetIndex]
   const items = sheet?.items ?? []
   const sheetType = sheet?.type ?? '복합'
+
+  // 런타임 칩 단가 오버라이드 (cost_config.equipment_prices / extra_items)
+  const { applyPrices } = useRuntimeChipPrices()
 
   // 검색
   const estimateSearch = useEstimateSearch(estimate.sheets)
@@ -188,7 +192,8 @@ export default function EstimateTableWrapper({
   // --- #10 빠른공종추가 칩 클릭 ---
   const handleQuickAdd = useCallback((chip: QuickChip) => {
     onSaveSnapshot?.(`빠른 추가: ${chip.name}`)
-    const newItem = chipToEstimateItem(chip, items.length + 1)
+    const overridden = applyPrices(chip)
+    const newItem = chipToEstimateItem(overridden, items.length + 1)
     const newItems = [...items, newItem as EstimateItem]
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]
@@ -198,7 +203,7 @@ export default function EstimateTableWrapper({
       grand_total: calcResult.grandTotal,
     }
     onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
+  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange, applyPrices])
 
   // --- Undo ---
   const handleUndo = useCallback(() => {

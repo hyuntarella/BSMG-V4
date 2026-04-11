@@ -83,7 +83,7 @@ export const LABOR_COST_PER_PUM = 220000
 /** 재료비 인상률 (현재 20%) */
 export const MATERIAL_INCREASE_RATE = 0.20
 
-/** 면적대별 원가 브레이크포인트 */
+/** 면적대별 원가 기준 */
 export interface CostBreakpoint {
   pyeong: number
   hado: number       // 하도 (프라이머)

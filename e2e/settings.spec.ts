@@ -67,7 +67,7 @@ test.describe('설정 페이지', () => {
     await page.getByRole('button', { name: '보증' }).click()
 
     await expect(page.getByText('하자보수년수')).toBeVisible()
-    await expect(page.getByText('이행증권년수')).toBeVisible()
+    await expect(page.getByText('하자보증기간')).toBeVisible()
     await expect(page.getByRole('button', { name: '저장' })).toBeVisible()
   })
 
