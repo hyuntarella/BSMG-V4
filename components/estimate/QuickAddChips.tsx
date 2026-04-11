@@ -1,6 +1,7 @@
 'use client'
 
-import { QUICK_CHIP_CATEGORIES, type QuickChip } from '@/lib/estimate/quickChipConfig'
+import type { QuickChip } from '@/lib/estimate/quickChipConfig'
+import { useFavorites } from '@/hooks/useFavorites'
 
 interface QuickAddChipsProps {
   /** 칩 클릭 시 호출 — 해당 칩 설정으로 즉시 행 추가 */
@@ -12,16 +13,20 @@ interface QuickAddChipsProps {
  *
  * 표 하단 "행 추가" 버튼 위에 배치. 카테고리별 구분선+헤더로 시각 구분.
  * 칩 클릭 1번으로 즉시 해당 공종 행이 추가된다 (추가 클릭 없음).
+ *
+ * 소스: cost_config.favorites (useFavorites 훅). DB 미존재 시 하드코딩 기본값 fallback.
  */
 export default function QuickAddChips({ onChipAdd }: QuickAddChipsProps) {
+  const { favorites } = useFavorites()
+
   return (
     <div
       className="border-t border-gray-200 bg-gray-50 px-2 py-2"
       data-testid="quick-add-chips"
     >
-      {QUICK_CHIP_CATEGORIES.map((category, catIdx) => (
+      {favorites.map((category, catIdx) => (
         <div
-          key={category.label}
+          key={`${category.label}-${catIdx}`}
           className={`${catIdx > 0 ? 'mt-1.5 pt-1.5 border-t border-dashed border-gray-300' : ''}`}
         >
           <div className="text-[10px] font-semibold text-gray-500 mb-1 px-0.5 tracking-wide">

@@ -8,6 +8,8 @@ import {
   getPdfFileName,
 } from '@/lib/estimate/fileExport'
 import type { Estimate, EstimateSheet, EstimateItem } from '@/lib/estimate/types'
+import { isQuickChipCategoryArray } from '@/lib/estimate/favorites'
+import type { QuickChipCategory } from '@/lib/estimate/quickChipConfig'
 
 export const maxDuration = 60
 
@@ -17,6 +19,84 @@ const supabase = createClient(
 )
 
 const BUCKET = 'estimates'
+
+/**
+ * 견적 저장 시 규칙서에 없는 공종을 cost_config.new_items 에 자동 등록.
+ * 기존에 favorites / other_items / new_items 중 하나에 있으면 스킵.
+ * 실패해도 저장 전체를 막지 않는다 (경고 로그만).
+ */
+async function registerNewItems(companyId: string, estimate: Estimate) {
+  try {
+    const { data: cfgRow } = await supabase
+      .from('cost_config')
+      .select('config')
+      .eq('company_id', companyId)
+      .single()
+
+    const cfg = (cfgRow?.config ?? {}) as Record<string, unknown>
+
+    // 기존 공종 이름 집합
+    const known = new Set<string>()
+    const favRaw = cfg.favorites
+    if (isQuickChipCategoryArray(favRaw)) {
+      for (const cat of favRaw as QuickChipCategory[]) {
+        for (const chip of cat.chips) known.add(chip.name)
+      }
+    }
+    const other = cfg.other_items as Record<string, unknown> | undefined
+    if (other && typeof other === 'object') {
+      for (const name of Object.keys(other)) known.add(name)
+    }
+    const existingNew = (cfg.new_items as Record<string, unknown> | undefined) ?? {}
+    for (const name of Object.keys(existingNew)) known.add(name)
+
+    // 시트 내 is_base=false 공종 중 기존에 없는 것만 대상
+    const additions: Record<string, {
+      unit: string
+      mat: number
+      labor: number
+      exp: number
+      registered_at: string
+    }> = {}
+    const now = new Date().toISOString()
+
+    for (const sheet of estimate.sheets) {
+      for (const it of sheet.items) {
+        if (it.is_base) continue
+        const name = (it.name ?? '').trim()
+        if (!name) continue
+        if (known.has(name)) continue
+        if (additions[name]) continue
+        additions[name] = {
+          unit: it.unit ?? 'm²',
+          mat: typeof it.mat === 'number' ? it.mat : 0,
+          labor: typeof it.labor === 'number' ? it.labor : 0,
+          exp: typeof it.exp === 'number' ? it.exp : 0,
+          registered_at: now,
+        }
+      }
+    }
+
+    if (Object.keys(additions).length === 0) return
+
+    const nextNewItems = {
+      ...(existingNew as Record<string, unknown>),
+      ...additions,
+    }
+    const nextConfig = { ...cfg, new_items: nextNewItems }
+
+    await supabase
+      .from('cost_config')
+      .upsert(
+        { company_id: companyId, config: nextConfig, updated_at: new Date().toISOString() },
+        { onConflict: 'company_id' },
+      )
+
+    console.log(`[save-all] 신규 공종 ${Object.keys(additions).length}건 자동 등록`)
+  } catch (err) {
+    console.warn('[save-all] 신규 공종 자동 등록 실패:', err)
+  }
+}
 
 /**
  * POST /api/estimates/[id]/save-all
@@ -169,7 +249,12 @@ export async function POST(
       urethanePdfUrl = upData.publicUrl
     }
 
-    // ── 5. DB 업데이트 ──
+    // ── 5. 신규 공종 자동 등록 (cost_config.new_items) ──
+    if (estimate.company_id) {
+      await registerNewItems(estimate.company_id, estimate)
+    }
+
+    // ── 6. DB 업데이트 ──
     await supabase
       .from('estimates')
       .update({

@@ -2,19 +2,14 @@
 
 import { useState } from 'react'
 import Header from '@/components/layout/Header'
-import SettingsTabs from '@/components/settings/SettingsTabs'
-import PriceMatrixEditor from '@/components/settings/PriceMatrixEditor'
-import BaseItemsEditor from '@/components/settings/BaseItemsEditor'
-import PresetsEditor from '@/components/settings/PresetsEditor'
-import ExtraItemsEditor from '@/components/settings/ExtraItemsEditor'
-import CostEditor from '@/components/settings/CostEditor'
-import CalcRulesEditor from '@/components/settings/CalcRulesEditor'
-import EquipmentEditor from '@/components/settings/EquipmentEditor'
-import WarrantyEditor from '@/components/settings/WarrantyEditor'
+import SettingsSidebar, { type SettingsMenu } from '@/components/settings/SettingsSidebar'
 import SettingsSummary from '@/components/settings/SettingsSummary'
+import PriceMatrixEditor from '@/components/settings/PriceMatrixEditor'
+import FavoriteItemsPage from '@/components/settings/FavoriteItemsPage'
+import OtherSettingsPage from '@/components/settings/OtherSettingsPage'
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('단가표')
+  const [menu, setMenu] = useState<SettingsMenu>('단가표')
 
   return (
     <div className="min-h-screen bg-surface">
@@ -24,17 +19,13 @@ export default function SettingsPage() {
         <div className="mb-4">
           <SettingsSummary />
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
-          <div className="p-4">
-            {activeTab === '단가표' && <PriceMatrixEditor />}
-            {activeTab === '기본공종' && <BaseItemsEditor />}
-            {activeTab === '프리셋' && <PresetsEditor />}
-            {activeTab === '추가공종' && <ExtraItemsEditor />}
-            {activeTab === '원가' && <CostEditor />}
-            {activeTab === '계산규칙' && <CalcRulesEditor />}
-            {activeTab === '장비단가' && <EquipmentEditor />}
-            {activeTab === '보증' && <WarrantyEditor />}
+
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white md:flex">
+          <SettingsSidebar active={menu} onChange={setMenu} />
+          <div className="min-w-0 flex-1 p-4">
+            {menu === '단가표' && <PriceMatrixEditor />}
+            {menu === '자주 쓰는 공종' && <FavoriteItemsPage />}
+            {menu === '기타 설정' && <OtherSettingsPage />}
           </div>
         </div>
       </div>
