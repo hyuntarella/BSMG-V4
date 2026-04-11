@@ -12,10 +12,10 @@
 - lens 인터페이스: docs/brief-quote.md §4
 
 ## 현재 단계
-- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / **4I-H7-DEBUG-CLEANUP**
+- 완료: Phase 0 / 1 / 2 / 3 / 4A / 4B / 4C / 4D / 4E / 4F / 4G / 4H / 4I / 4I-H3 / 4I-H3-DEBUG / 4I-H3-FIX / 4I-H3-VERIFY / 4I-H4-1 / 4I-H4-2 / 4I-H4-2-FIX / 4I-H4-2-CHIP / 4I-H4-2-KEYBIND / 4I-H4-3 / 4I-H4-4 / **4I-H4 종료** / 4I-H5-LOGS / 4I-H5-1 (#1 반투명 + 장비 readonly 수정 2종) / 4I-장비exp이전 / 4I-H6 (우레탄 0.5mm 재설계) / 4I-H7 (셀 편집 UX 2종) / 4I-H7-DEBUG-CLEANUP / **4I-H8 (클릭 편집 진입 UX 4커밋, 사용자 실측 통과)**
 - 진행중: 없음. Phase 4I-H5 잔여 항목(#10 빠른공종 칩 / #2 acdb seed / #5 Ctrl+F 잔여 확인) 대기
 - 다음: #10 빠른공종 칩 → #2 acdb seed → #5 Ctrl+F 잔여 확인 → Phase 4I 종료 선언
-- main HEAD: (커밋 예정) — H7-DEBUG-CLEANUP 이후 갱신 필요
+- **main HEAD: `552742a`** (Merge feature/h8-outside-click-commit)
 
 ## 완료된 Phase 요약
 ### Phase 0: 환경 준비
@@ -323,6 +323,44 @@
 - 작성자 보고: vitest 155/155 통과했으나 브라우저 실측 먹통 증상 미해결
 - 미파악 의심 후보: (1) sync_urethane 재계산이 편집 중 value prop 변경 → useEffect 재실행 → editValue 리셋 / (2) saveSnapshot deep-clone + setSnapshots 연쇄 재렌더 / (3) React 18 auto-batching 에서 setIsEditing(false)+(true) 연속 호출 bailout
 
+### Phase 4I-H8: 셀 클릭 편집 진입 UX 전면 재설계 (2026-04-11, 사용자 실측 통과)
+**사장 요구**: 셀 클릭 후 바로 새 값 타이핑 가능해야 함 (select-all+delete 과정 제거).
+그리고 셀 밖을 눌러도 (Enter 없이) 원래값 유지되거나 입력값이 저장되어야 함.
+
+**4커밋 연속 수정**:
+
+1. **feat(phase-4i-h8)** `c9b983d` → merge `b5616a1` — 클릭 진입 시 빈 입력창
+   - useEffect 편집 진입 (click/Enter/F2 경로): setEditValue('') + onEditChange 호출 제거
+   - useEffect deps 에서 `value` 제거 → 편집 중 외부 value 변경이 editValue 를 덮지 않음
+     (d8c6dc5 에서 의심했던 sync_urethane 재계산 race 후보 1번 구조적 차단)
+   - handleCommit: editValue.trim()==='' → onCancel early return
+   - handleChange: 빈 문자열 시 onEditChange(null) → 부모 pendingValueRef 클리어
+   - onEditChange 타입: (string|number) → (string|number|null)
+   - ExcelLikeTable.handleStartEditing: pendingValueRef=null 추가
+   - ExcelLikeTable 셀 onEditChange 콜백: val===null 시 pending 클리어
+   - 테스트 3개 신규 (빈 값 스킵 / 공백 스킵 / 실제 값 커밋)
+
+2. **fix(phase-4i-h8-blur)** → merge `ae085fc` — blur 경로에서 edit mode 종료
+   - 증상: H8 후 blur 시 값은 커밋/취소되지만 isEditing=true 유지 → 빈 input 계속 보임
+   - 근본: useTableKeyboard 는 onStopEditing 명시 호출, blur 경로는 누락
+   - 수정: ExcelLikeTable.commitValue / cancelEdit 모든 종료 지점에 stopEditing() 호출
+   - 키보드 경로 중복 호출은 React bailout 으로 무해
+
+3. **fix(phase-4i-h8-outside-click)** → merge `552742a` — document mousedown 리스너
+   - 증상: H8-blur 후에도 표 내부 비-focusable 영역 (빈 td/footer) 또는 non-focusable 바깥 클릭 시
+     blur 이벤트 자체가 발생하지 않아 edit mode 종료 실패
+   - 근본: Chrome/Edge 에서 tabIndex 없는 요소 클릭 시 포커스 이동 안 함 → blur 안 뜸
+   - 수정: ExcelCell 에 isEditing 일 때만 활성화되는 document-level mousedown 리스너
+     - target 이 inputRef/dropdownRef 내부이면 무시
+     - 외부 클릭이면 handleCommit 강제 호출
+     - type==='select' 은 네이티브 드롭다운이라 불필요
+   - 이중 호출 (blur + document) 안전: keyboardCommittedRef + stopEditing bailout
+
+**사용자 실측 통과 (2026-04-11)**: "다 됨"
+**main HEAD**: `552742a`
+**검증**: 481/481 테스트 통과, build 성공
+**오픈 이슈 해소**: d8c6dc5 셀 편집 race 는 H8 useEffect deps 변경으로 구조적 차단됨
+
 ### Phase 4I-H5-DEBUG-CLEANUP (랩탑 핸드오프 + H7-DEBUG 정리)
 - 랩탑 핸드오프 직커밋 04dc77b: .claude/agents 5 + .claude/skills 6 + data/templates xlsx 45 + p-value 파이프라인 스크립트 + HANDOFF_TO_NEXT_CHAT_v5.md + brief-quote.md
 - H7-DEBUG 로그 정리 (이번 작업):
@@ -354,9 +392,11 @@
 - tsc: tests/voice/vadLogic.test.ts "speaking" VoiceStatus 타입 에러 1건 (사전 존재, 별도 처리 필요)
 
 ## 오픈 이슈
-- **셀 편집 race ("첫 셀 편집 직후 다음 셀 먹통")**: d8c6dc5 에서 WIP 조사 후 H7-DEBUG-CLEANUP 에서 로그만 정리. 작성자 브라우저 실측에서 재현 보고했으나, 정적 분석으로는 재현 경로 확인 불가. 브라우저 실측 + devtools 로 다음 세션에서 재조사 필요.
-  - 의심 후보 (작성자 추정): sync_urethane 재계산 / saveSnapshot 연쇄 재렌더 / React 18 batching bailout
-  - 첫 조사 단계: 실제 이벤트 타임라인 수집 (A 편집 → A.onBlur → parent onChange → B.onClick → B.useEffect 순서) + `<input>` 의 document.activeElement 추적
+- ~~**셀 편집 race ("첫 셀 편집 직후 다음 셀 먹통")**~~: ✅ **H8 에서 구조적 차단됨**
+  - H8 에서 ExcelCell useEffect deps 에서 `value` 를 제거 → 편집 중 외부 value 변경 (sync_urethane 등) 이 editValue 를 덮지 않음
+  - H8 의 outside-click document 리스너 + stopEditing 정리로 blur 경로 전반도 안정화
+  - d8c6dc5 작성자가 의심했던 후보 1번 ("sync_urethane 재계산 → useEffect 재실행 → editValue 리셋") 이 원인이었을 가능성 높음
+  - 사용자 실측 통과 (2026-04-11 "다 됨")
 
 ## 알려진 파일 상태
 - docs/brief-quote.md: §4 lens 인터페이스 v4 최종 설계 (items 삭제, 2-Document)

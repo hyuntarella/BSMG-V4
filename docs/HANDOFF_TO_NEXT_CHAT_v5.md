@@ -61,12 +61,37 @@ v4 §3.1~§3.11 유지. v5 추가:
 - Bug 2: 숫자 입력 시 실시간 천단위 콤마 — lib/utils/format.ts formatNumericEdit
 - 저장값은 항상 parseFloat(콤마 제거) 유지
 
-### 3.18 셀 편집 race 오픈 이슈 (H7-DEBUG 이후 재조사 대기)
-- 증상 (작성자 보고): 첫 셀 편집 직후 다음 셀 먹통
-- d8c6dc5 WIP 에서 시도한 fix 는 브라우저 실측 실패
-- H7-DEBUG-CLEANUP 에서 로그 9개만 제거. 방어적 코드(커서 복원, pendingValueRef.row, 단일 클릭 편집)는 유지
-- **정적 분석**: 코드 경로상 재현 불가. 이벤트 순서/React 18 batching 모두 정상
-- 다음 조사: 브라우저 devtools 로 실제 이벤트 타임라인 수집
+### 3.18 셀 편집 race — H8 에서 해소됨 (사용자 실측 통과)
+- H7-DEBUG-CLEANUP 시점에서는 race 재조사 오픈 이슈로 기록
+- H8 에서 셀 클릭 편집 진입 UX 전면 재설계 하면서 **구조적 차단**:
+  - ExcelCell useEffect deps 에서 `value` 제거 → 편집 중 외부 value 변경이 editValue 리셋하지 않음
+  - d8c6dc5 작성자가 의심했던 후보 1번 ("sync_urethane 재계산 → useEffect 재실행 → editValue 리셋") 이 원인이었을 가능성 높음
+- 사용자 실측 통과 (2026-04-11 "다 됨")
+
+### 3.19 셀 클릭 편집 진입 UX (H8, 확정 — 건드리지 말 것)
+**사장 요구** (H8 진입 시점): select-all + delete 과정 없이 바로 새 값 타이핑. 셀 밖 클릭해도 Enter 없이 원래값 유지/입력값 저장.
+
+**확정 동작**:
+- 클릭/Enter/F2 로 편집 진입 → `editValue=''` (빈 입력창)
+- 타이핑하면 새 값, 타이핑 없이 떠나면 원래값 유지
+- 셀 밖 클릭 (표 바깥 / 표 내부 빈 영역 / footer / 단가합열 / 다른 셀) 모두 정상 동작
+- Enter/Tab/Arrow/Escape 도 기존대로 동작
+
+**구현 핵심** (3가지 계층):
+1. `ExcelCell.useEffect` 편집 진입 (non-initialChar 경로): `setEditValue('')`, `onEditChange` 호출 안 함. deps 에서 `value` 제거.
+2. `ExcelCell.handleCommit`: `editValue.trim()==='' → onCancel` early return. `onEditChange` 는 `null` 허용 (빈 입력 → pending 클리어 신호).
+3. `ExcelLikeTable.handleStartEditing/commitValue/cancelEdit`: `pendingValueRef=null` 초기화 + `stopEditing()` 종료 보장.
+4. `ExcelCell` document-level `mousedown` 리스너 (isEditing 일 때만): blur 가 발생하지 않는 non-focusable 요소 클릭도 강제로 handleCommit 호출.
+
+**왜 그렇게 했나 (건드리기 전 읽기)**:
+- Chrome/Edge 에서 tabIndex 없는 td/footer 클릭 시 포커스 이동 안 해서 input.onBlur 가 아예 안 뜸 → document 리스너 필수
+- useEffect deps 에서 value 제거한 건 편집 중 외부 value 변경이 editValue 를 덮는 race 를 막기 위함 (d8c6dc5 의심 후보 1번)
+- onEditChange 타입에 null 추가한 건 빈 문자열 입력을 부모에게 "pending 클리어" 신호로 전달하기 위함
+
+**커밋 체인**:
+- `b5616a1` feat: 빈 입력창 + deps 정리
+- `ae085fc` fix: blur 경로 stopEditing 추가
+- `552742a` fix: document mousedown 리스너
 
 ## 4. Phase 4I-H4 종료 (완료)
 
@@ -104,7 +129,8 @@ v4 §3.1~§3.11 유지. v5 추가:
 | 10 | 빠른공종추가 칩 | P2 | **잔여** |
 | 2 | acdb_entries seed | P2 | **잔여** |
 | 5 | Ctrl+F 행 스크롤 제거 | P3 | **잔여** |
-| (신규) | 셀 편집 race 브라우저 재조사 | P1 | **잔여** (d8c6dc5 오픈 이슈) |
+| ~~(신규)~~ | ~~셀 편집 race 브라우저 재조사~~ | ~~P1~~ | ✅ **H8 에서 구조적 차단** (사용자 실측 통과) |
+| ~~(H8)~~ | ~~셀 클릭 편집 진입 UX 재설계~~ | ~~P0~~ | ✅ **H8 완료** (b5616a1 + ae085fc + 552742a) |
 | 8 | 규칙서 UI | P4 | Phase 5+ |
 
 ### 4.3 이 세션 핵심 교훈 (H4 종료)
@@ -187,12 +213,12 @@ v4 §7.1~§7.12 그대로. v5 추가:
 
 ## 9. 환경 (v4 §10 + 업데이트)
 - 저장소: `hyuntarella/BSMG-V4` **Public**
-- 브랜치: feature/lens-integration 작업 → main merge → Vercel 자동배포
+- 브랜치: 이번 세션부터 feature/h* 단발 브랜치 → main merge --no-ff → push (feature/lens-integration 은 H4 까지)
 - URL: https://bsmg-v5.vercel.app
-- **main HEAD: (커밋 예정, H7-DEBUG-CLEANUP 이후 갱신)**
-- 직전 확인 머지: `f90acf4` (H7 Merge feature/h7-cell-ux-fixes)
+- **main HEAD: `552742a`** (H8 완료 시점, Merge feature/h8-outside-click-commit)
 - 프로젝트 경로: `C:\Users\lazdo\projects\bsmg-v5` (랩탑 교체 후 경로 변경)
 - 로컬 브랜치: main
+- git identity (로컬): `bsmg-v4 <lazdor2@gmail.com>` — 2026-04-11 설정됨
 
 ## 10. 컨텍스트 복원 우선순위
 1. 이 문서 (v5)
