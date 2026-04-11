@@ -57,3 +57,35 @@ export async function PUT(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const area_range = searchParams.get('area_range')
+  const method = searchParams.get('method')
+  const pppRaw = searchParams.get('price_per_pyeong')
+
+  if (!area_range || !method || !pppRaw) {
+    return NextResponse.json(
+      { error: 'area_range, method, price_per_pyeong 파라미터 필요' },
+      { status: 400 },
+    )
+  }
+
+  const price_per_pyeong = Number(pppRaw)
+  if (!Number.isFinite(price_per_pyeong)) {
+    return NextResponse.json({ error: 'price_per_pyeong 숫자여야 함' }, { status: 400 })
+  }
+
+  const { error } = await supabase
+    .from('price_matrix')
+    .delete()
+    .eq('area_range', area_range)
+    .eq('method', method)
+    .eq('price_per_pyeong', price_per_pyeong)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}
