@@ -148,18 +148,24 @@ export default function EstimateEditorForm({
   const areaLabel = getAR(estimate.m2 || 100)
   const isSmall = areaLabel === '20평이하'
 
+  // 외곽 프레임: body에 estimate-edit-body 클래스 부착
+  useEffect(() => {
+    document.body.classList.add('estimate-edit-body')
+    return () => { document.body.classList.remove('estimate-edit-body') }
+  }, [])
+
   const tabClass = (tab: TabId) =>
     `px-5 py-3 cursor-pointer font-semibold text-[13px] border-b-2 tracking-tight transition-colors ${
       activeTab === tab
-        ? 'text-[#007AFF] border-[#007AFF] border-b-[3px]'
-        : 'text-[#8a8a8e] border-transparent hover:text-[#1C1C1E]'
+        ? 'text-v-accent border-v-accent border-b-[3px]'
+        : 'text-v-mut border-transparent hover:text-v-hdr'
     }`
 
   return (
-    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-full max-w-[1480px] flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-[0_20px_60px_-12px_rgba(0,0,0,.35),0_8px_24px_-8px_rgba(0,0,0,.15)]">
+    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
 
       {/* ===== TOP BAR ===== */}
-      <div className="flex h-11 shrink-0 items-center border-b border-[#ececec] bg-white px-3 gap-[3px]">
+      <div className="flex h-11 shrink-0 items-center border-b border-v-b bg-white px-3 gap-[3px]">
         {isLens && (
           <button
             onClick={handleLensBack}
@@ -179,20 +185,13 @@ export default function EstimateEditorForm({
         </button>
         <div className="flex-1" />
         <button
-          className="rounded border border-[#ececec] bg-transparent px-3 py-1 text-xs font-medium text-[#1C1C1E] hover:bg-[#F5F5F7] disabled:opacity-40"
+          className="rounded border border-v-b bg-transparent px-3 py-1 text-xs font-medium text-v-hdr hover:bg-v-hov disabled:opacity-40"
           onClick={undo}
           disabled={snapshots.length === 0}
           title="Undo Ctrl+Z"
         >
           ↶ 되돌리기
         </button>
-        {estimate.id && (
-          <SaveButton
-            estimateId={estimate.id}
-            estimate={estimate}
-            onSaved={markClean}
-          />
-        )}
       </div>
 
       {/* ===== META BAR ===== */}
@@ -209,39 +208,39 @@ export default function EstimateEditorForm({
 
       {/* ===== PRICE BAR (을지 탭만) ===== */}
       {activeTab !== 'cover' && activeSheet && (
-        <div className="flex shrink-0 items-center gap-[10px] border-t border-[#ececec] bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
+        <div className="flex shrink-0 items-center gap-[10px] border-t border-v-b bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
           {/* 면적 입력 + 배지 */}
           <div className="flex items-end gap-2 pr-2">
             <div className="flex flex-col gap-[2px]">
-              <label className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">면적 m²</label>
+              <label className="text-[10px] font-semibold text-v-mut tracking-wider">면적 m²</label>
               <input
                 type="number"
                 value={estimate.m2 || ''}
                 onChange={(e) => handleAreaChange(Number(e.target.value) || 0)}
-                className="w-[72px] rounded-md border border-[#ececec] bg-[#F5F5F7] px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
+                className="w-[72px] rounded-md border border-v-b bg-v-hov px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
               />
             </div>
             <div className="flex flex-col gap-[2px]">
-              <label className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">벽체 m²</label>
+              <label className="text-[10px] font-semibold text-v-mut tracking-wider">벽체 m²</label>
               <input
                 type="number"
                 value={estimate.wall_m2 || ''}
                 onChange={(e) => updateMeta('wall_m2', Number(e.target.value) || 0)}
-                className="w-[72px] rounded-md border border-[#ececec] bg-[#F5F5F7] px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
+                className="w-[72px] rounded-md border border-v-b bg-v-hov px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
               />
             </div>
-            <span className="inline-block rounded-[10px] bg-[#E8F1FF] px-2 py-[2px] text-[10px] font-bold text-[#007AFF] h-5 leading-4">
+            <span className="inline-block rounded-2xl bg-v-accent-bg px-2 py-[2px] text-[10px] font-bold text-v-accent h-5 leading-4">
               {areaLabel}
             </span>
             {isSmall && (
-              <span className="inline-block rounded-[10px] bg-[#fff4e6] px-2 py-[2px] text-[10px] font-bold text-[#d48806] h-5 leading-4">
+              <span className="inline-block rounded-2xl bg-[#fff4e6] px-2 py-[2px] text-[10px] font-bold text-[#d48806] h-5 leading-4">
                 20평이하
               </span>
             )}
           </div>
 
           {/* 구분선 */}
-          <div className="h-9 w-px bg-[#ececec] self-center" />
+          <div className="h-9 w-px bg-v-b self-center" />
 
           {/* 칩 */}
           <div className="flex items-center gap-1 max-w-[500px] flex-wrap">
@@ -263,8 +262,8 @@ export default function EstimateEditorForm({
 
           {/* 평단가 */}
           <div className="flex flex-col gap-[1px] px-[10px] py-[2px]">
-            <span className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">선택 평단가</span>
-            <span className="text-lg font-bold tabular-nums text-[#1C1C1E] leading-tight tracking-tight">
+            <span className="text-[10px] font-semibold text-v-mut tracking-wider">선택 평단가</span>
+            <span className="text-lg font-bold tabular-nums text-v-hdr leading-tight tracking-tight">
               {activeSheet.price_per_pyeong.toLocaleString()}
             </span>
           </div>
@@ -275,12 +274,12 @@ export default function EstimateEditorForm({
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 overflow-auto bg-[#F2F2F7] pb-[76px]">
         {activeTab !== 'cover' ? (
-          <div className="flex gap-2 p-2">
+          <div className="flex gap-2 p-[8px_12px]">
             {/* 왼쪽: 테이블 */}
             <div className="min-w-0 flex-1">
               {activeSheetIdx >= 0 ? (
                 <>
-                  <div className="overflow-hidden rounded-[10px] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+                  <div className="overflow-hidden rounded-[10px] bg-white shadow-v-sm">
                     <EstimateTableWrapper
                       estimate={estimate}
                       sheetIndex={activeSheetIdx}
@@ -292,9 +291,9 @@ export default function EstimateEditorForm({
                   </div>
 
                   {/* 특기사항 */}
-                  <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+                  <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-v-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10px] font-bold text-[#8a8a8e] tracking-wider">특기사항</h4>
+                      <h4 className="text-[10px] font-bold text-v-mut tracking-wider">특기사항</h4>
                       <div className="flex items-center gap-[6px]">
                         <WarrantySelect
                           sheet={activeSheet!}
@@ -302,7 +301,7 @@ export default function EstimateEditorForm({
                         />
                       </div>
                     </div>
-                    <div className="text-[10px] text-[#8a8a8e] mt-1">* 부가가치세별도</div>
+                    <div className="text-[10px] text-v-mut mt-1">* 부가가치세별도</div>
                   </div>
                 </>
               ) : (
@@ -335,6 +334,14 @@ export default function EstimateEditorForm({
 
       {/* ===== FAB ===== */}
       <div className="absolute right-[18px] bottom-[18px] z-30 flex gap-[10px]">
+        {estimate.id && (
+          <SaveButton
+            estimateId={estimate.id}
+            estimate={estimate}
+            onSaved={markClean}
+            fabStyle
+          />
+        )}
         <LoadButton onLoad={setEstimate} />
       </div>
     </div>
@@ -407,12 +414,12 @@ function SidePanel({
     onChange({ ...estimate, sheets })
   }, [estimate, onChange, onSaveSnapshot])
 
-  const chipCls = 'w-full rounded-lg bg-[#F5F5F7] px-[10px] py-2 text-center text-xs font-medium text-[#1C1C1E] cursor-pointer hover:bg-[#E8F1FF] hover:text-[#007AFF] transition-colors'
+  const chipCls = 'w-full rounded-lg bg-v-hov px-[10px] py-2 text-center text-xs font-medium text-v-hdr cursor-pointer hover:bg-v-accent-bg hover:text-v-accent transition-colors'
 
   return (
     <>
-      <div className="rounded-[10px] bg-white p-[10px] mb-2 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
-        <h4 className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider mb-2 uppercase">장비·인력</h4>
+      <div className="rounded-[10px] bg-white p-[10px] mb-2 shadow-v-sm">
+        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">장비·인력</h4>
         <div className="flex flex-col gap-[5px]">
           <button className={chipCls} onClick={() => addEquipment('사다리차', '일', 0, 0, 120000)}>사다리차</button>
           <button className={chipCls} onClick={() => addEquipment('스카이차', '일', 0, 0, 350000)}>스카이차</button>
@@ -422,8 +429,8 @@ function SidePanel({
           <button className={chipCls} onClick={() => addEquipment('폐기물처리', '식', 0, 0, 200000)}>폐기물처리</button>
         </div>
       </div>
-      <div className="rounded-[10px] bg-white p-[10px] shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
-        <h4 className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider mb-2 uppercase">보수·추가</h4>
+      <div className="rounded-[10px] bg-white p-[10px] shadow-v-sm">
+        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">보수·추가</h4>
         <div className="flex flex-col gap-[5px]">
           <button className={chipCls} onClick={() => addRepair('바탕조정제 부분미장')}>바탕조정제 부분미장</button>
           <button className={chipCls} onClick={() => addRepair('드라이비트 하부절개')}>드라이비트 하부절개</button>

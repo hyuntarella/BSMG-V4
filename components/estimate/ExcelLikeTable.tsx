@@ -207,7 +207,7 @@ export default function ExcelLikeTable({
 
   return (
     <div
-      className="overflow-auto rounded border border-gray-300"
+      className="overflow-auto"
       onKeyDown={combinedKeyDown}
       tabIndex={0}
       data-testid="excel-like-table"
@@ -272,26 +272,26 @@ export default function ExcelLikeTable({
         </div>
       )}
 
-      <table className={`w-full border-collapse ${tier.fontClass}`}>
-        {/* 헤더 */}
+      <table className={`w-full border-collapse text-xs ${tier.fontClass}`} style={{ tableLayout: 'fixed' }}>
+        {/* 헤더 — v3.25: 회색 배경, 대문자 */}
         <thead className="sticky top-0 z-10">
-          <tr className="bg-brand text-white font-semibold" style={{ height: `${tier.headerHeight}px` }}>
-            <th className="w-[72px] border border-gray-300 px-1 text-center">
+          <tr style={{ height: `${tier.headerHeight}px` }}>
+            <th className="w-[72px] border-b border-v-b bg-v-hdr-bg px-1 text-center text-[10.5px] font-semibold text-v-mut uppercase tracking-wider">
               {/* 잠금/숨김/삭제 아이콘 열 */}
             </th>
             {EDITABLE_COLS.map((col) => (
               <th
                 key={col.key}
-                className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`}
+                className={`border-b border-v-b bg-v-hdr-bg px-1 ${tier.paddingClass} text-center text-[10.5px] font-semibold text-v-mut uppercase tracking-wider`}
                 style={{ width: `${col.width}px` }}
               >
                 {col.label}
               </th>
             ))}
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '110px' }}>
+            <th className={`border-b border-v-b bg-v-total-bg px-1 ${tier.paddingClass} text-center text-[10.5px] font-semibold text-v-mut uppercase tracking-wider`} style={{ width: '110px' }}>
               단가합
             </th>
-            <th className={`border border-gray-300 px-1 ${tier.paddingClass} text-center`} style={{ width: '110px' }}>
+            <th className={`border-b border-v-b bg-v-total-bg px-1 ${tier.paddingClass} text-center text-[10.5px] font-semibold text-v-mut uppercase tracking-wider`} style={{ width: '110px' }}>
               금액합
             </th>
           </tr>
@@ -306,17 +306,17 @@ export default function ExcelLikeTable({
             return (
               <tr
                 key={rowIdx}
-                className={`${isHidden ? 'opacity-40' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''}`}
+                className={`${isHidden ? 'opacity-30' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''} ${item.is_locked ? 'bg-v-lock-bg' : ''}`}
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
               >
                 {/* 잠금/숨김/삭제 버튼 */}
-                <td className="border border-gray-300 px-0.5 text-center w-[72px]">
+                <td className="border-b border-v-b px-0.5 text-center w-[72px]">
                   <div className="flex items-center justify-center gap-0.5">
                     <button
                       type="button"
                       onClick={() => onToggleLock?.(rowIdx)}
-                      className={`w-5 h-5 flex items-center justify-center rounded ${item.is_locked ? 'text-amber-500' : 'text-gray-300 hover:text-gray-500'}`}
+                      className={`w-5 h-5 flex items-center justify-center rounded ${item.is_locked ? 'bg-v-accent-bg text-v-accent' : 'text-v-b2 hover:text-v-hdr'}`}
                       title={item.is_locked ? '잠금 해제' : '잠금'}
                       data-testid={`lock-btn-${rowIdx}`}
                     >
@@ -331,7 +331,7 @@ export default function ExcelLikeTable({
                     <button
                       type="button"
                       onClick={() => onToggleHide?.(rowIdx)}
-                      className={`w-5 h-5 flex items-center justify-center rounded ${isHidden ? 'text-red-400' : 'text-gray-300 hover:text-gray-500'}`}
+                      className={`w-5 h-5 flex items-center justify-center rounded ${isHidden ? 'bg-v-accent-bg text-v-accent' : 'text-v-b2 hover:text-v-hdr'}`}
                       title={isHidden ? '숨김 해제' : '숨기기'}
                       data-testid={`hide-btn-${rowIdx}`}
                     >
@@ -360,7 +360,7 @@ export default function ExcelLikeTable({
                             onDeleteRow?.(rowIdx)
                           }
                         }}
-                        className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500"
+                        className="w-5 h-5 flex items-center justify-center rounded text-v-b2 hover:text-v-err"
                         title="행 삭제"
                         data-testid={`delete-btn-${rowIdx}`}
                       >
@@ -454,10 +454,10 @@ export default function ExcelLikeTable({
                 })}
 
                 {/* 읽기 전용 금액 열: 단가합 / 금액합 */}
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums text-gray-600" style={{ height: `${tier.rowHeight}px` }}>
+                <td className="border-b border-v-b bg-v-total-bg px-1 text-right tabular-nums font-bold text-v-hdr" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.mat + item.labor + item.exp)}
                 </td>
-                <td className="border border-gray-300 px-1 text-right font-mono tabular-nums font-semibold" style={{ height: `${tier.rowHeight}px` }}>
+                <td className="border-b border-v-b bg-v-total-bg px-1 text-right tabular-nums font-bold text-v-hdr" style={{ height: `${tier.rowHeight}px` }}>
                   {fm(item.total)}
                 </td>
               </tr>
@@ -466,16 +466,16 @@ export default function ExcelLikeTable({
         </tbody>
 
         {/* 푸터 — 소계/공과잡비/이윤/계/합계 */}
-        <tfoot className="sticky bottom-0 bg-gray-50">
-          <FooterRow label="소 계" value={totals.subtotal} colSpan={9} />
-          <FooterRow label="공과잡비" value={totals.overhead} suffix="3%" colSpan={9} />
+        <tfoot>
+          <FooterRow label="소　계" value={totals.subtotal} colSpan={9} />
+          <FooterRow label="공과잡비·안전관리비" value={totals.overhead} suffix="3%" colSpan={9} />
           <FooterRow label="기업이윤" value={totals.profit} suffix="6%" colSpan={9} />
           <FooterRow label="계" value={totals.totalBeforeRound} colSpan={9} />
-          <tr className="border-t-2 border-gray-900 bg-gray-100 font-bold">
-            <td colSpan={9} className="px-2 py-1.5 text-left text-sm">
-              합 계 <span className="text-xs font-normal text-gray-500">(단수정리)</span>
+          <tr className="border-t-2 border-v-hdr bg-v-grand-bg font-extrabold">
+            <td colSpan={9} className="px-2 py-2 text-left text-base tracking-tight">
+              합　계 <span className="text-[10px] font-medium text-v-mut ml-1">(단수정리)</span>
             </td>
-            <td colSpan={1} className="px-2 py-1.5 text-right font-mono tabular-nums text-base">
+            <td colSpan={1} className="px-2 py-2 text-right tabular-nums text-base tracking-tight">
               {fm(totals.grandTotal)}
             </td>
           </tr>
@@ -490,14 +490,10 @@ export default function ExcelLikeTable({
         <button
           type="button"
           onClick={onAddFreeItem}
-          className="w-full py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-t border-gray-200 flex items-center justify-center gap-1"
+          className="w-full h-10 bg-v-accent-bg text-v-accent font-bold text-[13px] tracking-widest border-y border-[rgba(0,122,255,.15)] hover:bg-v-accent hover:text-white transition-colors flex items-center justify-center"
           data-testid="add-row-btn"
         >
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          행 추가
+          ＋　행　추　가　<span className="font-medium opacity-70 text-[10px] ml-2">Ctrl+Enter</span>
         </button>
       )}
     </div>
@@ -516,12 +512,12 @@ function FooterRow({
   colSpan: number
 }) {
   return (
-    <tr className="border-t border-gray-200">
-      <td colSpan={colSpan} className="px-2 py-1 text-xs text-gray-600">
+    <tr className="bg-v-total-bg border-b border-v-b">
+      <td colSpan={colSpan} className="px-2 h-[30px] text-left text-[11.5px] font-bold text-v-hdr">
         {label}
-        {suffix && <span className="ml-1 text-gray-400">({suffix})</span>}
+        {suffix && <span className="ml-1 text-[10.5px] font-semibold text-v-mut tabular-nums">({suffix})</span>}
       </td>
-      <td colSpan={1} className="px-2 py-1 text-right font-mono tabular-nums text-xs">
+      <td colSpan={1} className="px-2 h-[30px] text-right tabular-nums text-[11.5px] font-bold text-v-hdr">
         {fm(value)}
       </td>
     </tr>

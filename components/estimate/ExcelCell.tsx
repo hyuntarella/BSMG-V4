@@ -223,12 +223,12 @@ export default function ExcelCell({
   if (isReadonly) {
     return (
       <td
-        className={`relative px-1 ${fontClass} cursor-default border border-gray-300 select-none bg-gray-50
-          ${alignClass} ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
+        className={`relative px-1 ${fontClass} cursor-default border-b border-v-b select-none bg-v-hov
+          ${alignClass} ${type === 'number' ? 'tabular-nums' : ''}`}
         style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
         data-testid="excel-cell-readonly"
       >
-        <span className="text-gray-400">{displayValue}</span>
+        <span className="text-v-mut">{displayValue}</span>
       </td>
     )
   }
@@ -237,7 +237,7 @@ export default function ExcelCell({
   if (type === 'select' && selectOptions) {
     return (
       <td
-        className={`relative p-0 border border-gray-300 ${isSelected ? 'ring-2 ring-brand-500 ring-inset bg-white' : 'bg-white hover:bg-gray-50'}`}
+        className={`relative p-0 border-b border-v-b ${isSelected ? 'ring-2 ring-v-accent ring-inset bg-white' : 'bg-white hover:bg-v-hov'}`}
         style={{ width: width ? `${width}px` : undefined }}
         onClick={() => {
           if (!isSelected) onSelect()
@@ -266,7 +266,7 @@ export default function ExcelCell({
   if (isEditing) {
     return (
       <td
-        className="relative p-0 bg-yellow-50 ring-2 ring-brand-600 ring-inset"
+        className="relative p-0 bg-v-sel ring-2 ring-v-accent ring-inset z-[3]"
         style={{ width: width ? `${width}px` : undefined }}
       >
         <input
@@ -286,7 +286,7 @@ export default function ExcelCell({
             handleCommit()
           }}
           onKeyDown={handleKeyDown}
-          className={`w-full px-1 ${fontClass} bg-transparent outline-none ${alignClass} ${type === 'number' ? 'font-mono' : ''}`}
+          className={`w-full px-1 ${fontClass} bg-transparent outline-none ${alignClass} ${type === 'number' ? 'tabular-nums' : ''}`}
           style={{ height: `${rowH}px` }}
           data-testid="excel-cell-input"
         />
@@ -294,14 +294,14 @@ export default function ExcelCell({
         {acdbResults && acdbResults.length > 0 && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 top-full z-50 w-full max-h-[240px] overflow-y-auto bg-white border border-gray-300 rounded-b shadow-lg"
+            className="absolute left-0 top-full z-50 w-full max-h-[240px] overflow-y-auto bg-white border border-v-b rounded-b shadow-v-md"
             data-testid="acdb-dropdown"
           >
             {acdbResults.map((r, i) => (
               <button
                 key={r.entry.canon}
                 type="button"
-                className={`w-full text-left px-2 py-1.5 text-sm hover:bg-blue-50 ${i === acdbSelectedIndex ? 'bg-blue-100' : ''}`}
+                className={`w-full text-left px-2 py-1.5 text-sm hover:bg-v-hov ${i === acdbSelectedIndex ? 'bg-v-sel' : ''}`}
                 onMouseDown={(e) => {
                   e.preventDefault()
                   onAcdbSelect?.(r)
@@ -323,10 +323,10 @@ export default function ExcelCell({
 
   return (
     <td
-      className={`relative px-1 ${fontClass} cursor-default border border-gray-300 select-none
-        ${isSelected ? 'ring-2 ring-brand-500 ring-inset bg-white' : 'bg-white hover:bg-gray-50'}
+      className={`relative px-1 ${fontClass} cursor-cell border-b border-v-b select-none
+        ${isSelected ? 'ring-2 ring-v-accent ring-inset bg-white z-[3]' : 'bg-white hover:bg-v-hov'}
         ${alignClass}
-        ${type === 'number' ? 'font-mono tabular-nums' : ''}`}
+        ${type === 'number' ? 'tabular-nums' : ''}`}
       style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
       onClick={() => {
         const canEdit = !isLocked || type === 'text'
@@ -336,7 +336,7 @@ export default function ExcelCell({
       data-testid="excel-cell"
       data-muted={isMuted ? 'true' : undefined}
     >
-      <span className={isMuted ? 'text-gray-400' : 'text-gray-900'}>{displayValue}</span>
+      <span className={isMuted ? 'text-v-mut' : ''}>{displayValue}</span>
       {isLocked && (
         <svg
           width={12}
@@ -347,7 +347,7 @@ export default function ExcelCell({
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="absolute top-0.5 right-0.5 text-gray-500"
+          className="absolute top-0.5 right-0.5 text-v-mut"
           data-testid="lock-icon"
         >
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />

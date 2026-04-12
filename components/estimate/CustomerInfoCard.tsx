@@ -10,6 +10,10 @@ interface CustomerInfoCardProps {
   isLens?: boolean
 }
 
+const inputCls =
+  'w-full h-8 rounded-[7px] border border-v-b bg-v-hov px-[9px] py-[6px] text-[12.5px] font-sans transition-all focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]'
+const labelCls = 'block text-[10px] font-semibold text-v-mut tracking-wider mb-[2px]'
+
 export default function CustomerInfoCard({
   estimate,
   onMetaChange,
@@ -17,7 +21,7 @@ export default function CustomerInfoCard({
   isLens = false,
 }: CustomerInfoCardProps) {
   const handleChange = useCallback(
-    (field: keyof Estimate) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    (field: keyof Estimate) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const val = e.target.type === 'number' ? Number(e.target.value) : e.target.value
       if (field === 'm2') {
         onAreaChange(Number(e.target.value))
@@ -29,28 +33,44 @@ export default function CustomerInfoCard({
   )
 
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+    <div className="bg-white px-3 py-2">
+      <div className="grid gap-2" style={{ gridTemplateColumns: '140px 130px 140px 1fr 1.6fr' }}>
         {/* 관리번호 */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">관리번호</label>
-          <p className="text-sm font-semibold text-gray-800">{estimate.mgmt_no ?? '-'}</p>
+          <label className={labelCls}>관리번호</label>
+          <input
+            value={estimate.mgmt_no ?? ''}
+            readOnly
+            className={`${inputCls} text-v-mut`}
+          />
         </div>
 
         {/* 견적일 */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">견적일</label>
+          <label className={labelCls}>견적일</label>
           <input
             type="date"
             value={estimate.date ?? ''}
             onChange={handleChange('date')}
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+            className={inputCls}
           />
+        </div>
+
+        {/* 담당자 */}
+        <div>
+          <label className={labelCls}>담당자</label>
+          <select
+            value={estimate.manager_name ?? ''}
+            onChange={handleChange('manager_name')}
+            className={inputCls}
+          >
+            <option value="">{estimate.manager_name || '-'}</option>
+          </select>
         </div>
 
         {/* 고객명 */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label className={labelCls}>
             고객명
             {isLens && estimate.source === 'lens' && (
               <span className="ml-1 text-[10px] text-green-600">lens</span>
@@ -60,14 +80,14 @@ export default function CustomerInfoCard({
             type="text"
             value={estimate.customer_name ?? ''}
             onChange={handleChange('customer_name')}
-            placeholder="고객명"
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+            placeholder="-"
+            className={inputCls}
           />
         </div>
 
-        {/* 현장 주소 */}
+        {/* 주소 */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
+          <label className={labelCls}>
             주소
             {isLens && estimate.source === 'lens' && (
               <span className="ml-1 text-[10px] text-green-600">lens</span>
@@ -77,58 +97,8 @@ export default function CustomerInfoCard({
             type="text"
             value={estimate.site_name ?? ''}
             onChange={handleChange('site_name')}
-            placeholder="현장 주소"
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-          />
-        </div>
-
-        {/* 공사명 */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">공사명</label>
-          <select
-            value="옥상"
-            disabled
-            className="w-full rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-600"
-          >
-            <option value="옥상">옥상 방수공사</option>
-          </select>
-          <p className="mt-0.5 text-[10px] text-gray-400">Phase 4: 옥상 고정</p>
-        </div>
-
-        {/* 면적 */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">면적 (m2)</label>
-          <input
-            type="number"
-            value={estimate.m2 || ''}
-            onChange={handleChange('m2')}
-            placeholder="85"
-            min={1}
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-          />
-        </div>
-
-        {/* 담당자 */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">담당자</label>
-          <input
-            type="text"
-            value={estimate.manager_name ?? ''}
-            onChange={handleChange('manager_name')}
-            placeholder="담당자명"
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-          />
-        </div>
-
-        {/* 특기사항 */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">특기사항</label>
-          <textarea
-            value={estimate.memo ?? ''}
-            onChange={handleChange('memo')}
-            placeholder="하자보수 5년..."
-            rows={1}
-            className="w-full resize-none rounded border border-gray-300 px-2 py-1 text-sm"
+            placeholder="-"
+            className={inputCls}
           />
         </div>
       </div>

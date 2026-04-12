@@ -8,6 +8,7 @@ interface SaveButtonProps {
   estimateId: string
   estimate: Estimate
   onSaved?: () => void
+  fabStyle?: boolean
 }
 
 interface SaveResult {
@@ -34,7 +35,7 @@ function triggerDownload(url: string, filename: string) {
   document.body.removeChild(a)
 }
 
-export default function SaveButton({ estimateId, estimate, onSaved }: SaveButtonProps) {
+export default function SaveButton({ estimateId, estimate, onSaved, fabStyle }: SaveButtonProps) {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -102,6 +103,43 @@ export default function SaveButton({ estimateId, estimate, onSaved }: SaveButton
     } finally {
       setSaving(false)
     }
+  }
+
+  const fabCls = 'min-w-[68px] h-11 px-[18px] rounded-[22px] border-none bg-white shadow-[0_4px_12px_rgba(0,0,0,.12),0_2px_4px_rgba(0,0,0,.08)] cursor-pointer text-sm font-semibold text-v-hdr transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,.2),0_3px_6px_rgba(0,0,0,.12)] active:translate-y-0 flex items-center justify-center tracking-tight disabled:opacity-50'
+  const fabPrimaryCls = 'min-w-[68px] h-11 px-[18px] rounded-[22px] border-none bg-v-accent shadow-[0_4px_12px_rgba(0,0,0,.12),0_2px_4px_rgba(0,0,0,.08)] cursor-pointer text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#0062CC] hover:shadow-[0_6px_16px_rgba(0,0,0,.2),0_3px_6px_rgba(0,0,0,.12)] active:translate-y-0 flex items-center justify-center tracking-tight disabled:opacity-50'
+
+  if (fabStyle) {
+    return (
+      <>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={fabCls}
+          title="저장 Ctrl+S"
+        >
+          {saving ? '...' : '저장'}
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={fabPrimaryCls}
+          title="PDF 출력"
+        >
+          PDF
+        </button>
+        {toast && (
+          <div
+            className={`absolute -top-10 right-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium shadow-v-md ${
+              toast.type === 'success'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {toast.message}
+          </div>
+        )}
+      </>
+    )
   }
 
   return (
