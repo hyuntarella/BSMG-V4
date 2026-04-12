@@ -39,8 +39,8 @@ function ChipSection({
               onClick={() => setSelectedChip(isSelected ? null : chip)}
               className={`px-[13px] py-[5px] rounded-2xl text-xs font-medium tabular-nums border cursor-pointer transition-all whitespace-nowrap min-h-[28px] inline-flex items-center ${
                 isSelected
-                  ? 'bg-[#007AFF] text-white border-[#007AFF] shadow-[0_2px_8px_rgba(0,122,255,.35)]'
-                  : 'bg-white text-[#0d1117] border-[#ececec] hover:border-[#007AFF] hover:bg-[#E8F1FF] hover:-translate-y-px'
+                  ? 'bg-v-accent text-white border-v-accent shadow-[0_2px_8px_rgba(0,122,255,.35)]'
+                  : 'bg-white text-v-hdr border-v-b hover:border-v-accent hover:bg-v-sel hover:-translate-y-px'
               }`}
             >
               {chip.toLocaleString()}
@@ -55,7 +55,7 @@ function ChipSection({
             const val = e.target.value === '' ? null : Number(e.target.value)
             setCustomPrice(val)
           }}
-          className="w-[92px] rounded-[13px] border-[1.5px] border-dashed border-[#c7c7c9] bg-white px-2 py-[3px] text-center text-[11px] font-semibold tabular-nums focus:outline-none focus:border-[#007AFF] focus:border-solid focus:bg-[#E8F1FF]"
+          className="w-[92px] rounded-[13px] border-[1.5px] border-dashed border-v-b2 bg-white px-2 py-[3px] text-center text-[11px] font-semibold tabular-nums focus:outline-none focus:border-v-accent focus:border-solid focus:bg-v-sel"
         />
       </div>
     )

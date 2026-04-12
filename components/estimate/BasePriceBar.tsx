@@ -22,12 +22,12 @@ export default function BasePriceBar({ sheet }: BasePriceBarProps) {
   const diff = actual - selected
 
   return (
-    <div className="flex flex-col gap-[1px] rounded bg-[#E8F1FF] px-[10px] py-[2px] shadow-[inset_0_0_0_1.5px_#007AFF]">
-      <span className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">실제 평단가</span>
-      <span className="text-lg font-extrabold tabular-nums text-[#007AFF] leading-tight tracking-tight">
+    <div className="flex flex-col gap-[1px] rounded bg-v-accent-bg px-[10px] py-[2px] shadow-[inset_0_0_0_1.5px_var(--v-accent)]">
+      <span className="text-[10px] font-semibold text-v-mut tracking-wider">실제 평단가</span>
+      <span className="text-lg font-extrabold tabular-nums text-v-accent leading-tight tracking-tight">
         {actual.toLocaleString()}
         {diff !== 0 && (
-          <span className={`text-[10px] font-semibold ml-[3px] ${diff > 0 ? 'text-[#FF9F0A]' : 'text-[#007AFF]'}`}>
+          <span className={`text-[10px] font-semibold ml-[3px] ${diff > 0 ? 'text-v-warn' : 'text-v-accent'}`}>
             ({diff > 0 ? '+' : ''}{diff.toLocaleString()})
           </span>
         )}

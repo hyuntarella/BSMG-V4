@@ -215,39 +215,39 @@ export default function EstimateEditorForm({
 
       {/* ===== PRICE BAR (을지 탭만) ===== */}
       {activeTab !== 'cover' && activeSheet && (
-        <div className="flex shrink-0 items-center gap-[10px] border-t border-[#ececec] bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
+        <div className="flex shrink-0 items-center gap-[10px] border-t border-v-b bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
           {/* 면적 입력 + 배지 */}
           <div className="flex items-end gap-2 pr-2">
             <div className="flex flex-col gap-[2px]">
-              <label className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">면적 m²</label>
+              <label className="text-[10px] font-semibold text-v-mut tracking-wider">면적 m²</label>
               <input
                 type="number"
                 value={estimate.m2 || ''}
                 onChange={(e) => handleAreaChange(Number(e.target.value) || 0)}
-                className="w-[72px] rounded-md border border-[#ececec] bg-[#F5F5F7] px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
+                className="w-[72px] rounded-md border border-v-b bg-v-hov px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
               />
             </div>
             <div className="flex flex-col gap-[2px]">
-              <label className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">벽체 m²</label>
+              <label className="text-[10px] font-semibold text-v-mut tracking-wider">벽체 m²</label>
               <input
                 type="number"
                 value={estimate.wall_m2 || ''}
                 onChange={(e) => updateMeta('wall_m2', Number(e.target.value) || 0)}
-                className="w-[72px] rounded-md border border-[#ececec] bg-[#F5F5F7] px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
+                className="w-[72px] rounded-md border border-v-b bg-v-hov px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
               />
             </div>
-            <span className="inline-block rounded-[10px] bg-[#E8F1FF] px-2 py-[2px] text-[10px] font-bold text-[#007AFF] h-5 leading-4">
+            <span className="inline-block rounded-2xl bg-v-accent-bg px-2 py-[2px] text-[10px] font-bold text-v-accent h-5 leading-4">
               {areaLabel}
             </span>
             {isSmall && (
-              <span className="inline-block rounded-[10px] bg-[#fff4e6] px-2 py-[2px] text-[10px] font-bold text-[#d48806] h-5 leading-4">
+              <span className="inline-block rounded-2xl bg-[#fff4e6] px-2 py-[2px] text-[10px] font-bold text-[#d48806] h-5 leading-4">
                 20평이하
               </span>
             )}
           </div>
 
           {/* 구분선 */}
-          <div className="h-9 w-px bg-[#ececec] self-center" />
+          <div className="h-9 w-px bg-v-b self-center" />
 
           {/* 칩 */}
           <div className="flex items-center gap-1 max-w-[500px] flex-wrap">
@@ -269,8 +269,8 @@ export default function EstimateEditorForm({
 
           {/* 평단가 */}
           <div className="flex flex-col gap-[1px] px-[10px] py-[2px]">
-            <span className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider">선택 평단가</span>
-            <span className="text-lg font-bold tabular-nums text-[#1C1C1E] leading-tight tracking-tight">
+            <span className="text-[10px] font-semibold text-v-mut tracking-wider">선택 평단가</span>
+            <span className="text-lg font-bold tabular-nums text-v-hdr leading-tight tracking-tight">
               {activeSheet.price_per_pyeong.toLocaleString()}
             </span>
           </div>
