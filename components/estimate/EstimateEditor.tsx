@@ -452,6 +452,7 @@ export default function EstimateEditor({
         onTextCancel={handleTextCancel}
         onMultilineSubmit={handleMultilineSubmit}
         commandHistory={commandHistory}
+        onVoiceGuideOpen={() => setVoiceGuideOpen(true)}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <LoadEstimateModal isOpen={loadModalOpen} onClose={() => setLoadModalOpen(false)} />

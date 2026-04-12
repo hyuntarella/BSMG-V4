@@ -28,6 +28,8 @@ interface VoiceBarContainerProps {
   onTextCancel: () => void
   onMultilineSubmit: (lines: string[]) => void
   commandHistory: string[]
+  /** 음성 가이드 패널 열기 */
+  onVoiceGuideOpen?: () => void
 }
 
 const MODE_ORDER: InputMode[] = ['office', 'field', 'driving']
@@ -48,6 +50,7 @@ export default function VoiceBarContainer({
   onTextCancel,
   onMultilineSubmit,
   commandHistory,
+  onVoiceGuideOpen,
 }: VoiceBarContainerProps) {
   const cycleMode = useCallback(() => {
     const currentIndex = MODE_ORDER.indexOf(mode)
@@ -57,8 +60,18 @@ export default function VoiceBarContainer({
 
   return (
     <div className="relative">
-      {/* 모드 토글 버튼 — 바 위 좌측 */}
-      <div className="fixed bottom-[68px] left-4 z-[51]">
+      {/* 음성 가이드 "?" + 모드 토글 — 바 위 좌측 */}
+      <div className="fixed bottom-[68px] left-4 z-[51] flex items-center gap-1.5">
+        {onVoiceGuideOpen && (
+          <button
+            onClick={onVoiceGuideOpen}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-v-accent shadow-card border border-ink-faint/20 hover:shadow-card-hover transition-all"
+            data-testid="voice-guide-btn"
+            aria-label="음성 가이드"
+          >
+            ?
+          </button>
+        )}
         <button
           onClick={cycleMode}
           className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold shadow-card border border-ink-faint/20 hover:shadow-card-hover transition-all"
