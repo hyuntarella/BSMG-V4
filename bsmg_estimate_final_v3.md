@@ -274,7 +274,7 @@ v1 문서 §5의 9개 정정 항목 그대로 유효.
 
 ## Phase 3-A 완료 요약
 
-- **커밋 해시**: (커밋 후 갱신)
+- **커밋 해시**: caee5f3
 - **기준 시점**: 2026-04-12
 - **변경 파일**:
   - 신규: `templates/complex.xlsx`, `templates/urethane.xlsx`, `lib/excel/generateMethodWorkbook.ts`, `app/api/estimates/[id]/export/route.ts`
