@@ -741,12 +741,6 @@ SUPABASE_DB_PASSWORD=***
       const body = await req.json();
       const urls: string[] = Array.isArray(body.urls) ? body.urls : [];
 
-[POST] /api/realtime/session
-  파일: app/api/realtime/session/route.ts
-  시그니처:
-    export async function POST() {
-      const apiKey = process.env.OPENAI_API_KEY
-
 [POST] /api/seed
   파일: app/api/seed/route.ts
   시그니처:
