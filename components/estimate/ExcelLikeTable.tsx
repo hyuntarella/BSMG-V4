@@ -425,7 +425,7 @@ export default function ExcelLikeTable({
                       isReadonly={isLumpReadonly}
                       isMuted={isWasteDefaultExp}
                       cellClassName={isBaseNameCell ? 'font-semibold' : undefined}
-                      cellStyle={isBaseNameCell ? { background: 'var(--v-base-bg)', boxShadow: 'inset 4px 0 0 var(--v-base-border)' } : undefined}
+                      cellStyle={isBaseNameCell ? { background: 'var(--v-base-bg)', boxShadow: 'inset 4px 0 0 var(--v-base-border)', paddingLeft: '12px' } : undefined}
                       width={col.width}
                       align={col.align}
                       tierFontClass={tier.fontClass}
