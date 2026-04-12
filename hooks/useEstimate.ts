@@ -37,8 +37,13 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   const [redoSnapshots, setRedoSnapshots] = useState<Snapshot[]>([])
   const [modifiedCells, setModifiedCells] = useState<ModifiedCells>(new Map())
 
-  // ── 스냅샷 저장 (변경 전 상태) ──
+  // ── 연속 입력 필드 추적 (undo 입도 제어) ──
+  // 같은 필드 연속 편집 시 첫 1회만 스냅샷 저장 → "한 편집 = 한 undo"
+  const continuousFieldRef = useRef<string | null>(null)
+
+  // ── 스냅샷 저장 (변경 전 상태) — discrete 액션용 ──
   const saveSnapshot = useCallback((description: string, type: Snapshot['type'] = 'manual') => {
+    continuousFieldRef.current = null
     setSnapshots(prev => [...prev, {
       estimate: JSON.parse(JSON.stringify(estimate)),
       description,
@@ -65,10 +70,20 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     })
   }, [])
 
-  // ── 메타 업데이트 ──
+  // ── 메타 업데이트 (연속 입력 debounce: 같은 필드 연속 편집 시 첫 1회만 스냅샷) ──
   const updateMeta = useCallback(
     (field: keyof Estimate, value: string | number | boolean) => {
-      saveSnapshot(`${String(field)} 변경`, 'manual')
+      const fieldKey = `meta:${String(field)}`
+      if (continuousFieldRef.current !== fieldKey) {
+        continuousFieldRef.current = fieldKey
+        setSnapshots(prev => [...prev, {
+          estimate: JSON.parse(JSON.stringify(estimate)),
+          description: `${String(field)} 변경`,
+          type: 'manual',
+          timestamp: Date.now(),
+        }])
+        setRedoSnapshots([])
+      }
       setEstimate(prev => {
         const updated = { ...prev, [field]: value }
         if (field === 'm2' || field === 'wall_m2') {
@@ -79,9 +94,9 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
         return updated
       })
       setIsDirty(true)
-      markCell(`meta:${String(field)}`)
+      markCell(fieldKey)
     },
-    [priceMatrix, saveSnapshot, markCell],
+    [priceMatrix, estimate, markCell],
   )
 
   // ── 시트 필드 업데이트 ──
@@ -383,9 +398,10 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     [estimate.sheets, saveSnapshot],
   )
 
-  // ── undo (직전 스냅샷에서 sheets만 복원 — 메타 필드는 현재값 유지) ──
+  // ── undo (전체 estimate 복원 — 메타+시트 모두) ──
   const undo = useCallback(() => {
     if (snapshots.length === 0) return
+    continuousFieldRef.current = null
     const last = snapshots[snapshots.length - 1]
     // 현재 상태를 redo 스택에 저장
     setRedoSnapshots(prev => [...prev, {
@@ -394,18 +410,16 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
       type: last.type,
       timestamp: Date.now(),
     }])
-    setEstimate(prev => ({
-      ...prev,
-      sheets: JSON.parse(JSON.stringify(last.estimate.sheets)),
-    }))
+    setEstimate(JSON.parse(JSON.stringify(last.estimate)))
     setSnapshots(prev => prev.slice(0, -1))
     setModifiedCells(new Map())
     setIsDirty(true)
   }, [snapshots, estimate])
 
-  // ── redo (redo 스택에서 sheets 복원) ──
+  // ── redo (전체 estimate 복원 — 메타+시트 모두) ──
   const redo = useCallback(() => {
     if (redoSnapshots.length === 0) return
+    continuousFieldRef.current = null
     const last = redoSnapshots[redoSnapshots.length - 1]
     // 현재 상태를 undo 스택에 저장
     setSnapshots(prev => [...prev, {
@@ -414,10 +428,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
       type: last.type,
       timestamp: Date.now(),
     }])
-    setEstimate(prev => ({
-      ...prev,
-      sheets: JSON.parse(JSON.stringify(last.estimate.sheets)),
-    }))
+    setEstimate(JSON.parse(JSON.stringify(last.estimate)))
     setRedoSnapshots(prev => prev.slice(0, -1))
     setModifiedCells(new Map())
     setIsDirty(true)
