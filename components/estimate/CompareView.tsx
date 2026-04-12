@@ -81,8 +81,8 @@ export default function CompareView({
     <div className="mx-auto max-w-[1440px] px-4 py-5 pb-20">
       {/* 타이틀 */}
       <div className="mb-[18px] text-center">
-        <h2 className="text-[22px] font-extrabold tracking-[6px] text-[#1C1C1E]">갑 지 · 검 수</h2>
-        <p className="mt-[3px] text-[11px] text-[#8a8a8e] tracking-wider">복합 · 우레탄 방수공사 견적서</p>
+        <h2 className="text-[22px] font-extrabold tracking-[6px] text-v-hdr">갑 지 · 검 수</h2>
+        <p className="mt-[3px] text-[11px] text-v-mut tracking-wider">복합 · 우레탄 방수공사 견적서</p>
       </div>
 
       {/* 상단 카드 2개 */}
@@ -106,7 +106,7 @@ export default function CompareView({
       </div>
 
       {/* 차액 바 */}
-      <div className="mb-[14px] grid grid-cols-3 gap-[14px] rounded-xl bg-white p-4 px-6 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+      <div className="mb-[14px] grid grid-cols-3 gap-[14px] rounded-xl bg-white p-4 px-6 shadow-v-sm">
         <DiffCol
           label="차액"
           value={`${diff > 0 ? '+' : ''}${fmt(diff)}`}
@@ -121,10 +121,10 @@ export default function CompareView({
       </div>
 
       {/* 공종별 상세 비교 */}
-      <div className="rounded-xl bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
-        <div className="mb-[14px] border-b border-[#ececec] pb-3">
-          <h3 className="text-sm font-bold text-[#1C1C1E]">공종별 상세 비교</h3>
-          <p className="mt-[3px] text-[11px] text-[#8a8a8e]">기본공종은 공법별 고유, 추가공종은 양 공법에 공유</p>
+      <div className="rounded-xl bg-white p-5 shadow-v-sm">
+        <div className="mb-[14px] border-b border-v-b pb-3">
+          <h3 className="text-sm font-bold text-v-hdr">공종별 상세 비교</h3>
+          <p className="mt-[3px] text-[11px] text-v-mut">기본공종은 공법별 고유, 추가공종은 양 공법에 공유</p>
         </div>
 
         <div className="grid grid-cols-2 gap-[14px]">
@@ -171,25 +171,25 @@ function AmountCard({
   count: number
 }) {
   return (
-    <div className="relative rounded-xl bg-white p-[22px_24px] shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+    <div className="relative rounded-xl bg-white p-[22px_24px] shadow-v-sm">
       <span className={`inline-block rounded-xl px-3 py-1 text-[11px] font-bold tracking-wider mb-[10px] ${badgeColor}`}>
         {label}
       </span>
-      <div className="text-[15px] font-bold text-[#1C1C1E] mb-4 pb-3 border-b border-[#ececec]">{title}</div>
-      <div className="text-[38px] font-extrabold tabular-nums tracking-tight text-[#1C1C1E] leading-none mb-[6px]">
+      <div className="text-[15px] font-bold text-v-hdr mb-4 pb-3 border-b border-v-b">{title}</div>
+      <div className="text-[38px] font-extrabold tabular-nums tracking-tight text-v-hdr leading-none mb-[6px]">
         {fmt(grand)}
       </div>
-      <div className="inline-block rounded-md bg-[#FFF9DB] px-[10px] py-[6px] text-xs font-semibold text-[#8a8a8e] mb-[14px]">
+      <div className="inline-block rounded-md bg-v-grand-bg px-[10px] py-[6px] text-xs font-semibold text-v-mut mb-[14px]">
         {toHangul(grand)}
       </div>
-      <div className="flex flex-col gap-[6px] pt-[10px] border-t border-dashed border-[#ececec]">
+      <div className="flex flex-col gap-[6px] pt-[10px] border-t border-dashed border-v-b">
         <div className="flex justify-between items-center text-xs">
-          <span className="text-[#8a8a8e]">실제 평단가</span>
-          <b className="font-bold text-[#1C1C1E] tabular-nums">{fmt(ppy)}</b>
+          <span className="text-v-mut">실제 평단가</span>
+          <b className="font-bold text-v-hdr tabular-nums">{fmt(ppy)}</b>
         </div>
         <div className="flex justify-between items-center text-xs">
-          <span className="text-[#8a8a8e]">공사 항목</span>
-          <b className="font-bold text-[#1C1C1E]">{count}개</b>
+          <span className="text-v-mut">공사 항목</span>
+          <b className="font-bold text-v-hdr">{count}개</b>
         </div>
       </div>
     </div>
@@ -199,9 +199,9 @@ function AmountCard({
 // --- 차액 컬럼 ---
 function DiffCol({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
-    <div className="flex flex-col gap-[2px] px-1 border-r border-[#F5F5F7] last:border-r-0">
-      <span className="text-[10px] font-bold text-[#8a8a8e] tracking-wider uppercase">{label}</span>
-      <span className={`text-[22px] font-extrabold tabular-nums tracking-tight text-[#1C1C1E] ${className}`}>
+    <div className="flex flex-col gap-[2px] px-1 border-r border-v-hov last:border-r-0">
+      <span className="text-[10px] font-bold text-v-mut tracking-wider uppercase">{label}</span>
+      <span className={`text-[22px] font-extrabold tabular-nums tracking-tight text-v-hdr ${className}`}>
         {value}
       </span>
     </div>
@@ -228,7 +228,7 @@ function SheetTable({
   notes?: string[]
 }) {
   if (!sheet || !calcResult) {
-    return <div className="rounded-lg border border-[#ececec] p-6 text-center text-sm text-[#8a8a8e]">시트 없음</div>
+    return <div className="rounded-lg border border-v-b p-6 text-center text-sm text-v-mut">시트 없음</div>
   }
 
   const baseItems = sheet.items.filter(i => i.is_base && !i.is_hidden)
@@ -248,36 +248,36 @@ function SheetTable({
 
     return (
       <tr key={`${it.name}-${it.sort_order}`} style={bgStyle}>
-        <td className="px-[10px] py-[7px] text-left font-semibold text-[#1C1C1E] whitespace-nowrap overflow-hidden text-ellipsis max-w-0" style={nameStyle} title={it.name}>
+        <td className="px-[10px] py-[7px] text-left font-semibold text-v-hdr whitespace-nowrap overflow-hidden text-ellipsis max-w-0" style={nameStyle} title={it.name}>
           {it.name.replace(/\n/g, ' ')}
         </td>
         <td className="px-1 py-[7px] text-right tabular-nums" style={{ background: 'rgba(9,105,218,.03)' }}>{fmt(it.mat)}</td>
         <td className="px-1 py-[7px] text-right tabular-nums" style={{ background: 'rgba(26,127,55,.03)' }}>{fmt(it.labor)}</td>
         <td className="px-1 py-[7px] text-right tabular-nums" style={{ background: 'rgba(191,135,0,.03)' }}>{fmt(it.exp)}</td>
-        <td className="px-1 py-[7px] text-right tabular-nums font-bold bg-[#F7F7F8]">{fmt(sum)}</td>
-        <td className="px-1 py-[7px] text-right tabular-nums font-bold text-[#1C1C1E] text-xs">{fmt(amt)}</td>
+        <td className="px-1 py-[7px] text-right tabular-nums font-bold bg-v-total-bg">{fmt(sum)}</td>
+        <td className="px-1 py-[7px] text-right tabular-nums font-bold text-v-hdr text-xs">{fmt(amt)}</td>
       </tr>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[#ececec]">
+    <div className="overflow-hidden rounded-lg border border-v-b">
       {/* 헤더 */}
-      <div className="flex items-center gap-[10px] border-b border-[#ececec] px-[14px] py-[10px] bg-white">
+      <div className="flex items-center gap-[10px] border-b border-v-b px-[14px] py-[10px] bg-white">
         <span className={`rounded-xl px-3 py-1 text-[11px] font-bold ${badgeColor}`}>{badge}</span>
-        <span className="text-[13px] font-bold text-[#1C1C1E]">{title}</span>
+        <span className="text-[13px] font-bold text-v-hdr">{title}</span>
       </div>
 
       {/* 테이블 */}
       <table className="w-full border-collapse text-[11.5px]" style={{ tableLayout: 'fixed' }}>
         <thead>
-          <tr className="border-b border-[#ececec]">
-            <th className="bg-[#F7F7F8] px-[10px] py-[7px] text-left font-semibold text-[#8a8a8e] text-[10px] tracking-wider uppercase" style={{ width: '28%' }}>공종</th>
-            <th className="bg-[#F7F7F8] px-1 py-[7px] text-right font-semibold text-[#8a8a8e] text-[10px]" style={{ width: '12%' }}>재료</th>
-            <th className="bg-[#F7F7F8] px-1 py-[7px] text-right font-semibold text-[#8a8a8e] text-[10px]" style={{ width: '12%' }}>인건</th>
-            <th className="bg-[#F7F7F8] px-1 py-[7px] text-right font-semibold text-[#8a8a8e] text-[10px]" style={{ width: '12%' }}>경비</th>
-            <th className="bg-[#F7F7F8] px-1 py-[7px] text-right font-semibold text-[#8a8a8e] text-[10px]" style={{ width: '15%' }}>단가합</th>
-            <th className="bg-[#F7F7F8] px-1 py-[7px] text-right font-semibold text-[#8a8a8e] text-[10px]" style={{ width: '21%' }}>금액</th>
+          <tr className="border-b border-v-b">
+            <th className="bg-v-hdr-bg px-[10px] py-[7px] text-left font-semibold text-v-mut text-[10px] tracking-wider uppercase" style={{ width: '28%' }}>공종</th>
+            <th className="bg-v-hdr-bg px-1 py-[7px] text-right font-semibold text-v-mut text-[10px]" style={{ width: '12%' }}>재료</th>
+            <th className="bg-v-hdr-bg px-1 py-[7px] text-right font-semibold text-v-mut text-[10px]" style={{ width: '12%' }}>인건</th>
+            <th className="bg-v-hdr-bg px-1 py-[7px] text-right font-semibold text-v-mut text-[10px]" style={{ width: '12%' }}>경비</th>
+            <th className="bg-v-hdr-bg px-1 py-[7px] text-right font-semibold text-v-mut text-[10px]" style={{ width: '15%' }}>단가합</th>
+            <th className="bg-v-hdr-bg px-1 py-[7px] text-right font-semibold text-v-mut text-[10px]" style={{ width: '21%' }}>금액</th>
           </tr>
         </thead>
         <tbody>
@@ -285,14 +285,14 @@ function SheetTable({
           {baseItems.length > 0 && (
             <>
               <tr>
-                <td colSpan={6} className="px-[10px] py-[10px_10px_4px] text-left text-[9px] font-bold text-[#8B6914] tracking-wider uppercase" style={{ background: '#FFF8E0', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+                <td colSpan={6} className="px-[10px] py-[10px_10px_4px] text-left text-[9px] font-bold text-[#8B6914] tracking-wider uppercase bg-v-base-bg" style={{ borderBottom: '1px solid rgba(0,0,0,.06)' }}>
                   기본 공종
                 </td>
               </tr>
               {baseItems.map(renderRow)}
               {Array.from({ length: baseFillers }).map((_, i) => (
-                <tr key={`filler-${i}`} style={{ background: '#FFFCF0' }}>
-                  <td colSpan={6} className="px-[10px] py-[7px] text-[11px] italic text-[#c7c7c9]" style={{ background: '#FFFCF0' }}>—</td>
+                <tr key={`filler-${i}`} className="bg-v-base-bg">
+                  <td colSpan={6} className="px-[10px] py-[7px] text-[11px] italic text-v-b2 bg-v-base-bg">—</td>
                 </tr>
               ))}
             </>
@@ -302,7 +302,7 @@ function SheetTable({
           {extraItems.length > 0 && (
             <>
               <tr>
-                <td colSpan={6} className="px-[10px] py-[10px_10px_4px] text-left text-[9px] font-bold text-[#8a8a8e] tracking-wider uppercase bg-[#FAFAFC]">
+                <td colSpan={6} className="px-[10px] py-[10px_10px_4px] text-left text-[9px] font-bold text-v-mut tracking-wider uppercase bg-[#FAFAFC]">
                   추가 공종
                 </td>
               </tr>
@@ -311,30 +311,30 @@ function SheetTable({
           )}
 
           {/* 소계 */}
-          <tr className="border-t border-[#ececec]">
-            <td className="px-[10px] py-[7px] font-bold text-[#1C1C1E] bg-[#F7F7F8]">소계</td>
-            <td colSpan={4} className="bg-[#F7F7F8]" />
-            <td className="px-1 py-[7px] text-right tabular-nums font-bold text-[#1C1C1E] bg-[#F7F7F8]">{fmt(calcResult.subtotal)}</td>
+          <tr className="border-t border-v-b">
+            <td className="px-[10px] py-[7px] font-bold text-v-hdr bg-v-total-bg">소계</td>
+            <td colSpan={4} className="bg-v-total-bg" />
+            <td className="px-1 py-[7px] text-right tabular-nums font-bold text-v-hdr bg-v-total-bg">{fmt(calcResult.subtotal)}</td>
           </tr>
           {/* 공과잡비·이윤 */}
           <tr>
-            <td className="px-[10px] py-[7px] font-bold text-[#1C1C1E] bg-[#F7F7F8]">공과잡비·이윤 (9%)</td>
-            <td colSpan={4} className="bg-[#F7F7F8]" />
-            <td className="px-1 py-[7px] text-right tabular-nums font-bold text-[#1C1C1E] bg-[#F7F7F8]">{fmt(calcResult.overhead + calcResult.profit)}</td>
+            <td className="px-[10px] py-[7px] font-bold text-v-hdr bg-v-total-bg">공과잡비·이윤 (9%)</td>
+            <td colSpan={4} className="bg-v-total-bg" />
+            <td className="px-1 py-[7px] text-right tabular-nums font-bold text-v-hdr bg-v-total-bg">{fmt(calcResult.overhead + calcResult.profit)}</td>
           </tr>
           {/* 합계 */}
-          <tr className="border-t-2 border-[#1C1C1E]">
-            <td className="px-[10px] py-[10px] font-extrabold text-[13px] text-[#1C1C1E] bg-[#FFF9DB]">합계</td>
-            <td colSpan={4} className="bg-[#FFF9DB]" />
-            <td className="px-1 py-[10px] text-right tabular-nums font-extrabold text-[13px] text-[#1C1C1E] bg-[#FFF9DB]">{fmt(calcResult.grandTotal)}</td>
+          <tr className="border-t-2 border-v-hdr">
+            <td className="px-[10px] py-[10px] font-extrabold text-[13px] text-v-hdr bg-v-grand-bg">합계</td>
+            <td colSpan={4} className="bg-v-grand-bg" />
+            <td className="px-1 py-[10px] text-right tabular-nums font-extrabold text-[13px] text-v-hdr bg-v-grand-bg">{fmt(calcResult.grandTotal)}</td>
           </tr>
         </tbody>
       </table>
 
       {/* 특기사항 */}
-      <div className="border-t border-[#ececec] bg-[#FAFAFC] px-[14px] py-3">
-        <div className="text-[10px] font-bold text-[#8a8a8e] tracking-wider uppercase mb-[6px]">특기사항</div>
-        <div className="text-[10.5px] text-[#8a8a8e]">* 부가가치세별도</div>
+      <div className="border-t border-v-b bg-[#FAFAFC] px-[14px] py-3">
+        <div className="text-[10px] font-bold text-v-mut tracking-wider uppercase mb-[6px]">특기사항</div>
+        <div className="text-[10.5px] text-v-mut">* 부가가치세별도</div>
       </div>
     </div>
   )
