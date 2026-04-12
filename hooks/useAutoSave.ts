@@ -9,6 +9,8 @@ interface UseAutoSaveOptions {
   isDirty: boolean
   onSaved: () => void
   onConflict?: () => void
+  /** 새 시트 insert 후 클라이언트 상태에 sheet.id 반영용 콜백 */
+  onEstimateSync?: (updater: (prev: Estimate) => Estimate) => void
   debounceMs?: number
   enabled?: boolean
 }
@@ -24,6 +26,7 @@ export function useAutoSave({
   isDirty,
   onSaved,
   onConflict,
+  onEstimateSync,
   debounceMs = 1000,
   enabled = true,
 }: UseAutoSaveOptions) {
@@ -39,7 +42,7 @@ export function useAutoSave({
     try {
       const supabase = createClient()
 
-      // ── ��관적 락: 저장 전 서버 updated_at 확인 ──
+      // ── 낙관적 락: 저장 전 서버 updated_at 확인 ──
       const { data: current } = await supabase
         .from('estimates')
         .select('updated_at')
@@ -76,9 +79,32 @@ export function useAutoSave({
 
       lastUpdatedAtRef.current = now
 
+      // 새 시트 insert 후 반환된 ID를 모아서 클라이언트 상태에 반영
+      const newSheetIds: { type: string; id: string }[] = []
+
+      const itemFields = (sheetId: string, item: Estimate['sheets'][0]['items'][0]) => ({
+        sheet_id: sheetId,
+        sort_order: item.sort_order,
+        name: item.name,
+        spec: item.spec,
+        unit: item.unit,
+        qty: item.qty,
+        mat: item.mat,
+        labor: item.labor,
+        exp: item.exp,
+        mat_amount: item.mat_amount,
+        labor_amount: item.labor_amount,
+        exp_amount: item.exp_amount,
+        total: item.total,
+        is_base: item.is_base,
+        is_equipment: item.is_equipment,
+        is_fixed_qty: item.is_fixed_qty,
+      })
+
       // 2. 각 시트 + 아이템 업데이트
       for (const sheet of estimate.sheets) {
         if (sheet.id) {
+          // ── 기존 시트: update ──
           await supabase
             .from('estimate_sheets')
             .update({
@@ -102,30 +128,11 @@ export function useAutoSave({
             await supabase.from('estimate_items').delete().in('id', toDelete)
           }
 
-          const itemFields = (item: typeof sheet.items[0]) => ({
-            sheet_id: sheet.id,
-            sort_order: item.sort_order,
-            name: item.name,
-            spec: item.spec,
-            unit: item.unit,
-            qty: item.qty,
-            mat: item.mat,
-            labor: item.labor,
-            exp: item.exp,
-            mat_amount: item.mat_amount,
-            labor_amount: item.labor_amount,
-            exp_amount: item.exp_amount,
-            total: item.total,
-            is_base: item.is_base,
-            is_equipment: item.is_equipment,
-            is_fixed_qty: item.is_fixed_qty,
-          })
-
           // update: id가 있는 기존 아이템
           for (const item of sheet.items.filter((i) => i.id)) {
             await supabase
               .from('estimate_items')
-              .update(itemFields(item))
+              .update(itemFields(sheet.id, item))
               .eq('id', item.id!)
           }
 
@@ -133,10 +140,48 @@ export function useAutoSave({
           const newItems = sheet.items.filter((i) => !i.id)
           if (newItems.length > 0) {
             await supabase.from('estimate_items').insert(
-              newItems.map((item) => itemFields(item))
+              newItems.map((item) => itemFields(sheet.id!, item))
             )
           }
+        } else {
+          // ── 새 시트: insert ──
+          const { data: inserted } = await supabase
+            .from('estimate_sheets')
+            .insert({
+              estimate_id: estimate.id,
+              type: sheet.type,
+              title: sheet.title,
+              price_per_pyeong: sheet.price_per_pyeong,
+              warranty_years: sheet.warranty_years,
+              warranty_bond: sheet.warranty_bond,
+              grand_total: sheet.grand_total,
+              sort_order: sheet.sort_order,
+            })
+            .select('id')
+            .single()
+
+          if (inserted) {
+            newSheetIds.push({ type: sheet.type, id: inserted.id })
+
+            // 아이템 insert
+            if (sheet.items.length > 0) {
+              await supabase.from('estimate_items').insert(
+                sheet.items.map((item) => itemFields(inserted.id, item))
+              )
+            }
+          }
         }
+      }
+
+      // 새 시트 ID를 클라이언트 상태에 반영 → 다음 저장부터 update 경로
+      if (newSheetIds.length > 0 && onEstimateSync) {
+        onEstimateSync((prev) => ({
+          ...prev,
+          sheets: prev.sheets.map((s) => {
+            const match = newSheetIds.find((n) => n.type === s.type && !s.id)
+            return match ? { ...s, id: match.id } : s
+          }),
+        }))
       }
 
       onSaved()
@@ -145,7 +190,7 @@ export function useAutoSave({
     } finally {
       savingRef.current = false
     }
-  }, [estimate, onSaved, onConflict])
+  }, [estimate, onSaved, onConflict, onEstimateSync])
 
   useEffect(() => {
     if (!enabled || !isDirty || !estimate.id) return

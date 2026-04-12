@@ -55,7 +55,7 @@ const EDITABLE_COLS = [
 const COL_COUNT = EDITABLE_COLS.length
 
 /** 장비 공종 이름 — is_equipment 플래그가 누락된 구 데이터 대비 fallback */
-const EQUIPMENT_NAMES = new Set(['사다리차', '스카이차', '폐기물처리비', '폐기물처리', '드라이비트하부절개'])
+const EQUIPMENT_NAMES = new Set(['사다리차', '스카이차', '폐기물처리비', '폐기물처리', '드라이비트하부절개', '드라이비트 하부절개'])
 
 export default function ExcelLikeTable({
   items,

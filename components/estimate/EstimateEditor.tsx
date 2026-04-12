@@ -66,7 +66,7 @@ export default function EstimateEditor({
     undo,
   } = useEstimate(initialEstimate, priceMatrix)
 
-  useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
+  useAutoSave({ estimate, isDirty, onSaved: markClean, onEstimateSync: setEstimate, enabled: !!estimate.id })
 
   // --- 규칙서 보증 기본값 → 신규 sheet 에 적용 ---
   // id 없는 신규 sheet 에만 적용. 사용자가 이미 변경한 값은 유지(하드코딩 default 와 일치할 때만 덮어씀).

@@ -46,7 +46,7 @@ export default function EstimateEditorForm({
     snapshots,
   } = useEstimate(initialEstimate, priceMatrix)
 
-  useAutoSave({ estimate, isDirty, onSaved: markClean, enabled: !!estimate.id })
+  useAutoSave({ estimate, isDirty, onSaved: markClean, onEstimateSync: setEstimate, enabled: !!estimate.id })
 
   // --- 전역 Ctrl+Z ---
   useEffect(() => {
@@ -418,7 +418,7 @@ function SidePanel({
           <button className={chipCls} onClick={() => addEquipment('스카이차', '일', 0, 0, 350000)}>스카이차</button>
           <button className={chipCls} onClick={() => addEquipment('포크레인', '대', 0, 0, 700000)}>포크레인</button>
           <button className={chipCls} onClick={() => addEquipment('크레인', '대', 0, 0, 1500000)}>크레인</button>
-          <button className={chipCls} onClick={() => addEquipment('로프공', '인', 0, 450000, 600000)}>���프공</button>
+          <button className={chipCls} onClick={() => addEquipment('로프공', '인', 0, 450000, 600000)}>로프공</button>
           <button className={chipCls} onClick={() => addEquipment('폐기물처리', '식', 0, 0, 200000)}>폐기물처리</button>
         </div>
       </div>
