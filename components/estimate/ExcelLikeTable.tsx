@@ -495,10 +495,10 @@ export default function ExcelLikeTable({
         <button
           type="button"
           onClick={onAddFreeItem}
-          className="w-full h-10 bg-v-accent-bg text-v-accent font-bold text-[13px] tracking-widest border-y border-[rgba(0,122,255,.15)] hover:bg-v-accent hover:text-white transition-colors flex items-center justify-center"
+          className="w-full h-10 bg-v-accent-bg text-v-accent font-medium text-[12px] tracking-normal border-y border-[rgba(0,122,255,.15)] hover:bg-v-accent hover:text-white transition-colors flex items-center justify-center"
           data-testid="add-row-btn"
         >
-          ＋　행　추　가　<span className="font-medium opacity-70 text-[10px] ml-2">Ctrl+Enter</span>
+          ＋ 행 추가 <span className="font-medium opacity-70 text-[10px] ml-2">Ctrl+Enter</span>
         </button>
       )}
     </div>
