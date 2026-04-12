@@ -108,28 +108,28 @@ export default function UrethaneBase05Control({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs"
+      className={`flex flex-wrap items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition-all ${enabled ? 'border-v-accent bg-v-accent-bg' : 'border-v-b bg-white'}`}
       data-testid="urethane-base05-control"
     >
-      <label className="flex items-center gap-1.5">
+      <label className="flex items-center gap-1.5 cursor-pointer">
         <input
           type="checkbox"
           checked={enabled}
           onChange={(e) => handleToggle(e.target.checked)}
-          className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 cursor-pointer rounded border-v-b accent-v-accent"
           data-testid="urethane-base05-toggle"
         />
-        <span className="font-medium text-gray-700">우레탄 0.5mm 기준 단가 맞춤</span>
+        <span className="font-semibold text-[13px] text-v-hdr">0.5mm</span>
       </label>
-      <span className="hidden text-[10px] text-gray-400 sm:inline">
+      <span className="hidden text-[10px] text-v-mut sm:inline">
         1차×2 · 2차×4 · 복합노출×3
       </span>
 
-      <div className={`ml-auto flex items-center gap-1.5 ${enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+      <div className={`ml-auto flex items-center gap-1.5 border-l border-v-b pl-2 ${enabled ? '' : 'opacity-40 pointer-events-none'}`}>
         <Field label="재료" value={base05.mat} onChange={handleFieldChange('mat')} testId="base05-mat" />
         <Field label="인건" value={base05.labor} onChange={handleFieldChange('labor')} testId="base05-labor" />
         <Field label="경비" value={base05.exp} onChange={handleFieldChange('exp')} testId="base05-exp" />
-        <span className="ml-1 text-[10px] text-gray-500">원/m²</span>
+        <span className="ml-1 text-[10px] text-v-mut">원/m²</span>
       </div>
     </div>
   )
@@ -148,7 +148,7 @@ function Field({
 }) {
   return (
     <label className="flex items-center gap-1">
-      <span className="text-[10px] text-gray-500">{label}</span>
+      <span className="text-[10px] text-v-mut">{label}</span>
       <input
         type="number"
         value={value || ''}
@@ -156,7 +156,7 @@ function Field({
         placeholder="0"
         min={0}
         step={100}
-        className="w-20 rounded border border-gray-300 px-1.5 py-0.5 text-right font-mono tabular-nums text-xs"
+        className="w-[54px] h-6 rounded-[3px] border border-v-b px-1.5 text-right font-semibold tabular-nums text-xs"
         data-testid={testId}
       />
     </label>
