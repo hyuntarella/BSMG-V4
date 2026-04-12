@@ -34,6 +34,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   const [estimate, setEstimate] = useState<Estimate>(initialEstimate)
   const [isDirty, setIsDirty] = useState(false)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [redoSnapshots, setRedoSnapshots] = useState<Snapshot[]>([])
   const [modifiedCells, setModifiedCells] = useState<ModifiedCells>(new Map())
 
   // ── 스냅샷 저장 (변경 전 상태) ──
@@ -44,6 +45,7 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
       type,
       timestamp: Date.now(),
     }])
+    setRedoSnapshots([])
   }, [estimate])
 
   // ── 특정 시점으로 복원 ──
@@ -385,6 +387,13 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
   const undo = useCallback(() => {
     if (snapshots.length === 0) return
     const last = snapshots[snapshots.length - 1]
+    // 현재 상태를 redo 스택에 저장
+    setRedoSnapshots(prev => [...prev, {
+      estimate: JSON.parse(JSON.stringify(estimate)),
+      description: last.description,
+      type: last.type,
+      timestamp: Date.now(),
+    }])
     setEstimate(prev => ({
       ...prev,
       sheets: JSON.parse(JSON.stringify(last.estimate.sheets)),
@@ -392,7 +401,27 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     setSnapshots(prev => prev.slice(0, -1))
     setModifiedCells(new Map())
     setIsDirty(true)
-  }, [snapshots])
+  }, [snapshots, estimate])
+
+  // ── redo (redo 스택에서 sheets 복원) ──
+  const redo = useCallback(() => {
+    if (redoSnapshots.length === 0) return
+    const last = redoSnapshots[redoSnapshots.length - 1]
+    // 현재 상태를 undo 스택에 저장
+    setSnapshots(prev => [...prev, {
+      estimate: JSON.parse(JSON.stringify(estimate)),
+      description: last.description,
+      type: last.type,
+      timestamp: Date.now(),
+    }])
+    setEstimate(prev => ({
+      ...prev,
+      sheets: JSON.parse(JSON.stringify(last.estimate.sheets)),
+    }))
+    setRedoSnapshots(prev => prev.slice(0, -1))
+    setModifiedCells(new Map())
+    setIsDirty(true)
+  }, [redoSnapshots, estimate])
 
   // ── 음성 플로우 완료 → 한 번에 견적서 생성 ──
   const initFromVoiceFlow = useCallback(
@@ -627,6 +656,8 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
     initFromVoiceFlow,
     getSheetMargin,
     undo,
+    redo,
+    redoSnapshots,
     setLumpAmount,
     addFreeItem,
     toggleLock,

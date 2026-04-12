@@ -42,24 +42,33 @@ export default function EstimateEditorForm({
     updateSheetWarranty,
     addSheet,
     undo,
+    redo,
     saveSnapshot,
     snapshots,
+    redoSnapshots,
   } = useEstimate(initialEstimate, priceMatrix)
 
   useAutoSave({ estimate, isDirty, onSaved: markClean, onEstimateSync: setEstimate, enabled: !!estimate.id })
 
-  // --- 전역 Ctrl+Z ---
+  // --- 전역 Ctrl+Z (undo) / Ctrl+Shift+Z, Ctrl+Y (redo) ---
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
         e.preventDefault()
         e.stopPropagation()
         undo()
+      } else if (
+        (e.ctrlKey && e.shiftKey && (e.key === 'z' || e.key === 'Z')) ||
+        (e.ctrlKey && (e.key === 'y' || e.key === 'Y'))
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        redo()
       }
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [undo])
+  }, [undo, redo])
 
   const [activeTab, setActiveTab] = useState<TabId>('composite')
 
@@ -191,6 +200,14 @@ export default function EstimateEditorForm({
           title="Undo Ctrl+Z"
         >
           ↶ 되돌리기
+        </button>
+        <button
+          className="rounded border border-v-b bg-transparent px-3 py-1 text-xs font-medium text-v-hdr hover:bg-v-hov disabled:opacity-40"
+          onClick={redo}
+          disabled={redoSnapshots.length === 0}
+          title="Redo Ctrl+Shift+Z"
+        >
+          ↷ 다시하기
         </button>
       </div>
 
