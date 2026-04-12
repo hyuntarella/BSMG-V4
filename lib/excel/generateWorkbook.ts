@@ -36,12 +36,12 @@ interface TemplateConfig {
 function getTemplateConfig(sheetType: string): TemplateConfig {
   if (sheetType === '우레탄') {
     return {
-      templatePath: path.join(process.cwd(), 'public/templates/urethane-template.xlsx'),
+      templatePath: path.join(process.cwd(), 'templates/urethane.xlsx'),
       templateItemCount: URETHANE_TEMPLATE_ITEM_COUNT,
     }
   }
   return {
-    templatePath: path.join(process.cwd(), 'public/templates/complex-template.xlsx'),
+    templatePath: path.join(process.cwd(), 'templates/complex.xlsx'),
     templateItemCount: COMPLEX_TEMPLATE_ITEM_COUNT,
   }
 }

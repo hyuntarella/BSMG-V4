@@ -10,6 +10,7 @@
 
 import { exportToJson } from '@/lib/estimate/jsonIO'
 import { generateWorkbook, workbookToBuffer } from '@/lib/excel/generateWorkbook'
+import { generateMethodWorkbook } from '@/lib/excel/generateMethodWorkbook'
 import { generateEstimateHtml, generatePdfBuffer } from '@/lib/pdf/generatePdf'
 import type { Estimate, Method } from '@/lib/estimate/types'
 export { getExcelFileName, getPdfFileName } from '@/lib/estimate/fileNames'
@@ -23,6 +24,14 @@ export function generateJson(estimate: Estimate): string {
 export async function generateExcel(estimate: Estimate): Promise<Buffer> {
   const wb = await generateWorkbook(estimate)
   return workbookToBuffer(wb)
+}
+
+/** 공법별 단일 XLSX Buffer 생성 (Phase 3-A) */
+export async function generateMethodExcel(
+  estimate: Estimate,
+  method: Method,
+): Promise<Buffer> {
+  return generateMethodWorkbook(estimate, method)
 }
 
 /**
