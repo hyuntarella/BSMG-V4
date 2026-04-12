@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Header from '@/components/layout/Header'
-import EstimateEditorV5 from '@/components/estimate/EstimateEditorV5'
+import EstimateEditorForm from '@/components/estimate/EstimateEditorForm'
 import type { Estimate, EstimateSheet, EstimateItem, PriceMatrixRaw } from '@/lib/estimate/types'
 
 interface Props {
@@ -210,7 +210,7 @@ export default async function EstimateEditPage({ searchParams }: Props) {
   return (
     <>
       <Header />
-      <EstimateEditorV5
+      <EstimateEditorForm
         initialEstimate={estimate}
         priceMatrix={priceMatrix}
         isLens={isLens}

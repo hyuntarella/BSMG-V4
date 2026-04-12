@@ -8,6 +8,7 @@ interface UseAutoSaveOptions {
   estimate: Estimate
   isDirty: boolean
   onSaved: () => void
+  onConflict?: () => void
   debounceMs?: number
   enabled?: boolean
 }
@@ -22,11 +23,14 @@ export function useAutoSave({
   estimate,
   isDirty,
   onSaved,
+  onConflict,
   debounceMs = 1000,
   enabled = true,
 }: UseAutoSaveOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savingRef = useRef(false)
+  /** 마지막으로 알고 있는 서버 updated_at — 낙관적 락용 */
+  const lastUpdatedAtRef = useRef<string | null>(null)
 
   const save = useCallback(async () => {
     if (!estimate.id || savingRef.current) return
@@ -34,6 +38,26 @@ export function useAutoSave({
 
     try {
       const supabase = createClient()
+
+      // ── ��관적 락: 저장 전 서버 updated_at 확인 ──
+      const { data: current } = await supabase
+        .from('estimates')
+        .select('updated_at')
+        .eq('id', estimate.id)
+        .single()
+
+      if (current && lastUpdatedAtRef.current) {
+        const serverTime = new Date(current.updated_at).getTime()
+        const knownTime = new Date(lastUpdatedAtRef.current).getTime()
+        if (serverTime > knownTime) {
+          // 다른 세션에서 이미 수정됨 — 충돌
+          console.warn('낙관적 락 충돌: 서버가 더 최신', { server: current.updated_at, known: lastUpdatedAtRef.current })
+          onConflict?.()
+          return
+        }
+      }
+
+      const now = new Date().toISOString()
 
       // 1. estimates 메타 업데이트
       await supabase
@@ -46,9 +70,11 @@ export function useAutoSave({
           manager_name: estimate.manager_name,
           manager_phone: estimate.manager_phone,
           memo: estimate.memo,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         })
         .eq('id', estimate.id)
+
+      lastUpdatedAtRef.current = now
 
       // 2. 각 시트 + 아이템 업데이트
       for (const sheet of estimate.sheets) {
@@ -119,7 +145,7 @@ export function useAutoSave({
     } finally {
       savingRef.current = false
     }
-  }, [estimate, onSaved])
+  }, [estimate, onSaved, onConflict])
 
   useEffect(() => {
     if (!enabled || !isDirty || !estimate.id) return

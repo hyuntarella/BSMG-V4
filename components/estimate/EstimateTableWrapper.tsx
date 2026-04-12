@@ -148,62 +148,89 @@ export default function EstimateTableWrapper({
     onChange({ ...estimate, sheets })
   }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
-  // --- 행 삭제 ---
+  // --- 행 삭제 (추가공종 양 공법 동시 삭제) ---
   // 기본 8공종(is_base=true)은 삭제 불가 — 숨김만 허용. 칩으로 추가한 is_base=false 행만 제거한다.
+  // 추가공종(is_base=false)이고 locked/hidden이 아니면 반대 시트에서도 동일 이름 행을 삭제한다.
   const handleDeleteRow = useCallback((itemIndex: number) => {
     const target = items[itemIndex]
     if (!target || target.is_base) return
     onSaveSnapshot?.('행 삭제')
+
     const newItems = items
       .filter((_, i) => i !== itemIndex)
       .map((it, i) => ({ ...it, sort_order: i + 1 }))
     const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]
     sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems, grand_total: calcResult.grandTotal }
+
+    // 양 공법 동기화: is_base=false, !locked, !hidden인 경우 반대 시트에서도 삭제
+    if (!target.is_locked && !target.is_hidden) {
+      const otherIdx = sheets.findIndex((s, i) => i !== sheetIndex)
+      if (otherIdx >= 0) {
+        const otherItems = sheets[otherIdx].items
+          .filter(it => !(
+            !it.is_base &&
+            !it.is_locked &&
+            !it.is_hidden &&
+            it.name === target.name
+          ))
+          .map((it, i) => ({ ...it, sort_order: i + 1 }))
+        const otherCalc = calc(otherItems.filter(i => !i.is_hidden))
+        sheets[otherIdx] = { ...sheets[otherIdx], items: otherItems, grand_total: otherCalc.grandTotal }
+      }
+    }
+
     onChange({ ...estimate, sheets })
   }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
-  // --- 자유입력 행 추가 ---
+  // --- 자유입력 행 추가 (양 공법 동시 추가) ---
   const handleAddFreeItem = useCallback(() => {
     onSaveSnapshot?.('행 추가')
-    const newItem: EstimateItem = {
-      sort_order: items.length + 1,
-      name: '',
-      spec: '',
-      unit: 'm²',
-      qty: 1,
-      mat: 0,
-      labor: 0,
-      exp: 0,
-      mat_amount: 0,
-      labor_amount: 0,
-      exp_amount: 0,
-      total: 0,
-      is_base: false,
-      is_equipment: false,
-      is_fixed_qty: false,
-    }
-    const newItems = [...items, newItem]
     const sheets = [...estimate.sheets]
-    sheets[sheetIndex] = { ...sheets[sheetIndex], items: newItems }
-    onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange])
 
-  // --- #10 빠른공종추가 칩 클릭 ---
+    // 양 시트에 동시 추가
+    for (let i = 0; i < sheets.length; i++) {
+      const sheetItems = sheets[i].items
+      const newItem: EstimateItem = {
+        sort_order: sheetItems.length + 1,
+        name: '',
+        spec: '',
+        unit: 'm²',
+        qty: 1,
+        mat: 0,
+        labor: 0,
+        exp: 0,
+        mat_amount: 0,
+        labor_amount: 0,
+        exp_amount: 0,
+        total: 0,
+        is_base: false,
+        is_equipment: false,
+        is_fixed_qty: false,
+      }
+      sheets[i] = { ...sheets[i], items: [...sheetItems, newItem] }
+    }
+
+    onChange({ ...estimate, sheets })
+  }, [estimate, onSaveSnapshot, onChange])
+
+  // --- #10 빠른공종추가 칩 클릭 (양 공법 동시 추가) ---
   const handleQuickAdd = useCallback((chip: QuickChip) => {
     onSaveSnapshot?.(`빠른 추가: ${chip.name}`)
     const overridden = applyPrices(chip)
-    const newItem = chipToEstimateItem(overridden, items.length + 1)
-    const newItems = [...items, newItem as EstimateItem]
-    const calcResult = calc(newItems.filter(i => !i.is_hidden))
     const sheets = [...estimate.sheets]
-    sheets[sheetIndex] = {
-      ...sheets[sheetIndex],
-      items: newItems,
-      grand_total: calcResult.grandTotal,
+
+    // 양 시트에 동시 추가
+    for (let i = 0; i < sheets.length; i++) {
+      const sheetItems = sheets[i].items
+      const newItem = chipToEstimateItem(overridden, sheetItems.length + 1)
+      const newItems = [...sheetItems, newItem as EstimateItem]
+      const calcResult = calc(newItems.filter(it => !it.is_hidden))
+      sheets[i] = { ...sheets[i], items: newItems, grand_total: calcResult.grandTotal }
     }
+
     onChange({ ...estimate, sheets })
-  }, [items, estimate, sheetIndex, onSaveSnapshot, onChange, applyPrices])
+  }, [estimate, onSaveSnapshot, onChange, applyPrices])
 
   // --- Undo ---
   const handleUndo = useCallback(() => {

@@ -3,7 +3,7 @@ import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 import { getPdfFileName, getExcelFileName } from '@/lib/estimate/fileNames'
 
 /**
- * Phase 4I — EstimateEditorV5 통합 테스트 (로직 검증)
+ * Phase 4I — EstimateEditorForm 통합 테스트 (로직 검증)
  *
  * UI 렌더링은 Playwright/RTL 없이 불가하므로
  * 핵심 로직 함수와 데이터 흐름을 검증한다.
