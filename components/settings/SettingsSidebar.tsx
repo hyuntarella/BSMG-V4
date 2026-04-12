@@ -1,6 +1,6 @@
 'use client'
 
-export type SettingsMenu = '단가표' | '자주 쓰는 공종' | '기타 설정'
+export type SettingsMenu = '단가표' | '자주 쓰는 공종' | '기타 설정' | '음성규칙'
 
 interface SettingsSidebarProps {
   active: SettingsMenu
@@ -11,6 +11,7 @@ const MENUS: { key: SettingsMenu; icon: string; desc: string }[] = [
   { key: '단가표', icon: '₩', desc: 'P매트릭스' },
   { key: '자주 쓰는 공종', icon: '★', desc: '즐겨찾기 · 기타 · 신규' },
   { key: '기타 설정', icon: '⚙', desc: '원가 · 규칙 · 보증' },
+  { key: '음성규칙', icon: '🎙', desc: '웨이크워드 · 신뢰도 · 모드' },
 ]
 
 /**
