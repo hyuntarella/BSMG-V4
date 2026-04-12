@@ -31,6 +31,9 @@ export default function Header() {
     return () => { document.removeEventListener('keydown', h); document.body.style.overflow = '' }
   }, [menuOpen])
 
+  // 견적 편집 페이지에서는 Header 숨김
+  if (pathname?.startsWith('/estimate/edit')) return null
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setMenuOpen(false)
