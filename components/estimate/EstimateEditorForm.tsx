@@ -261,7 +261,7 @@ export default function EstimateEditorForm({
           <div className="h-9 w-px bg-v-b self-center" />
 
           {/* 칩 */}
-          <div className="flex items-center gap-1 max-w-[500px] flex-wrap">
+          <div className="flex items-center gap-1 max-w-[720px] flex-wrap">
             <CostChipsPanel
               compositeChips={activeTab === 'composite' ? activeChips : compositeChips}
               urethaneChips={activeTab === 'urethane' ? activeChips : urethaneChips}

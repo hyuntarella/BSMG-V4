@@ -29,7 +29,7 @@ function ChipSection({
 
   if (inline) {
     return (
-      <div className="flex items-center gap-[3px] flex-wrap max-h-[52px] overflow-y-auto">
+      <div className="flex items-center gap-1 flex-wrap max-h-[64px] overflow-y-auto">
         {chips.map((chip) => {
           const isSelected = selectedChip === chip
           return (
