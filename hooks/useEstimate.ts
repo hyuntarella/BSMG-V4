@@ -445,8 +445,13 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
           })
         }
 
+        // 기존 시트 + 새 시트 합산 후, m2가 바뀌었으면 전체 재계산
         const allSheets = [...prev.sheets, ...sheets].sort((a, b) => a.sort_order - b.sort_order)
-        return { ...updated, sheets: allSheets }
+        const needsRebuild = m2 !== prev.m2 || wallM2 !== prev.wall_m2
+        updated.sheets = needsRebuild
+          ? allSheets.map(sheet => rebuildSheet(sheet, m2, wallM2, priceMatrix))
+          : allSheets
+        return updated
       })
       setIsDirty(true)
     },
@@ -587,11 +592,17 @@ export function useEstimate(initialEstimate: Estimate, priceMatrix: PriceMatrixR
             updated.m2 = Math.round(pyeong * 3.3058)
           }
         }
+        // m2가 변경되었으면 시트 재계산
+        if (updated.m2 !== prev.m2) {
+          updated.sheets = prev.sheets.map(sheet =>
+            rebuildSheet(sheet, updated.m2, updated.wall_m2, priceMatrix)
+          )
+        }
         return updated
       })
       setIsDirty(true)
     },
-    [saveSnapshot],
+    [saveSnapshot, priceMatrix],
   )
 
   const markClean = useCallback(() => setIsDirty(false), [])
