@@ -19,7 +19,6 @@ import { deriveYearsBond, DEFAULT_WARRANTY_OPTION_BY_METHOD } from '@/lib/estima
 import VoiceBarContainer from '@/components/voice/VoiceBarContainer'
 import VoiceLogPanel from '@/components/voice/VoiceLogPanel'
 import EmailModal from './EmailModal'
-import InitialGuide from './InitialGuide'
 import SettingsPanel from './SettingsPanel'
 import LoadEstimateModal from './LoadEstimateModal'
 import VoiceGuidePanel from './VoiceGuidePanel'
@@ -171,6 +170,14 @@ export default function EstimateEditor({
     onEmailOpen: () => setEmailOpen(true),
   })
 
+  // --- 시트 없으면 자동 생성 (EstimateEditorForm과 동일) ---
+  useEffect(() => {
+    const hasComposite = estimate.sheets.some(s => s.type === '복합')
+    const hasUrethane = estimate.sheets.some(s => s.type === '우레탄')
+    if (!hasComposite) addSheet('복합')
+    if (!hasUrethane) addSheet('우레탄')
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const hasComplex = estimate.sheets.some((s) => s.type === '복합')
   const hasUrethane = estimate.sheets.some((s) => s.type === '우레탄')
 
@@ -293,11 +300,6 @@ export default function EstimateEditor({
 
       {/* 콘텐츠 */}
       <main className="flex-1 px-3 py-4 mx-auto w-full max-w-5xl">
-        {/* 시트 없을 때 — 음성 가이드 안내 */}
-        {!hasComplex && !hasUrethane && (
-          <InitialGuide onCreateSheets={() => { addSheet('복합'); addSheet('우레탄'); setActiveTab('complex-detail') }} onMicClick={voice.toggleRecording} interimPreview={bufferHint} isRecording={voice.status === 'recording'} />
-        )}
-
         {(activeTab === 'complex-cover' || activeTab === 'urethane-cover') && activeSheetIndex >= 0 && (
           <CoverSheet estimate={estimate} sheet={estimate.sheets[activeSheetIndex]} onUpdate={updateMeta} />
         )}
