@@ -192,13 +192,6 @@ export default function EstimateEditorForm({
         >
           ↶ 되돌리기
         </button>
-        {estimate.id && (
-          <SaveButton
-            estimateId={estimate.id}
-            estimate={estimate}
-            onSaved={markClean}
-          />
-        )}
       </div>
 
       {/* ===== META BAR ===== */}
@@ -341,6 +334,14 @@ export default function EstimateEditorForm({
 
       {/* ===== FAB ===== */}
       <div className="absolute right-[18px] bottom-[18px] z-30 flex gap-[10px]">
+        {estimate.id && (
+          <SaveButton
+            estimateId={estimate.id}
+            estimate={estimate}
+            onSaved={markClean}
+            fabStyle
+          />
+        )}
         <LoadButton onLoad={setEstimate} />
       </div>
     </div>
