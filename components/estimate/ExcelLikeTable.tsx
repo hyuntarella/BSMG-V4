@@ -409,6 +409,9 @@ export default function ExcelLikeTable({
                     : undefined
                   if (cellInitialChar) typeToEditCharRef.current = null
 
+                  // 기본공종 품명 셀: 크림 배경 + 노란 왼쪽선 + 굵은 글씨
+                  const isBaseNameCell = isNameCol && item.is_base === true
+
                   return (
                     <ExcelCell
                       key={col.key}
@@ -421,6 +424,8 @@ export default function ExcelLikeTable({
                       isLocked={item.is_locked && col.type === 'number'}
                       isReadonly={isLumpReadonly}
                       isMuted={isWasteDefaultExp}
+                      cellClassName={isBaseNameCell ? 'font-semibold' : undefined}
+                      cellStyle={isBaseNameCell ? { background: 'var(--v-base-bg)', boxShadow: 'inset 4px 0 0 var(--v-base-border)' } : undefined}
                       width={col.width}
                       align={col.align}
                       tierFontClass={tier.fontClass}

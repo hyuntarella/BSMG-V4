@@ -40,6 +40,10 @@ interface ExcelCellProps {
   onAcdbSearch?: (query: string) => void
   onAcdbSelect?: (result: AcdbSearchResult) => void
   onAcdbNavigate?: (direction: 'up' | 'down') => void
+  /** 외부에서 주입하는 추가 td className (예: 기본공종 품명 셀 스타일) */
+  cellClassName?: string
+  /** 외부에서 주입하는 추가 td style (bg 등 Tailwind 우선순위 충돌 방지용) */
+  cellStyle?: React.CSSProperties
 }
 
 export default function ExcelCell({
@@ -67,6 +71,8 @@ export default function ExcelCell({
   onAcdbSearch,
   onAcdbSelect,
   onAcdbNavigate,
+  cellClassName,
+  cellStyle,
 }: ExcelCellProps) {
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -326,8 +332,9 @@ export default function ExcelCell({
       className={`relative px-1 ${fontClass} cursor-cell border-b border-v-b select-none
         ${isSelected ? 'ring-2 ring-v-accent ring-inset bg-white z-[3]' : 'bg-white hover:bg-v-hov'}
         ${alignClass}
-        ${type === 'number' ? 'tabular-nums' : ''}`}
-      style={{ width: width ? `${width}px` : undefined, height: `${rowH}px` }}
+        ${type === 'number' ? 'tabular-nums' : ''}
+        ${cellClassName ?? ''}`}
+      style={{ width: width ? `${width}px` : undefined, height: `${rowH}px`, ...cellStyle }}
       onClick={() => {
         const canEdit = !isLocked || type === 'text'
         if (!isSelected) onSelect()
