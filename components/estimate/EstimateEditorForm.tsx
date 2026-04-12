@@ -165,7 +165,7 @@ export default function EstimateEditorForm({
     <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
 
       {/* ===== TOP BAR ===== */}
-      <div className="flex h-11 shrink-0 items-center border-b border-v-b bg-white px-3 gap-[3px]">
+      <div className="flex h-11 shrink-0 items-center border-b border-v-b2 bg-white px-3 gap-[3px]">
         {isLens && (
           <button
             onClick={handleLensBack}
@@ -208,7 +208,7 @@ export default function EstimateEditorForm({
 
       {/* ===== PRICE BAR (을지 탭만) ===== */}
       {activeTab !== 'cover' && activeSheet && (
-        <div className="flex shrink-0 items-center gap-[10px] border-t border-v-b bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
+        <div className="flex shrink-0 items-center gap-[10px] border-t border-v-b2 bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
           {/* 면적 입력 + 배지 */}
           <div className="flex items-end gap-2 pr-2">
             <div className="flex flex-col gap-[2px]">
@@ -274,7 +274,7 @@ export default function EstimateEditorForm({
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 overflow-auto bg-[#F2F2F7] pb-[76px]">
         {activeTab !== 'cover' ? (
-          <div className="flex gap-2 p-[8px_12px]">
+          <div className="flex gap-3 p-[12px_16px]">
             {/* 왼쪽: 테이블 */}
             <div className="min-w-0 flex-1">
               {activeSheetIdx >= 0 ? (
