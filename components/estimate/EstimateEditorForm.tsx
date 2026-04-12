@@ -281,12 +281,12 @@ export default function EstimateEditorForm({
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 overflow-auto bg-[#F2F2F7] pb-[76px]">
         {activeTab !== 'cover' ? (
-          <div className="flex gap-2 p-2">
+          <div className="flex gap-2 p-[8px_12px]">
             {/* 왼쪽: 테이블 */}
             <div className="min-w-0 flex-1">
               {activeSheetIdx >= 0 ? (
                 <>
-                  <div className="overflow-hidden rounded-[10px] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+                  <div className="overflow-hidden rounded-[10px] bg-white shadow-v-sm">
                     <EstimateTableWrapper
                       estimate={estimate}
                       sheetIndex={activeSheetIdx}
@@ -298,9 +298,9 @@ export default function EstimateEditorForm({
                   </div>
 
                   {/* 특기사항 */}
-                  <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
+                  <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-v-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10px] font-bold text-[#8a8a8e] tracking-wider">특기사항</h4>
+                      <h4 className="text-[10px] font-bold text-v-mut tracking-wider">특기사항</h4>
                       <div className="flex items-center gap-[6px]">
                         <WarrantySelect
                           sheet={activeSheet!}
@@ -308,7 +308,7 @@ export default function EstimateEditorForm({
                         />
                       </div>
                     </div>
-                    <div className="text-[10px] text-[#8a8a8e] mt-1">* 부가가치세별도</div>
+                    <div className="text-[10px] text-v-mut mt-1">* 부가가치세별도</div>
                   </div>
                 </>
               ) : (
@@ -413,12 +413,12 @@ function SidePanel({
     onChange({ ...estimate, sheets })
   }, [estimate, onChange, onSaveSnapshot])
 
-  const chipCls = 'w-full rounded-lg bg-[#F5F5F7] px-[10px] py-2 text-center text-xs font-medium text-[#1C1C1E] cursor-pointer hover:bg-[#E8F1FF] hover:text-[#007AFF] transition-colors'
+  const chipCls = 'w-full rounded-lg bg-v-hov px-[10px] py-2 text-center text-xs font-medium text-v-hdr cursor-pointer hover:bg-v-accent-bg hover:text-v-accent transition-colors'
 
   return (
     <>
-      <div className="rounded-[10px] bg-white p-[10px] mb-2 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
-        <h4 className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider mb-2 uppercase">장비·인력</h4>
+      <div className="rounded-[10px] bg-white p-[10px] mb-2 shadow-v-sm">
+        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">장비·인력</h4>
         <div className="flex flex-col gap-[5px]">
           <button className={chipCls} onClick={() => addEquipment('사다리차', '일', 0, 0, 120000)}>사다리차</button>
           <button className={chipCls} onClick={() => addEquipment('스카이차', '일', 0, 0, 350000)}>스카이차</button>
@@ -428,8 +428,8 @@ function SidePanel({
           <button className={chipCls} onClick={() => addEquipment('폐기물처리', '식', 0, 0, 200000)}>폐기물처리</button>
         </div>
       </div>
-      <div className="rounded-[10px] bg-white p-[10px] shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_3px_rgba(0,0,0,.06)]">
-        <h4 className="text-[10px] font-semibold text-[#8a8a8e] tracking-wider mb-2 uppercase">보수·추가</h4>
+      <div className="rounded-[10px] bg-white p-[10px] shadow-v-sm">
+        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">보수·추가</h4>
         <div className="flex flex-col gap-[5px]">
           <button className={chipCls} onClick={() => addRepair('바탕조정제 부분미장')}>바탕조정제 부분미장</button>
           <button className={chipCls} onClick={() => addRepair('드라이비트 하부절개')}>드라이비트 하부절개</button>
