@@ -18,6 +18,28 @@
     --destructive-foreground: 0 0% 100%;
     --accent-yellow: 38 92% 50%;
     --radius: 0.75rem;
+
+    /* v3.25 design tokens */
+    --v-b: #ececec;
+    --v-b2: #c7c7c9;
+    --v-mut: #8a8a8e;
+    --v-accent: #007AFF;
+    --v-accent-bg: #E8F1FF;
+    --v-hdr: #1C1C1E;
+    --v-hdr-bg: #F7F7F8;
+    --v-base-bg: #FFFCF0;
+    --v-base-border: #FFD60A;
+    --v-lock-bg: #FFF0F0;
+    --v-hov: #F5F5F7;
+    --v-sel: #E8F1FF;
+    --v-total-bg: #F7F7F8;
+    --v-grand-bg: #FFF9DB;
+    --v-ok: #30D158;
+    --v-warn: #FF9F0A;
+    --v-err: #FF453A;
+    --v-shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06);
+    --v-shadow-md: 0 2px 6px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+    --v-frame-shadow: 0 20px 60px -12px rgba(0,0,0,.35), 0 8px 24px -8px rgba(0,0,0,.15);
   }
 
   body {
