@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
   generateJson,
-  generateExcel,
-  generateTempPdf,
-  getExcelFileName,
-  getPdfFileName,
+  generateMethodExcel,
 } from '@/lib/estimate/fileExport'
-import type { Estimate, EstimateSheet, EstimateItem } from '@/lib/estimate/types'
+import { upsertToDrive, getEstimateFolderId } from '@/lib/gdrive/client'
+import { convertXlsxToPdf } from '@/lib/gdrive/convert'
+import type { Estimate, EstimateSheet, EstimateItem, Method } from '@/lib/estimate/types'
 import { isQuickChipCategoryArray } from '@/lib/estimate/favorites'
 import type { QuickChipCategory } from '@/lib/estimate/quickChipConfig'
 
@@ -17,8 +16,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
-
-const BUCKET = 'estimates'
 
 /**
  * 견적 저장 시 규칙서에 없는 공종을 cost_config.new_items 에 자동 등록.
@@ -101,7 +98,7 @@ async function registerNewItems(companyId: string, estimate: Estimate) {
 /**
  * POST /api/estimates/[id]/save-all
  *
- * JSON + Excel + PDF(복합) + PDF(우레탄) 4개 파일 생성 → Storage 업로드 → DB 업데이트
+ * JSON + XLSX 2종(복합/우레탄) + PDF 2종(복합/우레탄) = 최대 5파일 생성 → Google Drive 업로드 → DB 업데이트
  */
 export async function POST(
   request: Request,
@@ -188,83 +185,89 @@ export async function POST(
   }
 
   const mgmtNo = estimate.mgmt_no ?? estimateId.slice(0, 8)
-  const folderPath = `estimates/${mgmtNo}`
+  const folderId = getEstimateFolderId()
+
+  // 파일명 규칙: {customerName}_{siteName}_{YYMMDD}_{mgmtNo}.{ext}
+  const customer = (estimate.customer_name || '미지정').replace(/[/\\:*?"<>|]/g, '')
+  const site = (estimate.site_name || '방수공사').replace(/[/\\:*?"<>|]/g, '')
+  const dateStr = estimate.date || 'unknown'
+  const basePrefix = `${customer}_${site}_${dateStr}_${mgmtNo}`
 
   try {
-    // ── 1. JSON ──
+    // ── 1. JSON → Drive ──
     const jsonStr = generateJson(estimate)
-    const jsonBuffer = Buffer.from(jsonStr, 'utf-8')
-    const jsonPath = `${folderPath}/견적서_${mgmtNo}.json`
-    await supabase.storage
-      .from(BUCKET)
-      .upload(jsonPath, jsonBuffer, {
-        contentType: 'application/json',
-        upsert: true,
-      })
-    const { data: jsonUrlData } = supabase.storage.from(BUCKET).getPublicUrl(jsonPath)
+    const jsonFileName = `${basePrefix}.json`
+    const jsonResult = await upsertToDrive(
+      folderId,
+      jsonFileName,
+      'application/json',
+      jsonStr,
+    )
 
-    // ── 2. Excel ──
-    const excelBuffer = await generateExcel(estimate)
-    const excelFileName = getExcelFileName(estimate)
-    const excelPath = `${folderPath}/${excelFileName}`
-    await supabase.storage
-      .from(BUCKET)
-      .upload(excelPath, excelBuffer, {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert: true,
-      })
-    const { data: excelUrlData } = supabase.storage.from(BUCKET).getPublicUrl(excelPath)
+    // ── 2 & 3. 공법별 XLSX → PDF (복합/우레탄 병렬) ──
+    const methods: Method[] = []
+    if (estimate.sheets.some(s => s.type === '복합')) methods.push('복합')
+    if (estimate.sheets.some(s => s.type === '우레탄')) methods.push('우레탄')
 
-    // ── 3. PDF (복합) ──
+    let compositeXlsxUrl = ''
     let compositePdfUrl = ''
-    const compositeFileName = getPdfFileName(estimate, '복합')
-    const compositeSheet = estimate.sheets.find((s) => s.type === '복합')
-    if (compositeSheet) {
-      const compositePdfBuffer = await generateTempPdf(estimate, '복합')
-      const compositePdfPath = `${folderPath}/${compositeFileName}`
-      await supabase.storage
-        .from(BUCKET)
-        .upload(compositePdfPath, compositePdfBuffer, {
-          contentType: 'application/pdf',
-          upsert: true,
-        })
-      const { data: cpData } = supabase.storage.from(BUCKET).getPublicUrl(compositePdfPath)
-      compositePdfUrl = cpData.publicUrl
-    }
-
-    // ── 4. PDF (우레탄) ──
+    let urethaneXlsxUrl = ''
     let urethanePdfUrl = ''
-    const urethaneFileName = getPdfFileName(estimate, '우레탄')
-    const urethaneSheet = estimate.sheets.find((s) => s.type === '우레탄')
-    if (urethaneSheet) {
-      const urethanePdfBuffer = await generateTempPdf(estimate, '우레탄')
-      const urethanePdfPath = `${folderPath}/${urethaneFileName}`
-      await supabase.storage
-        .from(BUCKET)
-        .upload(urethanePdfPath, urethanePdfBuffer, {
-          contentType: 'application/pdf',
-          upsert: true,
-        })
-      const { data: upData } = supabase.storage.from(BUCKET).getPublicUrl(urethanePdfPath)
-      urethanePdfUrl = upData.publicUrl
+
+    const methodResults = await Promise.all(
+      methods.map(async (method) => {
+        const methodKey = method === '복합' ? 'complex' : 'urethane'
+
+        // XLSX 생성
+        const xlsxBuffer = await generateMethodExcel(estimate, method)
+        const xlsxFileName = `${basePrefix}_${methodKey}.xlsx`
+        const xlsxResult = await upsertToDrive(
+          folderId,
+          xlsxFileName,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          xlsxBuffer,
+        )
+
+        // XLSX → PDF 변환 (Drive API)
+        const pdfFileName = `${basePrefix}_${methodKey}.pdf`
+        const pdfBuffer = await convertXlsxToPdf(xlsxBuffer, xlsxFileName, folderId)
+        const pdfResult = await upsertToDrive(
+          folderId,
+          pdfFileName,
+          'application/pdf',
+          pdfBuffer,
+        )
+
+        return { method, xlsxResult, pdfResult }
+      }),
+    )
+
+    for (const r of methodResults) {
+      if (r.method === '복합') {
+        compositeXlsxUrl = r.xlsxResult.url
+        compositePdfUrl = r.pdfResult.url
+      } else {
+        urethaneXlsxUrl = r.xlsxResult.url
+        urethanePdfUrl = r.pdfResult.url
+      }
     }
 
-    // ── 5. 신규 공종 자동 등록 (cost_config.new_items) ──
+    // ── 4. 신규 공종 자동 등록 (cost_config.new_items) ──
     if (estimate.company_id) {
       await registerNewItems(estimate.company_id, estimate)
     }
 
-    // ── 6. DB 업데이트 ──
+    // ── 5. DB 업데이트 (메타데이터 + Drive URLs) ──
     await supabase
       .from('estimates')
       .update({
         status: 'saved',
-        json_url: jsonUrlData.publicUrl,
-        excel_url: excelUrlData.publicUrl,
+        json_url: jsonResult.url,
+        excel_url: compositeXlsxUrl || urethaneXlsxUrl || null,
         composite_pdf_url: compositePdfUrl || null,
         urethane_pdf_url: urethanePdfUrl || null,
         files_generated_at: new Date().toISOString(),
-        folder_path: folderPath,
+        folder_path: `gdrive:${folderId}`,
         updated_at: new Date().toISOString(),
       })
       .eq('id', estimateId)
@@ -272,15 +275,17 @@ export async function POST(
     return NextResponse.json({
       success: true,
       estimateId,
-      jsonUrl: jsonUrlData.publicUrl,
-      excelUrl: excelUrlData.publicUrl,
+      jsonUrl: jsonResult.url,
+      compositeXlsxUrl: compositeXlsxUrl || null,
+      urethaneXlsxUrl: urethaneXlsxUrl || null,
       compositePdfUrl: compositePdfUrl || null,
       urethanePdfUrl: urethanePdfUrl || null,
       fileName: {
-        json: `견적서_${mgmtNo}.json`,
-        excel: excelFileName,
-        compositePdf: compositeFileName,
-        urethanePdf: urethaneFileName,
+        json: jsonFileName,
+        compositeXlsx: compositeXlsxUrl ? `${basePrefix}_complex.xlsx` : null,
+        urethaneXlsx: urethaneXlsxUrl ? `${basePrefix}_urethane.xlsx` : null,
+        compositePdf: compositePdfUrl ? `${basePrefix}_complex.pdf` : null,
+        urethanePdf: urethanePdfUrl ? `${basePrefix}_urethane.pdf` : null,
       },
     })
   } catch (err) {

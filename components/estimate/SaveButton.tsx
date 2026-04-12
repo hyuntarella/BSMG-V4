@@ -38,6 +38,7 @@ function triggerDownload(url: string, filename: string) {
 export default function SaveButton({ estimateId, estimate, onSaved, fabStyle }: SaveButtonProps) {
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [pdfExporting, setPdfExporting] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [lastResult, setLastResult] = useState<SaveResult | null>(null)
@@ -149,6 +150,49 @@ export default function SaveButton({ estimateId, estimate, onSaved, fabStyle }: 
     }
   }
 
+  /** 공법별 PDF 다운로드 (Phase 3-B: Drive API 변환) */
+  async function handlePdfDownload() {
+    setPdfExporting(true)
+    setToast(null)
+
+    try {
+      const methods: Array<{ key: string; label: string }> = []
+      for (const s of estimate.sheets) {
+        if (s.type === '복합') methods.push({ key: 'complex', label: '복합' })
+        if (s.type === '우레탄') methods.push({ key: 'urethane', label: '우레탄' })
+      }
+
+      for (const m of methods) {
+        const res = await fetch(`/api/estimates/${estimateId}/export`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ format: 'pdf', method: m.key }),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'PDF 생성 실패' }))
+          setToast({ type: 'error', message: err.error ?? 'PDF 생성 실패' })
+          return
+        }
+
+        const blob = await res.blob()
+        const disposition = res.headers.get('Content-Disposition') ?? ''
+        const match = disposition.match(/filename="?([^"]+)"?/)
+        const fileName = match ? decodeURIComponent(match[1]) : `견적서_${m.label}.pdf`
+
+        const url = URL.createObjectURL(blob)
+        triggerDownload(url, fileName)
+        URL.revokeObjectURL(url)
+      }
+
+      setToast({ type: 'success', message: 'PDF 다운로드 완료' })
+    } catch {
+      setToast({ type: 'error', message: '네트워크 오류' })
+    } finally {
+      setPdfExporting(false)
+    }
+  }
+
   const fabCls = 'min-w-[68px] h-11 px-[18px] rounded-[22px] border-none bg-white shadow-[0_4px_12px_rgba(0,0,0,.12),0_2px_4px_rgba(0,0,0,.08)] cursor-pointer text-sm font-semibold text-v-hdr transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,.2),0_3px_6px_rgba(0,0,0,.12)] active:translate-y-0 flex items-center justify-center tracking-tight disabled:opacity-50'
   const fabPrimaryCls = 'min-w-[68px] h-11 px-[18px] rounded-[22px] border-none bg-v-accent shadow-[0_4px_12px_rgba(0,0,0,.12),0_2px_4px_rgba(0,0,0,.08)] cursor-pointer text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#0062CC] hover:shadow-[0_6px_16px_rgba(0,0,0,.2),0_3px_6px_rgba(0,0,0,.12)] active:translate-y-0 flex items-center justify-center tracking-tight disabled:opacity-50'
   const fabDisabledCls = 'min-w-[68px] h-11 px-[18px] rounded-[22px] border-none bg-gray-200 shadow-[0_2px_6px_rgba(0,0,0,.06)] text-sm font-semibold text-gray-400 flex items-center justify-center tracking-tight cursor-not-allowed'
@@ -173,11 +217,12 @@ export default function SaveButton({ estimateId, estimate, onSaved, fabStyle }: 
           {exporting ? '...' : 'XLSX'}
         </button>
         <button
-          disabled
-          className={fabDisabledCls}
-          title="준비 중 — 차기 페이즈에서 구현 예정"
+          onClick={handlePdfDownload}
+          disabled={pdfExporting}
+          className={fabPrimaryCls}
+          title="PDF 다운로드"
         >
-          PDF
+          {pdfExporting ? '...' : 'PDF'}
         </button>
         {toast && (
           <div

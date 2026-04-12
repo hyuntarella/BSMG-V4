@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateMethodExcel } from '@/lib/estimate/fileExport'
+import { convertXlsxToPdf } from '@/lib/gdrive/convert'
+import { getEstimateFolderId } from '@/lib/gdrive/client'
 import type { Estimate, EstimateSheet, EstimateItem, Method } from '@/lib/estimate/types'
 
 export const maxDuration = 30
@@ -36,9 +38,9 @@ async function generateMgmtNo(companyId: string, date: string): Promise<string> 
 /**
  * POST /api/estimates/[id]/export
  *
- * body: { format: 'xlsx', method: 'complex' | 'urethane' }
- * 200 → XLSX binary stream
- * 501 → format이 'pdf' 또는 'both'일 때 (차기 페이즈)
+ * body: { format: 'xlsx' | 'pdf', method: 'complex' | 'urethane' }
+ * xlsx → XLSX binary stream
+ * pdf  → Drive API 변환 후 PDF binary stream
  */
 export async function POST(
   request: Request,
@@ -55,15 +57,7 @@ export async function POST(
 
   const { format, method: methodRaw } = body
 
-  // PDF/both → 501 (차기 페이즈)
-  if (format === 'pdf' || format === 'both') {
-    return NextResponse.json(
-      { error: 'PDF 변환은 차기 페이즈(구글드라이브 Drive API)에서 구현 예정입니다' },
-      { status: 501 },
-    )
-  }
-
-  if (format !== 'xlsx') {
+  if (format !== 'xlsx' && format !== 'pdf') {
     return NextResponse.json({ error: `지원하지 않는 포맷: ${format}` }, { status: 400 })
   }
 
@@ -177,22 +171,40 @@ export async function POST(
   }
 
   try {
+    // XLSX 생성 (PDF든 XLSX든 먼저 필요)
     const xlsxBuffer = await generateMethodExcel(estimate, method)
 
     const dateStr = estimate.date || 'unknown'
     const customer = (estimate.customer_name || '미지정').replace(/[/\\:*?"<>|]/g, '')
-    const fileName = `견적서_${dateStr}_${customer}_${methodRaw}.xlsx`
 
-    return new NextResponse(new Uint8Array(xlsxBuffer), {
+    if (format === 'xlsx') {
+      const fileName = `견적서_${dateStr}_${customer}_${methodRaw}.xlsx`
+      return new NextResponse(new Uint8Array(xlsxBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+          'Content-Length': String(xlsxBuffer.length),
+        },
+      })
+    }
+
+    // format === 'pdf': Drive API로 XLSX → PDF 변환
+    const folderId = getEstimateFolderId()
+    const tempXlsxName = `_temp_export_${estimateId}_${methodRaw}.xlsx`
+    const pdfBuffer = await convertXlsxToPdf(xlsxBuffer, tempXlsxName, folderId)
+
+    const pdfFileName = `견적서_${dateStr}_${customer}_${methodRaw}.pdf`
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-        'Content-Length': String(xlsxBuffer.length),
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(pdfFileName)}"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'XLSX 생성 실패'
+    const msg = err instanceof Error ? err.message : `${format?.toUpperCase()} 생성 실패`
     console.error('[export] error:', err)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
