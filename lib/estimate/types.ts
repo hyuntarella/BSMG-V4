@@ -167,6 +167,16 @@ export interface PresetRow {
   last_used?: string
 }
 
+// ── 실시간 음성 감지 하이라이트 (Web Speech API interim) ──
+export interface RealtimeHighlight {
+  /** 감지된 공종명 (행 노란 하이라이트) */
+  itemName?: string
+  /** 감지된 필드 (셀 포커스 테두리) */
+  field?: string
+  /** 미리보기 값 (연한 색 텍스트) */
+  previewValue?: number
+}
+
 // ── 음성 파싱 결과 (extract 모드) ──
 export interface VoiceParsed {
   method: Method | '복합+우레탄' | null
