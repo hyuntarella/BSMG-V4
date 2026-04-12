@@ -193,6 +193,7 @@ export default function EstimateEditorForm({
           갑지 · 검수
         </button>
         <div className="flex-1" />
+        <LoadButton onLoad={setEstimate} />
         <button
           className="rounded border border-v-b bg-transparent px-3 py-1 text-xs font-medium text-v-hdr hover:bg-v-hov disabled:opacity-40"
           onClick={undo}
@@ -359,7 +360,6 @@ export default function EstimateEditorForm({
             fabStyle
           />
         )}
-        <LoadButton onLoad={setEstimate} />
       </div>
     </div>
   )
