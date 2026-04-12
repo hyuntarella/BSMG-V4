@@ -45,18 +45,19 @@ describe('getAdjustedCost', () => {
   const c30 = getCostBreakdown(30)
   const adj30 = getAdjustedCost(30)
 
-  it('30평 인상후 하도 = 96000', () => expect(adj30.hado).toBe(Math.round(80000 * 1.2)))
-  it('30평 인상후 중도 = 600000', () => expect(adj30.jungdo15).toBe(Math.round(500000 * 1.2)))
-  it('인건비 변화 없음', () => expect(adj30.labor).toBe(c30.labor))
-  it('경비 변화 없음', () => expect(adj30.misc).toBe(c30.misc))
-  it('총원가 증가', () => expect(adj30.total).toBeGreaterThan(c30.total))
+  // Phase 3-C: material_increase_rate 제거 — getAdjustedCost는 getCostBreakdown alias
+  it('30평 하도 = base와 동일', () => expect(adj30.hado).toBe(c30.hado))
+  it('30평 중도 = base와 동일', () => expect(adj30.jungdo15).toBe(c30.jungdo15))
+  it('인건비 동일', () => expect(adj30.labor).toBe(c30.labor))
+  it('경비 동일', () => expect(adj30.misc).toBe(c30.misc))
+  it('총원가 동일', () => expect(adj30.total).toBe(c30.total))
 })
 
 describe('getMarginDisplay', () => {
   const margin = getMarginDisplay(50000, 50)
 
-  it('마진 포맷 정상', () => expect(margin.formatted).toMatch(/\d+% \(인상 전 \d+%\)/))
-  it('인상전 마진 ≥ 현 마진', () => expect(margin.beforeIncrease).toBeGreaterThanOrEqual(margin.current))
+  it('마진 포맷 정상', () => expect(margin.formatted).toMatch(/^\d+%$/))
+  it('beforeIncrease === current', () => expect(margin.beforeIncrease).toBe(margin.current))
 })
 
 describe('findPriceForMargin', () => {

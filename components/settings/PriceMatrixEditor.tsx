@@ -1,11 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import type { AreaRange, Method } from '@/lib/estimate/types'
 import { AREA_BOUNDARIES } from '@/lib/estimate/constants'
-import PriceMatrixChips from '@/components/settings/PriceMatrixChips'
-import PriceMatrixControls from '@/components/settings/PriceMatrixControls'
-import PriceMatrixDetailTable from '@/components/settings/PriceMatrixDetailTable'
-import { usePriceMatrixEditor } from '@/components/settings/usePriceMatrixEditor'
+import PriceMatrixAccordionItem from '@/components/settings/PriceMatrixAccordionItem'
 
 const AREA_RANGES: AreaRange[] = AREA_BOUNDARIES
   .filter((b) => b.max !== Infinity)
@@ -14,59 +12,46 @@ const AREA_RANGES: AreaRange[] = AREA_BOUNDARIES
 
 const METHODS: Method[] = ['복합', '우레탄']
 
+/**
+ * 단가표 편집기 — 공법 세그먼트 + 면적대 아코디언.
+ * 각 아코디언 항목은 독립 데이터 + 독립 저장.
+ */
 export default function PriceMatrixEditor() {
-  const s = usePriceMatrixEditor()
+  const [method, setMethod] = useState<Method>('복합')
 
   return (
-    <div className="space-y-4">
-      <PriceMatrixControls
-        areaRanges={AREA_RANGES}
-        methods={METHODS}
-        areaRange={s.areaRange}
-        method={s.method}
-        onAreaRangeChange={s.setAreaRange}
-        onMethodChange={s.setMethod}
-        toast={s.toast}
-        saving={s.saving}
-        canSave={s.rows.length > 0}
-        onSave={s.handleSave}
-      />
-
-      {s.loading ? (
-        <div className="py-12 text-center text-sm text-gray-400">로딩 중…</div>
-      ) : (
-        <div className="space-y-4">
-          <PriceMatrixChips
-            pppList={s.pppList}
-            selectedPpp={s.selectedPpp}
-            onSelect={s.setSelectedPpp}
-            onAdd={s.handleAddPpp}
-            onDelete={s.handleDeletePpp}
-          />
-          {s.pppList.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
-              해당 면적대/공법의 단가 데이터가 없습니다. 위{' '}
-              <span className="font-medium">+ 평단가 추가</span> 를 눌러 시작하세요
-            </div>
-          ) : s.selectedPpp !== null ? (
-            <PriceMatrixDetailTable
-              items={s.baseItems}
-              ppp={s.selectedPpp}
-              getCellValue={s.getCellValue}
-              editingCell={s.editingCell}
-              editValue={s.editValue}
-              onStartEdit={s.startEdit}
-              onChangeEdit={s.setEditValue}
-              onCommitEdit={s.commitEdit}
-              onCancelEdit={() => s.setEditingCell(null)}
-            />
-          ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
-              위에서 평단가를 선택하세요
-            </div>
-          )}
+    <div className="space-y-5">
+      {/* 공법 세그먼트 컨트롤 */}
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-medium text-ink-secondary">공법</span>
+        <div className="inline-flex rounded-lg bg-surface-muted p-1">
+          {METHODS.map((m) => (
+            <button
+              key={m}
+              onClick={() => setMethod(m)}
+              className={`rounded-md px-5 py-1.5 text-sm font-medium transition-all ${
+                method === m
+                  ? 'bg-white text-ink shadow-card'
+                  : 'text-ink-secondary hover:text-ink'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* 면적대 아코디언 */}
+      <div className="space-y-2">
+        {AREA_RANGES.map((ar, idx) => (
+          <PriceMatrixAccordionItem
+            key={`${ar}-${method}`}
+            areaRange={ar}
+            method={method}
+            defaultOpen={idx === 0}
+          />
+        ))}
+      </div>
     </div>
   )
 }

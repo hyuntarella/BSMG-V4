@@ -7,11 +7,9 @@ import type { PriceMatrixEditingCell } from '@/components/settings/PriceMatrixDe
 
 /**
  * 단가표 편집기 상태/핸들러 훅.
- * PriceMatrixEditor 를 렌더 전용으로 유지하기 위해 모든 비즈 로직을 여기로 격리.
+ * areaRange, method 는 외부에서 제어.
  */
-export function usePriceMatrixEditor() {
-  const [areaRange, setAreaRange] = useState<AreaRange>('50~100평')
-  const [method, setMethod] = useState<Method>('복합')
+export function usePriceMatrixEditor(areaRange: AreaRange, method: Method) {
   const [rows, setRows] = useState<PriceMatrixRow[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -199,8 +197,6 @@ export function usePriceMatrixEditor() {
     toast,
     pppList,
     baseItems,
-    setAreaRange,
-    setMethod,
     setSelectedPpp,
     setEditValue,
     setEditingCell,

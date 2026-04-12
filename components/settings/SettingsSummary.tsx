@@ -13,7 +13,6 @@ interface SummaryData {
   warrantyYears: number
   bondYears: number
   laborCostPerPum: number
-  materialIncreaseRate: number
   complexCount: number
   urethaneCount: number
   presetCount: number
@@ -41,8 +40,6 @@ export default function SettingsSummary() {
       const baseItems = (cfg.base_items ?? {}) as Record<string, unknown[]>
       const presets: unknown[] = Array.isArray(presetsJson.presets) ? presetsJson.presets : []
 
-      // 장비 단가: 신형 {mat,labor,exp} / 레거시 number 둘 다 지원.
-      // 요약 바는 합계(=mat+labor+exp)를 표시한다.
       const entryTotal = (raw: unknown, fallback: number): number => {
         if (typeof raw === 'number') return raw
         if (raw && typeof raw === 'object') {
@@ -66,10 +63,6 @@ export default function SettingsSummary() {
         bondYears: warranty.bond_years ?? 3,
         laborCostPerPum:
           typeof cfg.labor_cost_per_pum === 'number' ? cfg.labor_cost_per_pum : 220000,
-        materialIncreaseRate:
-          typeof cfg.material_increase_rate === 'number'
-            ? Math.round(cfg.material_increase_rate * 100)
-            : 20,
         complexCount: Array.isArray(baseItems.complex) ? baseItems.complex.length : 0,
         urethaneCount: Array.isArray(baseItems.urethane) ? baseItems.urethane.length : 0,
         presetCount: presets.length,
@@ -81,29 +74,31 @@ export default function SettingsSummary() {
 
   if (!data) return null
 
-  const SUMMARY_ITEMS = [
-    `공과잡비 ${data.overheadRate}%`,
-    `기업이윤 ${data.profitRate}%`,
-    `절사 ${fm(data.roundUnit / 10000)}만원`,
-    `사다리차 ${fm(data.ladderPrice / 10000)}만원/일`,
-    `스카이차 ${fm(data.skyPrice / 10000)}만원/일`,
-    `보증 ${data.warrantyYears}년`,
+  const chips: { label: string; value: string }[] = [
+    { label: '공과잡비', value: `${data.overheadRate}%` },
+    { label: '이윤', value: `${data.profitRate}%` },
+    { label: '절사', value: `${fm(data.roundUnit / 10000)}만` },
+    { label: '보증', value: `${data.warrantyYears}년` },
+    { label: '복합', value: `${data.complexCount}공종` },
+    { label: '우레탄', value: `${data.urethaneCount}공종` },
+    { label: '프리셋', value: `${data.presetCount}개` },
   ]
 
   return (
     <div
       data-testid="settings-summary-bar"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-card"
     >
-      <span className="text-xs font-medium text-gray-500 shrink-0">현재 적용</span>
-      {SUMMARY_ITEMS.map((item) => (
-        <span key={item} className="text-xs text-gray-600">
-          {item}
+      <span className="mr-1 text-xs font-semibold text-ink-secondary">현재 적용</span>
+      {chips.map((chip) => (
+        <span
+          key={chip.label}
+          className="inline-flex items-center gap-1 rounded-lg bg-surface-muted px-2.5 py-1 text-xs"
+        >
+          <span className="text-ink-muted">{chip.label}</span>
+          <span className="font-medium text-ink">{chip.value}</span>
         </span>
       ))}
-      <span className="text-xs text-gray-400">
-        | 복합 {data.complexCount}공종 · 우레탄 {data.urethaneCount}공종 · 프리셋 {data.presetCount}개
-      </span>
     </div>
   )
 }

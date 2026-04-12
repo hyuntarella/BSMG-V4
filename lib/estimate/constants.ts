@@ -75,13 +75,12 @@ export const COST_TABLE = {
   },
 } as const
 
-// ── 상세 원가 데이터 (면적대별, 재료비 인상 전 기준) ──
+// ── 상세 원가 데이터 (면적대별) ──
 
 /** 1품 = 22만원 */
 export const LABOR_COST_PER_PUM = 220000
 
-/** 재료비 인상률 (현재 20%) */
-export const MATERIAL_INCREASE_RATE = 0.20
+// MATERIAL_INCREASE_RATE 삭제됨 (Phase 3-C)
 
 /** 면적대별 원가 기준 */
 export interface CostBreakpoint {

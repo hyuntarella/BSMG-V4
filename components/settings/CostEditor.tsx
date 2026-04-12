@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { CostBreakpoint } from '@/lib/estimate/constants'
-import { COST_BREAKPOINTS, LABOR_COST_PER_PUM, MATERIAL_INCREASE_RATE } from '@/lib/estimate/constants'
+import { COST_BREAKPOINTS, LABOR_COST_PER_PUM } from '@/lib/estimate/constants'
 import { fm } from '@/lib/utils/format'
 
 // ── 편집 중인 셀 ──
@@ -13,9 +13,6 @@ interface EditingCell {
 
 export default function CostEditor() {
   const [laborCostPerPum, setLaborCostPerPum] = useState<number>(LABOR_COST_PER_PUM)
-  const [materialIncreaseRate, setMaterialIncreaseRate] = useState<number>(
-    Math.round(MATERIAL_INCREASE_RATE * 100)
-  )
   const [breakpoints, setBreakpoints] = useState<CostBreakpoint[]>(
     COST_BREAKPOINTS.map((bp) => ({ ...bp }))
   )
@@ -39,9 +36,6 @@ export default function CostEditor() {
         const cfg = json.config as Record<string, unknown>
         if (typeof cfg.labor_cost_per_pum === 'number') {
           setLaborCostPerPum(cfg.labor_cost_per_pum)
-        }
-        if (typeof cfg.material_increase_rate === 'number') {
-          setMaterialIncreaseRate(Math.round(cfg.material_increase_rate * 100))
         }
         if (Array.isArray(cfg.cost_breakpoints) && cfg.cost_breakpoints.length > 0) {
           setBreakpoints(cfg.cost_breakpoints as CostBreakpoint[])
@@ -106,7 +100,6 @@ export default function CostEditor() {
         body: JSON.stringify({
           config: {
             labor_cost_per_pum: laborCostPerPum,
-            material_increase_rate: materialIncreaseRate / 100,
             cost_breakpoints: breakpoints,
           },
         }),
@@ -140,93 +133,81 @@ export default function CostEditor() {
   ]
 
   if (loading) {
-    return <div className="py-12 text-center text-sm text-gray-400">로딩 중…</div>
+    return <div className="py-12 text-center text-sm text-ink-muted">로딩 중…</div>
   }
 
   return (
     <div className="space-y-6">
       {/* 기본 상수 */}
-      <div className="rounded-lg border border-gray-200 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-gray-700">기본 단가</h3>
-        <div className="flex flex-wrap gap-6">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">1품 단가</label>
-            <input
-              type="number"
-              value={laborCostPerPum}
-              onChange={(e) => setLaborCostPerPum(parseInt(e.target.value, 10) || 0)}
-              className="w-28 rounded border border-gray-300 px-2 py-1 text-right text-sm tabular-nums"
-            />
-            <span className="text-sm text-gray-500">원</span>
-            <span className="text-xs text-gray-400">
-              (현재: {fm(laborCostPerPum)}원)
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">재료비 인상률</label>
-            <input
-              type="number"
-              value={materialIncreaseRate}
-              onChange={(e) => setMaterialIncreaseRate(parseInt(e.target.value, 10) || 0)}
-              className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm"
-            />
-            <span className="text-sm text-gray-500">%</span>
-          </div>
+      <div className="rounded-xl border border-ink-faint/20 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-ink">기본 단가</h3>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-ink-secondary">1품 단가</label>
+          <input
+            type="number"
+            value={laborCostPerPum}
+            onChange={(e) => setLaborCostPerPum(parseInt(e.target.value, 10) || 0)}
+            className="w-28 rounded-lg border border-ink-faint/30 px-2 py-1 text-right text-sm tabular-nums"
+          />
+          <span className="text-sm text-ink-muted">원</span>
+          <span className="text-xs text-ink-muted">
+            (현재: {fm(laborCostPerPum)}원)
+          </span>
         </div>
       </div>
 
       {/* 면적대별 원가 테이블 */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">면적대별 원가 기준</h3>
+          <h3 className="text-sm font-semibold text-ink">면적대별 원가 기준</h3>
           <div className="flex items-center gap-2">
             {toast && (
-              <span className="rounded bg-green-100 px-3 py-1 text-sm text-green-700">
+              <span className="rounded-lg bg-emerald-50 px-3 py-1 text-sm text-emerald-700">
                 {toast}
               </span>
             )}
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded bg-brand px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              className="btn-primary !px-4 !py-1.5 !text-sm"
             >
               {saving ? '저장 중…' : '저장'}
             </button>
           </div>
         </div>
-        <p className="mb-3 text-xs text-gray-400">
+        <p className="mb-3 text-xs text-ink-muted">
           * 금액 단위: 원. 품수는 소수점 가능. 셀을 클릭하여 편집.
         </p>
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-gray-50 text-left">
+              <tr className="bg-surface-muted text-left">
                 {BREAKPOINT_FIELDS.map(({ field, label }) => (
                   <th
                     key={field}
-                    className="border border-gray-200 px-3 py-2 font-medium text-gray-600 whitespace-nowrap"
+                    className="border border-ink-faint/20 px-3 py-2 font-medium text-ink-secondary whitespace-nowrap"
                   >
                     {label}
                   </th>
                 ))}
-                <th className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-600 w-12">
+                <th className="border border-ink-faint/20 px-2 py-2 text-center font-medium text-ink-secondary w-12">
                   삭제
                 </th>
               </tr>
             </thead>
             <tbody>
               {breakpoints.map((bp, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
+                <tr key={idx} className="hover:bg-surface-muted/50">
                   {BREAKPOINT_FIELDS.map(({ field }) => {
                     const isEditing =
                       editingCell?.index === idx && editingCell.field === field
                     return (
                       <td
                         key={field}
-                        className={`border border-gray-200 px-2 py-1 text-right tabular-nums ${
+                        className={`border border-ink-faint/20 px-2 py-1 text-right tabular-nums ${
                           isEditing
-                            ? 'bg-yellow-50 p-0'
-                            : 'cursor-pointer hover:bg-blue-50'
+                            ? 'bg-accent-50 p-0'
+                            : 'cursor-pointer hover:bg-v-sel'
                         }`}
                         onClick={() => !isEditing && startEdit(idx, field)}
                       >
@@ -242,7 +223,7 @@ export default function CostEditor() {
                               if (e.key === 'Enter') commitEdit()
                               if (e.key === 'Escape') setEditingCell(null)
                             }}
-                            className="w-full bg-yellow-50 px-2 py-1 text-right text-xs outline-none"
+                            className="w-full bg-accent-50 px-2 py-1 text-right text-xs outline-none"
                           />
                         ) : field === 'pyeong' || field === 'pum' ? (
                           bp[field]
@@ -252,7 +233,7 @@ export default function CostEditor() {
                       </td>
                     )
                   })}
-                  <td className="border border-gray-200 px-2 py-1 text-center">
+                  <td className="border border-ink-faint/20 px-2 py-1 text-center">
                     <button
                       onClick={() => removeRow(idx)}
                       className="text-red-400 hover:text-red-600"
@@ -267,7 +248,7 @@ export default function CostEditor() {
         </div>
         <button
           onClick={addRow}
-          className="mt-2 flex items-center gap-1 rounded border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-500 hover:border-brand hover:text-brand"
+          className="mt-2 flex items-center gap-1 rounded-lg border border-dashed border-ink-faint/30 px-4 py-2 text-sm text-ink-muted hover:border-brand hover:text-brand"
         >
           + 행 추가
         </button>

@@ -11,7 +11,7 @@ const supabase = createClient(
 // {
 //   cost_breakpoints: CostBreakpoint[],
 //   labor_cost_per_pum: number,
-//   material_increase_rate: number,
+//   (material_increase_rate 제거됨 — Phase 3-C)
 //   base_items: { complex: BaseItem[], urethane: BaseItem[] }
 // }
 

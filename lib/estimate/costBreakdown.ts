@@ -2,14 +2,12 @@
  * 상세 원가/마진 계산 엔진
  *
  * 30/50/100평 브레이크포인트 사이를 선형 보간하여 원가 산출.
- * 재료비 20% 인상 적용 후 현 마진율 계산.
  * 마진율 → 평단가 역산 지원.
  */
 
 import {
   COST_BREAKPOINTS,
   LABOR_COST_PER_PUM,
-  MATERIAL_INCREASE_RATE,
   type CostBreakpoint,
 } from './constants'
 
@@ -30,16 +28,16 @@ export interface CostBreakdown {
 
 /** 마진 표시 데이터 */
 export interface MarginDisplay {
-  /** 현재 마진율 (재료비 인상 후) */
+  /** 현재 마진율 */
   current: number
-  /** 인상 전 마진율 */
+  /** @deprecated Phase 3-C에서 material_increase_rate 제거. current와 동일값. */
   beforeIncrease: number
-  /** 포맷된 문자열: "52% (인상 전 63%)" */
+  /** 포맷된 문자열: "63%" */
   formatted: string
 }
 
 /**
- * 면적(평) 기준 원가 산출 (재료비 인상 전)
+ * 면적(평) 기준 원가 산출
  * 30/50/100평 사이 선형 보간
  */
 export function getCostBreakdown(pyeong: number): CostBreakdown {
@@ -58,27 +56,11 @@ export function getCostBreakdown(pyeong: number): CostBreakdown {
 }
 
 /**
- * 재료비 인상 적용한 원가 산출
+ * @deprecated Phase 3-C에서 material_increase_rate 제거됨.
+ * getCostBreakdown과 동일. 기존 호출부 호환을 위해 유지.
  */
 export function getAdjustedCost(pyeong: number): CostBreakdown {
-  const base = getCostBreakdown(pyeong)
-  const rate = 1 + MATERIAL_INCREASE_RATE
-
-  const hado = Math.round(base.hado * rate)
-  const jungdo15 = Math.round(base.jungdo15 * rate)
-  const sangdo = Math.round(base.sangdo * rate)
-  const sheet = Math.round(base.sheet * rate)
-  const materialTotal = hado + jungdo15 + sangdo + sheet
-
-  return {
-    ...base,
-    hado,
-    jungdo15,
-    sangdo,
-    sheet,
-    materialTotal,
-    total: materialTotal + base.labor + base.misc,
-  }
+  return getCostBreakdown(pyeong)
 }
 
 /**
@@ -90,22 +72,15 @@ export function getMarginDisplay(pricePerM2: number, pyeong: number): MarginDisp
   const m2 = pyeong * 3.306
   const revenue = pricePerM2 * m2
 
-  // 인상 후 원가
-  const adjustedCost = getAdjustedCost(pyeong)
-  const current = revenue > 0
-    ? Math.round((revenue - adjustedCost.total) / revenue * 100)
-    : 0
-
-  // 인상 전 원가
   const baseCost = getCostBreakdown(pyeong)
-  const beforeIncrease = revenue > 0
+  const current = revenue > 0
     ? Math.round((revenue - baseCost.total) / revenue * 100)
     : 0
 
   return {
     current,
-    beforeIncrease,
-    formatted: `${current}% (인상 전 ${beforeIncrease}%)`,
+    beforeIncrease: current,
+    formatted: `${current}%`,
   }
 }
 
@@ -116,7 +91,7 @@ export function getMarginDisplay(pricePerM2: number, pyeong: number): MarginDisp
  * @returns ㎡당 단가 (1000원 올림)
  */
 export function findPriceForMargin(targetMarginPercent: number, pyeong: number): number {
-  const adjustedCost = getAdjustedCost(pyeong)
+  const adjustedCost = getCostBreakdown(pyeong)
   const m2 = pyeong * 3.306
   const targetMargin = targetMarginPercent / 100
 

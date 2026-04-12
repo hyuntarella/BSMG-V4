@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { fm } from '@/lib/utils/format'
+import { getMarginDisplay } from '@/lib/estimate/costBreakdown'
 
 interface Props {
   pppList: number[]
@@ -9,12 +10,12 @@ interface Props {
   onSelect: (ppp: number) => void
   onAdd: (ppp: number) => void
   onDelete: (ppp: number) => void
+  /** 마진 미리보기용 대표 평수. 없으면 마진 표시 안 함. */
+  marginPyeong?: number
 }
 
 /**
- * 단가표 2단계 — 평단가 칩 목록.
- * 선택된 면적대/공법 조합의 distinct price_per_pyeong 을 오름차순으로 렌더.
- * 각 칩 옆에 × 삭제, 끝에 + 평단가 추가 버튼.
+ * 평단가 칩 목록 + 마진 미리보기.
  */
 export default function PriceMatrixChips({
   pppList,
@@ -22,6 +23,7 @@ export default function PriceMatrixChips({
   onSelect,
   onAdd,
   onDelete,
+  marginPyeong,
 }: Props) {
   const [adding, setAdding] = useState(false)
   const [input, setInput] = useState('')
@@ -53,22 +55,28 @@ export default function PriceMatrixChips({
     <div className="flex flex-wrap items-center gap-2" data-testid="price-matrix-chips">
       {pppList.map((ppp) => {
         const active = ppp === selectedPpp
+        const margin = marginPyeong ? getMarginDisplay(ppp, marginPyeong) : null
         return (
           <div
             key={ppp}
-            className={`flex items-center rounded-full text-sm font-medium transition-colors ${
+            className={`flex items-center rounded-lg text-sm font-medium transition-all ${
               active
                 ? 'bg-brand text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-surface-muted text-ink hover:bg-surface-muted/80'
             }`}
           >
             <button
               type="button"
               onClick={() => onSelect(ppp)}
-              className="py-1.5 pl-4 pr-2"
+              className="py-1.5 pl-3 pr-1.5"
               data-testid={`price-chip-${ppp}`}
             >
-              평당 {fm(ppp)}원
+              <span>{fm(ppp)}원</span>
+              {margin && (
+                <span className={`ml-1.5 text-[10px] font-normal ${active ? 'text-white/70' : 'text-ink-muted'}`}>
+                  {margin.formatted}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -77,7 +85,7 @@ export default function PriceMatrixChips({
               className={`mr-1 flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                 active
                   ? 'text-white/80 hover:bg-white/20 hover:text-white'
-                  : 'text-gray-400 hover:bg-gray-300 hover:text-gray-700'
+                  : 'text-ink-muted hover:bg-ink-faint/30 hover:text-ink'
               }`}
               data-testid={`price-chip-${ppp}-delete`}
             >
@@ -102,13 +110,13 @@ export default function PriceMatrixChips({
               if (e.key === 'Escape') handleCancelAdd()
             }}
             placeholder="평단가"
-            className="w-28 rounded-full border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-brand"
+            className="w-28 rounded-lg border border-ink-faint/30 px-3 py-1.5 text-sm outline-none focus:border-brand"
             data-testid="price-chip-add-input"
           />
           <button
             type="button"
             onClick={handleConfirmAdd}
-            className="rounded-full bg-brand px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            className="btn-primary !px-3 !py-1.5 !text-xs"
             data-testid="price-chip-add-confirm"
           >
             확인
@@ -116,7 +124,7 @@ export default function PriceMatrixChips({
           <button
             type="button"
             onClick={handleCancelAdd}
-            className="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200"
+            className="rounded-lg bg-surface-muted px-3 py-1.5 text-xs font-medium text-ink-secondary hover:bg-ink-faint/20"
           >
             취소
           </button>
@@ -130,10 +138,10 @@ export default function PriceMatrixChips({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="rounded-full border border-dashed border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-500 hover:border-brand hover:text-brand"
+          className="rounded-lg border border-dashed border-ink-faint/40 px-3 py-1.5 text-xs font-medium text-ink-muted hover:border-brand hover:text-brand"
           data-testid="price-chip-add"
         >
-          + 평단가 추가
+          + 추가
         </button>
       )}
     </div>
