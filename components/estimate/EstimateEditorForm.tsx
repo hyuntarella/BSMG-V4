@@ -165,7 +165,7 @@ export default function EstimateEditorForm({
     <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
 
       {/* ===== TOP BAR ===== */}
-      <div className="flex h-11 shrink-0 items-center border-b border-[#ececec] bg-white px-3 gap-[3px]">
+      <div className="flex h-11 shrink-0 items-center border-b border-v-b bg-white px-3 gap-[3px]">
         {isLens && (
           <button
             onClick={handleLensBack}
@@ -185,7 +185,7 @@ export default function EstimateEditorForm({
         </button>
         <div className="flex-1" />
         <button
-          className="rounded border border-[#ececec] bg-transparent px-3 py-1 text-xs font-medium text-[#1C1C1E] hover:bg-[#F5F5F7] disabled:opacity-40"
+          className="rounded border border-v-b bg-transparent px-3 py-1 text-xs font-medium text-v-hdr hover:bg-v-hov disabled:opacity-40"
           onClick={undo}
           disabled={snapshots.length === 0}
           title="Undo Ctrl+Z"
