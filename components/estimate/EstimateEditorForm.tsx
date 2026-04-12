@@ -331,7 +331,7 @@ export default function EstimateEditorForm({
             </div>
 
             {/* 오른쪽: 장비/보수 사이드 패널 */}
-            <div className="w-[148px] shrink-0">
+            <div className="w-[148px] shrink-0 ml-1">
               <SidePanel
                 estimate={estimate}
                 sheetIndex={activeSheetIdx}
@@ -435,9 +435,9 @@ function SidePanel({
 
   return (
     <>
-      <div className="rounded-[10px] bg-white p-[10px] mb-2 shadow-v-sm">
+      <div className="rounded-lg bg-white p-[10px] mb-2 shadow-v-sm">
         <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">장비·인력</h4>
-        <div className="flex flex-col gap-[5px]">
+        <div className="flex flex-col gap-2">
           <button className={chipCls} onClick={() => addEquipment('사다리차', '일', 0, 0, 120000)}>사다리차</button>
           <button className={chipCls} onClick={() => addEquipment('스카이차', '일', 0, 0, 350000)}>스카이차</button>
           <button className={chipCls} onClick={() => addEquipment('포크레인', '대', 0, 0, 700000)}>포크레인</button>
@@ -446,9 +446,9 @@ function SidePanel({
           <button className={chipCls} onClick={() => addEquipment('폐기물처리', '식', 0, 0, 200000)}>폐기물처리</button>
         </div>
       </div>
-      <div className="rounded-[10px] bg-white p-[10px] shadow-v-sm">
+      <div className="rounded-lg bg-white p-[10px] shadow-v-sm">
         <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">보수·추가</h4>
-        <div className="flex flex-col gap-[5px]">
+        <div className="flex flex-col gap-2">
           <button className={chipCls} onClick={() => addRepair('바탕조정제 부분미장')}>바탕조정제 부분미장</button>
           <button className={chipCls} onClick={() => addRepair('드라이비트 하부절개')}>드라이비트 하부절개</button>
           <button className={chipCls} onClick={() => addRepair('드라이비트 부분절개')}>드라이비트 부분절개</button>
