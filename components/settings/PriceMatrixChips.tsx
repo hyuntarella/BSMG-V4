@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState, useCallback } from 'react'
 import { fm } from '@/lib/utils/format'
 import { getMarginDisplay } from '@/lib/estimate/costBreakdown'
 
@@ -10,14 +10,13 @@ interface Props {
   onSelect: (ppp: number) => void
   onAdd: (ppp: number) => void
   onDelete: (ppp: number) => void
-  /** 마진 미리보기용 대표 평수. 없으면 마진 표시 안 함. */
   marginPyeong?: number
 }
 
 /**
  * 평단가 칩 목록 + 마진 미리보기.
  */
-export default function PriceMatrixChips({
+function PriceMatrixChipsInner({
   pppList,
   selectedPpp,
   onSelect,
@@ -29,7 +28,7 @@ export default function PriceMatrixChips({
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  function handleConfirmAdd() {
+  const handleConfirmAdd = useCallback(() => {
     const parsed = parseInt(input, 10)
     if (isNaN(parsed) || parsed <= 0) {
       setError('양의 정수 입력')
@@ -43,13 +42,13 @@ export default function PriceMatrixChips({
     setAdding(false)
     setInput('')
     setError(null)
-  }
+  }, [input, pppList, onAdd])
 
-  function handleCancelAdd() {
+  const handleCancelAdd = useCallback(() => {
     setAdding(false)
     setInput('')
     setError(null)
-  }
+  }, [])
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="price-matrix-chips">
@@ -73,7 +72,9 @@ export default function PriceMatrixChips({
             >
               <span>{fm(ppp)}원</span>
               {margin && (
-                <span className={`ml-1.5 text-[10px] font-normal ${active ? 'text-white/70' : 'text-ink-muted'}`}>
+                <span
+                  className={`ml-1.5 text-[10px] font-normal ${active ? 'text-white/70' : 'text-ink-muted'}`}
+                >
                   {margin.formatted}
                 </span>
               )}
@@ -147,3 +148,6 @@ export default function PriceMatrixChips({
     </div>
   )
 }
+
+const PriceMatrixChips = memo(PriceMatrixChipsInner)
+export default PriceMatrixChips
