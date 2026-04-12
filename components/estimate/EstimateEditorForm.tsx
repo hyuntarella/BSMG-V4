@@ -214,7 +214,7 @@ export default function EstimateEditorForm({
 
       {/* ===== META BAR ===== */}
       {activeTab !== 'cover' && (
-        <div className="shrink-0 bg-white">
+        <div className="shrink-0 bg-white shadow-v-sm">
           <CustomerInfoCard
             estimate={estimate}
             onMetaChange={updateMeta}
