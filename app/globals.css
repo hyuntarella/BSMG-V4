@@ -95,6 +95,16 @@
   }
 }
 
+/* /estimate/edit 전용 외곽 프레임 */
+.estimate-edit-body {
+  background: #D1D1D6;
+  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 /* 모바일 키보드 열릴 때 VoiceBar 위치 조정 */
 @supports (height: 100dvh) {
   .fixed.bottom-0 {

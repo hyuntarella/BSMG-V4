@@ -148,15 +148,21 @@ export default function EstimateEditorForm({
   const areaLabel = getAR(estimate.m2 || 100)
   const isSmall = areaLabel === '20평이하'
 
+  // 외곽 프레임: body에 estimate-edit-body 클래스 부착
+  useEffect(() => {
+    document.body.classList.add('estimate-edit-body')
+    return () => { document.body.classList.remove('estimate-edit-body') }
+  }, [])
+
   const tabClass = (tab: TabId) =>
     `px-5 py-3 cursor-pointer font-semibold text-[13px] border-b-2 tracking-tight transition-colors ${
       activeTab === tab
-        ? 'text-[#007AFF] border-[#007AFF] border-b-[3px]'
-        : 'text-[#8a8a8e] border-transparent hover:text-[#1C1C1E]'
+        ? 'text-v-accent border-v-accent border-b-[3px]'
+        : 'text-v-mut border-transparent hover:text-v-hdr'
     }`
 
   return (
-    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-full max-w-[1480px] flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-[0_20px_60px_-12px_rgba(0,0,0,.35),0_8px_24px_-8px_rgba(0,0,0,.15)]">
+    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
 
       {/* ===== TOP BAR ===== */}
       <div className="flex h-11 shrink-0 items-center border-b border-[#ececec] bg-white px-3 gap-[3px]">
