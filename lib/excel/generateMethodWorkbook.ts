@@ -137,9 +137,9 @@ export async function generateMethodWorkbook(
  *
  * paperSize 9 = A4. fitToPage 로 한 페이지에 가로로 맞춤.
  *
- * c10: 갑지는 단일 페이지 (fitToHeight=1). 을지는 행 수 가변이라
- *      세로 무제한 (fitToHeight=0). 통일하면 갑지가 빈 행 영향으로
- *      2페이지 분할되는 PM UAT 이슈 [2] 발생.
+ * c10: 갑지는 단일 페이지 (fitToHeight=1).
+ * c14: 을지는 행 높이 증가로 fitToHeight=0 (무제한) 시 3페이지로 분할되는
+ *      PM UAT 이슈 발생. fitToHeight=2 (최대 2페이지) 로 캡 → 자동 축소.
  */
 function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void {
   ws.pageSetup = {
@@ -148,7 +148,7 @@ function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void
     paperSize: 9,
     fitToPage: true,
     fitToWidth: 1,
-    fitToHeight: kind === 'cover' ? 1 : 0,
+    fitToHeight: kind === 'cover' ? 1 : 2,
     horizontalCentered: true,
     verticalCentered: false,
   }
