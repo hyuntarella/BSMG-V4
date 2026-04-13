@@ -334,9 +334,10 @@ export default function ExcelLikeTable({
                 className={`${isHidden ? 'opacity-30' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''} ${item.is_locked ? 'bg-v-lock-bg' : ''} ${isRealtimeRow ? 'bg-yellow-100/60' : ''}`}
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
+                data-voice-highlight={isRealtimeRow ? 'row' : undefined}
               >
                 {/* 잠금/숨김/삭제 버튼 */}
-                <td className="border-b border-v-b px-0.5 text-center w-[72px]">
+                <td className={`border-b border-v-b px-0.5 text-center w-[72px] ${isRealtimeRow ? 'bg-yellow-100/60' : ''}`}>
                   <div className="flex items-center justify-center gap-0.5">
                     <button
                       type="button"
@@ -449,7 +450,7 @@ export default function ExcelLikeTable({
                       isLocked={item.is_locked && col.type === 'number'}
                       isReadonly={isLumpReadonly}
                       isMuted={isWasteDefaultExp}
-                      cellClassName={`${isBaseNameCell ? 'font-semibold' : ''} ${hlClass(col.key)} ${isRealtimeCell(col.key) ? 'ring-2 ring-dashed ring-v-accent/50' : ''}`.trim() || undefined}
+                      cellClassName={`${isBaseNameCell ? 'font-semibold' : ''} ${hlClass(col.key)} ${isRealtimeRow ? 'bg-yellow-100/60' : ''} ${isRealtimeCell(col.key) ? 'outline outline-2 outline-dashed outline-v-accent -outline-offset-2' : ''}`.trim() || undefined}
                       cellStyle={isBaseNameCell ? { background: 'var(--v-base-bg)', boxShadow: 'inset 4px 0 0 var(--v-base-border)', paddingLeft: '12px' } : undefined}
                       realtimePreview={col.type === 'number' ? realtimePreview(col.key) : undefined}
                       width={col.width}
