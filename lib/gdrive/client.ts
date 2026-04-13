@@ -145,10 +145,10 @@ async function getVersionedName(
 
 /** 견적서 폴더 ID */
 export function getEstimateFolderId(): string {
-  return process.env.GOOGLE_DRIVE_FOLDER_ID ?? '1Y5uAIrIFlVmu_SfqHf5RAVpDVUCiFO1U'
+  return (process.env.GOOGLE_DRIVE_FOLDER_ID ?? '1Y5uAIrIFlVmu_SfqHf5RAVpDVUCiFO1U').trim()
 }
 
 /** 제안서 폴더 ID */
 export function getProposalFolderId(): string {
-  return process.env.GOOGLE_DRIVE_PROPOSAL_FOLDER_ID ?? '1hbYG54iUmpFDj2ikpoBOT0oLrJsz2IS4'
+  return (process.env.GOOGLE_DRIVE_PROPOSAL_FOLDER_ID ?? '1hbYG54iUmpFDj2ikpoBOT0oLrJsz2IS4').trim()
 }
