@@ -17,9 +17,9 @@ import CustomerInfoCard from './CustomerInfoCard'
 import BasePriceBar from './BasePriceBar'
 import WarrantySelect from './WarrantySelect'
 import UrethaneBase05Control from './UrethaneBase05Control'
-import CompareView from './CompareView'
+import CompareSidebar from './CompareSidebar'
 
-type TabId = 'composite' | 'urethane' | 'cover'
+type TabId = 'composite' | 'urethane'
 
 interface EstimateEditorFormProps {
   initialEstimate: Estimate
@@ -171,7 +171,17 @@ export default function EstimateEditorForm({
     }`
 
   return (
-    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-col overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
+    <div className="flex h-[calc(100vh-40px)] max-h-[960px] w-[1480px] max-w-full flex-row overflow-hidden rounded-[14px] bg-[#F2F2F7] shadow-v-frame relative">
+
+      {/* ===== 좌측 갑지·검수 사이드바 (상시 노출, 읽기 전용) ===== */}
+      <CompareSidebar
+        estimate={estimate}
+        compositeSheet={compositeIdx >= 0 ? estimate.sheets[compositeIdx] : undefined}
+        urethaneSheet={urethaneIdx >= 0 ? estimate.sheets[urethaneIdx] : undefined}
+      />
+
+      {/* ===== 우측 편집 영역 ===== */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
       {/* ===== TOP BAR ===== */}
       <div className="flex h-11 shrink-0 items-center border-b border-v-b2 bg-white px-3 gap-[3px]">
@@ -188,9 +198,6 @@ export default function EstimateEditorForm({
         </button>
         <button className={tabClass('urethane')} onClick={() => setActiveTab('urethane')}>
           우레탄 을지
-        </button>
-        <button className={tabClass('cover')} onClick={() => setActiveTab('cover')}>
-          갑지 · 검수
         </button>
         <div className="flex-1" />
         <LoadButton onLoad={setEstimate} />
@@ -213,19 +220,17 @@ export default function EstimateEditorForm({
       </div>
 
       {/* ===== META BAR ===== */}
-      {activeTab !== 'cover' && (
-        <div className="shrink-0 bg-white shadow-v-sm">
-          <CustomerInfoCard
-            estimate={estimate}
-            onMetaChange={updateMeta}
-            onAreaChange={handleAreaChange}
-            isLens={isLens}
-          />
-        </div>
-      )}
+      <div className="shrink-0 bg-white shadow-v-sm">
+        <CustomerInfoCard
+          estimate={estimate}
+          onMetaChange={updateMeta}
+          onAreaChange={handleAreaChange}
+          isLens={isLens}
+        />
+      </div>
 
-      {/* ===== PRICE BAR (을지 탭만) ===== */}
-      {activeTab !== 'cover' && activeSheet && (
+      {/* ===== PRICE BAR ===== */}
+      {activeSheet && (
         <div className="flex shrink-0 items-center gap-[10px] border-t border-v-b2 bg-white px-3 py-[7px] flex-nowrap overflow-x-auto">
           {/* 면적 입력 + 배지 */}
           <div className="flex items-end gap-2 pr-2">
@@ -291,63 +296,56 @@ export default function EstimateEditorForm({
 
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 overflow-auto bg-[#F2F2F7] pb-[76px]">
-        {activeTab !== 'cover' ? (
-          <div className="flex gap-3 p-[12px_16px]">
-            {/* 왼쪽: 테이블 */}
-            <div className="min-w-0 flex-1">
-              {activeSheetIdx >= 0 ? (
-                <>
-                  <div className="overflow-hidden rounded-[10px] bg-white shadow-v-sm">
-                    <EstimateTableWrapper
-                      estimate={estimate}
-                      sheetIndex={activeSheetIdx}
-                      onChange={handleEstimateChange}
-                      acdbSuggest={acdbSuggest}
-                      onUndo={undo}
-                      onSaveSnapshot={saveSnapshot}
-                    />
-                  </div>
+        <div className="flex gap-2 p-[10px_12px]">
+          {/* 테이블 */}
+          <div className="min-w-0 flex-1">
+            {activeSheetIdx >= 0 ? (
+              <>
+                <div className="overflow-hidden rounded-[10px] bg-white shadow-v-sm">
+                  <EstimateTableWrapper
+                    estimate={estimate}
+                    sheetIndex={activeSheetIdx}
+                    onChange={handleEstimateChange}
+                    acdbSuggest={acdbSuggest}
+                    onUndo={undo}
+                    onSaveSnapshot={saveSnapshot}
+                  />
+                </div>
 
-                  {/* 특기사항 */}
-                  <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-v-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10px] font-bold text-v-mut tracking-wider">특기사항</h4>
-                      <div className="flex items-center gap-[6px]">
-                        <WarrantySelect
-                          sheet={activeSheet!}
-                          onChange={(opt) => updateSheetWarranty(activeSheetIdx, opt)}
-                        />
-                      </div>
+                {/* 특기사항 */}
+                <div className="mt-2 rounded-[10px] bg-white p-[10px_14px] shadow-v-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-[10px] font-bold text-v-mut tracking-wider">특기사항</h4>
+                    <div className="flex items-center gap-[6px]">
+                      <WarrantySelect
+                        sheet={activeSheet!}
+                        onChange={(opt) => updateSheetWarranty(activeSheetIdx, opt)}
+                      />
                     </div>
-                    <div className="text-[10px] text-v-mut mt-1">* 부가가치세별도</div>
                   </div>
-                </>
-              ) : (
-                <EmptySheetGuide
-                  type={activeTab === 'composite' ? '복합' : '우레탄'}
-                  onAdd={() => addSheet(activeTab === 'composite' ? '복합' : '우레탄')}
-                />
-              )}
-            </div>
-
-            {/* 오른쪽: 장비/보수 사이드 패널 */}
-            <div className="w-[148px] shrink-0 ml-1">
-              <SidePanel
-                estimate={estimate}
-                sheetIndex={activeSheetIdx}
-                onChange={handleEstimateChange}
-                onSaveSnapshot={saveSnapshot}
+                  <div className="text-[10px] text-v-mut mt-1">* 부가가치세별도</div>
+                </div>
+              </>
+            ) : (
+              <EmptySheetGuide
+                type={activeTab === 'composite' ? '복합' : '우레탄'}
+                onAdd={() => addSheet(activeTab === 'composite' ? '복합' : '우레탄')}
               />
-            </div>
+            )}
           </div>
-        ) : (
-          /* 갑지·검수 탭 */
-          <CompareView
-            estimate={estimate}
-            compositeSheet={compositeIdx >= 0 ? estimate.sheets[compositeIdx] : undefined}
-            urethaneSheet={urethaneIdx >= 0 ? estimate.sheets[urethaneIdx] : undefined}
-          />
-        )}
+
+          {/* 장비/보수 사이드 패널 (우측) */}
+          <div className="w-[148px] shrink-0">
+            <SidePanel
+              estimate={estimate}
+              sheetIndex={activeSheetIdx}
+              onChange={handleEstimateChange}
+              onSaveSnapshot={saveSnapshot}
+            />
+          </div>
+        </div>
+      </div>
+
       </div>
 
       {/* ===== FAB ===== */}
