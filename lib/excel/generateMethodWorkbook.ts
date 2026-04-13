@@ -117,12 +117,94 @@ function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void
 
 // ── Sheet1 (갑지) ──
 
+// c11 — 갑지 빈 행 splice 상수.
+// 템플릿 row14 (공법명 reference) ↔ row18 (합계) 사이에 빈 row15-17 이 있음.
+// 이 3행을 제거하면 row18→row15, row19→row16 로 당겨짐.
+const COVER_BLANK_START = 15
+const COVER_BLANK_COUNT = 3
+
+/**
+ * 갑지의 빈 row15-17 제거 + 병합/이미지 앵커 보정.
+ *
+ * exceljs spliceRows 는 cell content 만 위로 당기고
+ * merges 와 image anchor 는 자동 갱신하지 않는다.
+ * 이 헬퍼가 ① 병합 백업 → ② splice → ③ 새 좌표로 재병합 + 이미지 보정을 처리.
+ *
+ * 삭제 범위 내부에 완전히 포함된 병합은 폐기. 삭제 범위 이하 시작 병합은
+ * COVER_BLANK_COUNT 만큼 위로 이동.
+ */
+function spliceCoverBlankRows(ws: ExcelJS.Worksheet): void {
+  type MergeRec = { top: number; left: number; bottom: number; right: number }
+  const mergesRaw = (ws as unknown as { _merges: Record<string, { model?: MergeRec } & MergeRec> })._merges || {}
+  const snapshot: MergeRec[] = []
+  const ranges: string[] = []
+  for (const m of Object.values(mergesRaw)) {
+    const top = m.top ?? m.model?.top
+    const left = m.left ?? m.model?.left
+    const bottom = m.bottom ?? m.model?.bottom
+    const right = m.right ?? m.model?.right
+    if (typeof top !== 'number' || typeof left !== 'number' || typeof bottom !== 'number' || typeof right !== 'number') continue
+    snapshot.push({ top, left, bottom, right })
+    ranges.push(addrRange(top, left, bottom, right))
+  }
+
+  // 이미지 백업 — preserveImagesAcrossSplice 의 조건문이
+  // delete 케이스에서 splice 범위 직후 영역만 cover 하므로 (row 23 같은
+  // 멀리 떨어진 이미지가 누락) 인라인 보정 수행.
+  type ImgRange = { tl?: { row: number; col: number }; br?: { row: number; col: number } }
+  const imageBackup = ws.getImages().map(im => ({ range: im.range as ImgRange }))
+
+  // 모든 병합 해제 후 splice — 새 좌표로 다시 병합.
+  for (const r of ranges) ws.unMergeCells(r)
+
+  ws.spliceRows(COVER_BLANK_START, COVER_BLANK_COUNT)
+
+  // 이미지 row 보정: getImages 는 0-based. splice 가 1-based 행 15 부터 3 행 삭제.
+  // 0-based 로는 14 부터 16 까지 삭제 → row >= 17 (0-based) 인 이미지를 -3 이동.
+  const SPLICE0_AFTER_DELETED = COVER_BLANK_START + COVER_BLANK_COUNT - 1 // 1-based 17
+  for (const im of imageBackup) {
+    const tlRow = im.range?.tl?.row
+    if (typeof tlRow === 'number' && tlRow >= SPLICE0_AFTER_DELETED) {
+      if (im.range.tl) im.range.tl.row = Math.max(0, tlRow - COVER_BLANK_COUNT)
+      const brRow = im.range?.br?.row
+      if (typeof brRow === 'number' && im.range.br) im.range.br.row = Math.max(0, brRow - COVER_BLANK_COUNT)
+    }
+  }
+
+  for (const m of snapshot) {
+    // 삭제 범위 (15..17) 에 완전히 포함된 병합은 폐기.
+    if (m.top >= COVER_BLANK_START && m.bottom < COVER_BLANK_START + COVER_BLANK_COUNT) continue
+    const newTop = m.top >= COVER_BLANK_START + COVER_BLANK_COUNT ? m.top - COVER_BLANK_COUNT : m.top
+    const newBottom = m.bottom >= COVER_BLANK_START + COVER_BLANK_COUNT ? m.bottom - COVER_BLANK_COUNT : m.bottom
+    ws.mergeCells(addrRange(newTop, m.left, newBottom, m.right))
+  }
+}
+
+function addrRange(top: number, left: number, bottom: number, right: number): string {
+  return `${colLetter(left)}${top}:${colLetter(right)}${bottom}`
+}
+
+function colLetter(col: number): string {
+  let s = ''
+  let n = col
+  while (n > 0) {
+    const r = (n - 1) % 26
+    s = String.fromCharCode(65 + r) + s
+    n = Math.floor((n - 1) / 26)
+  }
+  return s
+}
+
 function fillCover(
   ws: ExcelJS.Worksheet,
   estimate: Estimate,
   sheet: EstimateSheet,
   items: EstimateItem[],
 ): void {
+  // c11: 빈 row15-17 먼저 제거. 이후 모든 좌표는 post-splice 기준.
+  // 영향: row18(합계) → row15, row19(특기사항) → row16.
+  spliceCoverBlankRows(ws)
+
   // ── 이슈 #5: 좌측 정렬 유실 방지 ──
   // 값 주입 전 기존 수식/alignment 리셋 후 좌측 정렬 명시.
   // ── 이슈 #1: META 라벨 침범 방지 ──
@@ -181,15 +263,15 @@ function fillCover(
   totalCell.value = cr.totalBeforeRound
   totalCell.alignment = { ...totalCell.alignment, horizontal: 'right', vertical: 'middle' }
 
-  // K18: 합계
-  const grandCell = ws.getCell(18, 11)
+  // K15: 합계 (post-splice. 원 K18.)
+  const grandCell = ws.getCell(15, 11)
   grandCell.value = null
   grandCell.value = cr.grandTotal
   grandCell.alignment = { ...grandCell.alignment, horizontal: 'right', vertical: 'middle' }
 
-  // D19: 특기사항
+  // D16: 특기사항 (post-splice. 원 D19.)
   const memo = estimate.memo?.trim() ?? ''
-  const specialCell = ws.getCell(19, 4)
+  const specialCell = ws.getCell(16, 4)
   specialCell.value = null
   specialCell.value =
     `  1. 하자보수기간 ${sheet.warranty_years}년 (하자이행증권 ${sheet.warranty_bond}년)\n` +

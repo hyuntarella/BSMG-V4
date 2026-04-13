@@ -5,8 +5,8 @@
  *       calc(items) → grandTotal=0 → K14/K18=0, E11="일금 영원".
  *
  * 가드: 프로덕션 흐름에 맞게 it.total 을 채운 입력으로
- *       generateMethodWorkbook 호출 시 K14/K18/E11 이 grandTotal 을 반영해야 한다.
- *       ※ c11 (빈 행 15-17 제거) 적용 후에는 K15 가 합계가 됨 — 그 시점에 가드 갱신 예정.
+ *       generateMethodWorkbook 호출 시 K14/K15/E11 이 grandTotal 을 반영해야 한다.
+ *       (c11 빈 행 splice 후 합계 행은 row18→row15 로 이동.)
  */
 import { describe, it, expect } from 'vitest'
 import ExcelJS from 'exceljs'
@@ -65,7 +65,7 @@ function buildEstimate(items: EstimateItem[]): Estimate {
 }
 
 describe('generateMethodWorkbook — 갑지 합계 회귀 가드', () => {
-  it('K14/K18/E11 이 calc(items) 의 totalBeforeRound/grandTotal 을 반영한다', async () => {
+  it('K14/K15/E11 이 calc(items) 의 totalBeforeRound/grandTotal 을 반영한다', async () => {
     // 11개 = TEMPLATE_ZONE_SIZE 정확 매칭 — splice 회피.
     const items = Array.from({ length: 11 }, (_, i) =>
       buildItem({
@@ -87,13 +87,16 @@ describe('generateMethodWorkbook — 갑지 합계 회귀 가드', () => {
     const cover = wb.getWorksheet(1)!
 
     const k14 = cover.getCell('K14').value
-    const k18 = cover.getCell('K18').value
+    const k15 = cover.getCell('K15').value
     const e11 = String(cover.getCell('E11').value ?? '')
 
     expect(k14).toBe(expected.totalBeforeRound)
-    expect(k18).toBe(expected.grandTotal)
+    expect(k15).toBe(expected.grandTotal)
     // 한글금액: "일금 ... 원정" 패턴, 0 이 아니어야 함
     expect(e11).toMatch(/일금/)
     expect(e11).not.toMatch(/영원/)
+
+    // c11 splice 가드: 합계 행이 row15 로 올라왔고 row18 은 합계가 아님.
+    expect(cover.getCell('B15').value).toBe('합 계')
   })
 })
