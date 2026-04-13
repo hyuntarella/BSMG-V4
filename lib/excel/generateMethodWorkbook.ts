@@ -34,8 +34,10 @@ const NAME_LENGTH_2LINE = 15
 const NAME_LENGTH_3LINE = 30
 
 // 동적 산정 — 한 줄당 행 높이 + 패딩
-const LINE_HEIGHT_PT = 18
-const ROW_PADDING_PT = 6
+// c15: 18+6 → 15+4 로 축소. 2줄 한글 품명 42 → 34 (≈19% 감소).
+// 11행 기준 약 80pt (1.5행분) 공간 절감 → 을지 2페이지 캡 여유 확보.
+const LINE_HEIGHT_PT = 15
+const ROW_PADDING_PT = 4
 
 /** 정적 폴백 — 품명 길이/줄바꿈 기반 */
 function computeRowHeightStatic(name: string): number {
@@ -138,12 +140,18 @@ export async function generateMethodWorkbook(
  * paperSize 9 = A4. fitToPage 로 한 페이지에 가로로 맞춤.
  *
  * c10: 갑지는 단일 페이지 (fitToHeight=1).
- * c14: 을지는 행 높이 증가로 fitToHeight=0 (무제한) 시 3페이지로 분할되는
- *      PM UAT 이슈 발생. fitToHeight=2 (최대 2페이지) 로 캡 → 자동 축소.
+ * c14: 을지는 fitToHeight=2 (최대 2페이지) 로 캡.
+ * c15: 을지 scale 추가 마진 — 템플릿 저장 scale (exceljs 가 auto-calc 안 함)
+ *      에서 -10 추가 축소, 최저 60 floor. LibreOffice / Google Sheets 변환 시
+ *      MS Excel 의 fitToHeight 해석과 미세하게 다를 수 있어 보수적 마진.
  */
+const DETAIL_SCALE_MARGIN = 10
+const DETAIL_SCALE_FLOOR = 60
+
 function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void {
-  ws.pageSetup = {
-    ...(ws.pageSetup ?? {}),
+  const base = ws.pageSetup ?? {}
+  const next: ExcelJS.Worksheet['pageSetup'] = {
+    ...base,
     orientation: 'landscape',
     paperSize: 9,
     fitToPage: true,
@@ -152,6 +160,11 @@ function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void
     horizontalCentered: true,
     verticalCentered: false,
   }
+  if (kind === 'detail') {
+    const auto = typeof base.scale === 'number' && base.scale > 0 ? base.scale : 100
+    next.scale = Math.max(DETAIL_SCALE_FLOOR, auto - DETAIL_SCALE_MARGIN)
+  }
+  ws.pageSetup = next
 }
 
 // ── Sheet1 (갑지) ──
