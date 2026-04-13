@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Header from '@/components/layout/Header'
 import EstimateEditor from '@/components/estimate/EstimateEditor'
 import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
 
@@ -125,10 +124,5 @@ export default async function NewEstimatePage() {
     sheets: [],
   }
 
-  return (
-    <>
-      <Header />
-      <EstimateEditor initialEstimate={estimate} priceMatrix={priceMatrix} />
-    </>
-  )
+  return <EstimateEditor initialEstimate={estimate} priceMatrix={priceMatrix} />
 }

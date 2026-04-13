@@ -348,7 +348,12 @@ export default function ExcelCell({
     >
       <span className={isMuted ? 'text-v-mut' : ''}>{displayValue}</span>
       {realtimePreview !== undefined && (
-        <span className="ml-1 text-[10px] tabular-nums text-v-accent/50">{fm(realtimePreview)}</span>
+        <span
+          className="ml-1 text-[10px] italic font-medium tabular-nums text-[rgba(0,122,255,0.7)]"
+          data-voice-preview="true"
+        >
+          → {fm(realtimePreview)}
+        </span>
       )}
       {isLocked && (
         <svg
