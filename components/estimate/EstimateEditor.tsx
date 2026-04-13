@@ -168,7 +168,7 @@ export default function EstimateEditor({
   const handleSave = useCallback(async () => {
     if (!estimate.id) return
     try {
-      await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
+      await fetch(`/api/estimates/${estimate.id}/save-all`, { method: 'POST' })
     } catch {
       console.error('저장 실패')
     }
@@ -178,7 +178,7 @@ export default function EstimateEditor({
     if (!estimate.id) return
     setEmailSending(true)
     try {
-      await fetch(`/api/estimates/${estimate.id}/generate`, { method: 'POST' })
+      await fetch(`/api/estimates/${estimate.id}/save-all`, { method: 'POST' })
       await fetch(`/api/estimates/${estimate.id}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

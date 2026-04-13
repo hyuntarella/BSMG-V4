@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { generateWorkbook, workbookToBuffer } from '@/lib/excel/generateWorkbook'
+import { generateMethodWorkbook } from '@/lib/excel/generateMethodWorkbook'
 import { generateEstimateHtml, generatePdfBuffer } from '@/lib/pdf/generatePdf'
 import { uploadToDrive, getEstimateFolderId } from '@/lib/gdrive/client'
 import { exportToJson } from '@/lib/estimate/jsonIO'
@@ -106,9 +106,12 @@ export async function POST(
   const folderPath = `estimates/${mgmtNo}`
 
   try {
-    // 엑셀 생성
-    const wb = await generateWorkbook(estimate)
-    const excelBuffer = await workbookToBuffer(wb)
+    // 엑셀 생성 — c7 엔진 통합: generateMethodWorkbook 사용 (첫 시트만 처리, 기존 동작과 동일)
+    const firstSheet = estimate.sheets[0]
+    if (!firstSheet) {
+      return NextResponse.json({ error: '시트가 없습니다' }, { status: 400 })
+    }
+    const excelBuffer = await generateMethodWorkbook(estimate, firstSheet.type)
 
     // 다운로드 모드: Storage 업로드 없이 바이너리 직접 응답
     if (body?.download) {
