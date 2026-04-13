@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import {
-  generateJson,
-  generateMethodExcel,
-} from '@/lib/estimate/fileExport'
+import { generateJson } from '@/lib/estimate/fileExport'
 import { upsertToDrive, getEstimateFolderId } from '@/lib/gdrive/client'
-import { convertXlsxToPdf } from '@/lib/gdrive/convert'
+import { generateGSheetEstimate } from '@/lib/gsheets/generate'
 import type { Estimate, EstimateSheet, EstimateItem, Method } from '@/lib/estimate/types'
 import { isQuickChipCategoryArray } from '@/lib/estimate/favorites'
 import type { QuickChipCategory } from '@/lib/estimate/quickChipConfig'
@@ -217,30 +214,30 @@ export async function POST(
     let urethaneXlsxUrl = ''
     let urethanePdfUrl = ''
 
-    step = 'generate-xlsx-pdf'
+    step = 'generate-gsheet-pdf-xlsx'
     const methodResults = await Promise.all(
       methods.map(async (method) => {
         const methodKey = method === '복합' ? 'complex' : 'urethane'
 
-        // XLSX 생성
-        const xlsxBuffer = await generateMethodExcel(estimate, method)
-        const xlsxFileName = `${basePrefix}_${methodKey}.xlsx`
-        const xlsxResult = await upsertToDrive(
-          folderId,
-          xlsxFileName,
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          xlsxBuffer,
-        )
+        // Phase 5: Google Sheets 네이티브 템플릿에서 PDF + xlsx 동시 생성
+        const { pdfBuffer, xlsxBuffer } = await generateGSheetEstimate(estimate, method)
 
-        // XLSX → PDF 변환 (Drive API)
+        const xlsxFileName = `${basePrefix}_${methodKey}.xlsx`
         const pdfFileName = `${basePrefix}_${methodKey}.pdf`
-        const pdfBuffer = await convertXlsxToPdf(xlsxBuffer, xlsxFileName, folderId)
-        const pdfResult = await upsertToDrive(
-          folderId,
-          pdfFileName,
-          'application/pdf',
-          pdfBuffer,
-        )
+        const [xlsxResult, pdfResult] = await Promise.all([
+          upsertToDrive(
+            folderId,
+            xlsxFileName,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            xlsxBuffer,
+          ),
+          upsertToDrive(
+            folderId,
+            pdfFileName,
+            'application/pdf',
+            pdfBuffer,
+          ),
+        ])
 
         return { method, xlsxResult, pdfResult }
       }),
