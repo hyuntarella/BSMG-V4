@@ -17,7 +17,7 @@ export function getAuth() {
   return new google.auth.JWT({
     email,
     key,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+    scopes: ['https://www.googleapis.com/auth/drive'],
   })
 }
 
