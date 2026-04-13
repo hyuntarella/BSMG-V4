@@ -26,7 +26,7 @@
  *   values.batchUpdate(1) + PDF export(1) + xlsx export(1) + delete(1) = 6 calls.
  *   복합/우레탄 양쪽 = 12 calls. quota 60/min/project 대비 충분히 여유.
  */
-import type { Estimate, EstimateSheet, EstimateItem, Method } from '@/lib/estimate/types'
+import type { Estimate, EstimateSheet, EstimateItem, Method, CalcResult } from '@/lib/estimate/types'
 import { getDriveClient, getSheetsClient, getTemplateId } from '@/lib/gsheets/client'
 import { getAuth } from '@/lib/gdrive/client'
 import { calc } from '@/lib/estimate/calc'
@@ -79,13 +79,19 @@ function buildCoverInjections(estimate: Estimate, koreanAmount: string): ValueRa
   ]
 }
 
-function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: EstimateItem[]): ValueRange[] {
+function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: EstimateItem[], cr: CalcResult): ValueRange[] {
   const c3Title = sheet.type === '복합'
     ? `${estimate.site_name ?? '방수공사'} 이중복합방수 3.8mm (제 1안)`
     : `${estimate.site_name ?? '방수공사'} 우레탄방수 3mm (제 2안)`
 
+  // PM UAT 3차 회귀 [4]: M19/M20 정적값 주입.
+  // 템플릿 수식은 M19=M18*0.03, M20=M18*0.06 (장비 포함 base) 인데
+  // JS calc() 는 장비 제외 base 기준 → 한글금액(E11)과 합계(K18) 100K 차이.
+  // M19/M20 만 JS 결과로 덮어쓰면 M21=SUM, M22=FLOOR 가 자동 일치.
   const data: ValueRange[] = [
     { range: `${DETAIL_SHEET}!C3`, values: [[c3Title]] },
+    { range: `${DETAIL_SHEET}!M19`, values: [[cr.overhead]] },
+    { range: `${DETAIL_SHEET}!M20`, values: [[cr.profit]] },
   ]
 
   const totalRows = Math.max(items.length, ITEM_TEMPLATE_ZONE)
@@ -218,8 +224,8 @@ export async function generateGSheetEstimate(
   if (!sheet) throw new Error(`시트 타입 '${method}' 를 찾을 수 없음`)
 
   const items = sheet.items.filter(it => !it.is_hidden)
-  const grandTotal = calc(items).grandTotal
-  const koreanAmount = toKoreanAmount(grandTotal)
+  const cr = calc(items)
+  const koreanAmount = toKoreanAmount(cr.grandTotal)
   const memo = (estimate.memo ?? '').trim()
   const specialNote = buildSpecialNote(sheet, memo)
 
@@ -253,7 +259,7 @@ export async function generateGSheetEstimate(
     })
 
     // 4. 값 일괄 (D19 제외 — RichText 보호)
-    const data = [...buildCoverInjections(estimate, koreanAmount), ...buildDetailInjections(estimate, sheet, items)]
+    const data = [...buildCoverInjections(estimate, koreanAmount), ...buildDetailInjections(estimate, sheet, items, cr)]
     await sheetsApi.spreadsheets.values.batchUpdate({
       spreadsheetId: sheetId,
       requestBody: { valueInputOption: 'USER_ENTERED', data },
