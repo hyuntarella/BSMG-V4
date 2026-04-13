@@ -10,11 +10,11 @@ export default function VoiceGuidePanel({ open, onClose }: VoiceGuidePanelProps)
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-[60] w-80 bg-white shadow-elevated overflow-y-auto">
-        <div className="flex items-center justify-between border-b px-4 py-3">
+      <div className="fixed inset-0 z-[59] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 z-[60] w-80 bg-white shadow-2xl border-l-2 border-v-accent/30 overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-ink-faint/20 bg-v-accent/5 px-4 py-3">
           <span className="text-sm font-bold text-ink">음성 입력 가이드</span>
-          <button onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+          <button onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted" aria-label="닫기">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
