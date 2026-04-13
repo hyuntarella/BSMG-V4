@@ -2,14 +2,13 @@
  * Phase 4G — 견적서 3포맷 저장 (JSON / Excel / PDF)
  *
  * - generateJson: jsonIO.exportToJson 래퍼 (메타 포함)
- * - generateExcel: 기존 generateWorkbook 재사용
+ * - generateMethodExcel: 공법별 단일 XLSX (c7 엔진 통합 후 단일 경로)
  * - generateTempPdf: 시트별 PDF 생성 (복합/우레탄 분리)
  * - getExcelFileName: 파일명 규칙
  * - getPdfFileName: PDF 파일명 규칙
  */
 
 import { exportToJson } from '@/lib/estimate/jsonIO'
-import { generateWorkbook, workbookToBuffer } from '@/lib/excel/generateWorkbook'
 import { generateMethodWorkbook } from '@/lib/excel/generateMethodWorkbook'
 import { generateEstimateHtml, generatePdfBuffer } from '@/lib/pdf/generatePdf'
 import type { Estimate, Method } from '@/lib/estimate/types'
@@ -18,12 +17,6 @@ export { getExcelFileName, getPdfFileName } from '@/lib/estimate/fileNames'
 /** JSON 직렬화 (jsonIO.exportToJson 재사용) */
 export function generateJson(estimate: Estimate): string {
   return exportToJson(estimate)
-}
-
-/** Excel Buffer 생성 (복합+우레탄 2시트 워크북) */
-export async function generateExcel(estimate: Estimate): Promise<Buffer> {
-  const wb = await generateWorkbook(estimate)
-  return workbookToBuffer(wb)
 }
 
 /** 공법별 단일 XLSX Buffer 생성 (Phase 3-A) */

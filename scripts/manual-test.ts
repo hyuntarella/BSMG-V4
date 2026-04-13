@@ -292,8 +292,8 @@ async function createTestEstimate(): Promise<TestEstimate> {
 async function testExcel(est: TestEstimate) {
   console.log('\n📊 엑셀 검증')
 
-  // Estimate 객체 조립 (generateWorkbook에 맞는 형태)
-  const { generateWorkbook, workbookToBuffer } = await import('../lib/excel/generateWorkbook')
+  // Estimate 객체 조립 (generateMethodWorkbook 에 맞는 형태 — c7 엔진 통합 후)
+  const { generateMethodWorkbook } = await import('../lib/excel/generateMethodWorkbook')
   const estimateForGen = {
     id: est.id,
     company_id: est.company_id,
@@ -320,14 +320,14 @@ async function testExcel(est: TestEstimate) {
     })),
   }
 
-  let wb: ExcelJS.Workbook
   let xlsxBuffer: Buffer
   try {
-    wb = await generateWorkbook(estimateForGen)
-    xlsxBuffer = await workbookToBuffer(wb)
+    const firstSheet = estimateForGen.sheets[0]
+    if (!firstSheet) throw new Error('시트 없음')
+    xlsxBuffer = await generateMethodWorkbook(estimateForGen, firstSheet.type)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    fail('XL-M01', 'Sheet1 표지 데이터', `generateWorkbook 실패: ${msg}`)
+    fail('XL-M01', 'Sheet1 표지 데이터', `generateMethodWorkbook 실패: ${msg}`)
     fail('XL-M02', 'Sheet1 한글금액', '엑셀 생성 실패')
     fail('XL-M04', 'Sheet2 공종 DB diff', '엑셀 생성 실패')
     fail('XL-M05', 'Sheet2 합계 계산', '엑셀 생성 실패')
@@ -544,11 +544,15 @@ async function testPdf(est: TestEstimate) {
     if (error) {
       skip('PD-M04', 'Supabase Storage PDF', `list 실패: ${error.message}`)
     } else if (!files || files.length === 0) {
-      // Storage에 없으면 직접 업로드 시도
-      const { generateWorkbook, workbookToBuffer } = await import('../lib/excel/generateWorkbook')
+      // Storage에 없으면 직접 업로드 시도 (c7 엔진 통합 — generateMethodWorkbook 사용)
+      const { generateMethodWorkbook } = await import('../lib/excel/generateMethodWorkbook')
       const estObj = buildEstimateObj(est)
-      const wb = await generateWorkbook(estObj)
-      const buf = await workbookToBuffer(wb)
+      const firstType = estObj.sheets[0]?.type
+      if (!firstType) {
+        skip('PD-M04', 'Supabase Storage PDF', '시트 없음')
+        return
+      }
+      const buf = await generateMethodWorkbook(estObj, firstType)
 
       const xlPath = `estimates/${mgmtNo}/견적서_${mgmtNo}.xlsx`
       const { error: upErr } = await supabase.storage.from('estimates').upload(xlPath, buf, {

@@ -26,6 +26,62 @@ const ITEM_START_ROW = 7
 const TEMPLATE_ZONE_SIZE = 11 // 복합·우레탄 공통: rows 7-17
 const SUMMARY_START_ROW = 18  // 소계 행 (템플릿 기본)
 
+// 행 높이 — 폴백 (정적 공식)
+const ROW_HEIGHT_SINGLE = 20
+const ROW_HEIGHT_DOUBLE = 36
+const ROW_HEIGHT_TRIPLE = 52
+const NAME_LENGTH_2LINE = 15
+const NAME_LENGTH_3LINE = 30
+
+// 동적 산정 — 한 줄당 행 높이 + 패딩
+// c15: 18+6 → 15+4 로 축소. 2줄 한글 품명 42 → 34 (≈19% 감소).
+// 11행 기준 약 80pt (1.5행분) 공간 절감 → 을지 2페이지 캡 여유 확보.
+const LINE_HEIGHT_PT = 15
+const ROW_PADDING_PT = 4
+
+/** 정적 폴백 — 품명 길이/줄바꿈 기반 */
+function computeRowHeightStatic(name: string): number {
+  const newlineCount = (name.match(/\n/g) || []).length
+  if (newlineCount >= 2 || name.length >= NAME_LENGTH_3LINE) return ROW_HEIGHT_TRIPLE
+  if (newlineCount >= 1 || name.length >= NAME_LENGTH_2LINE) return ROW_HEIGHT_DOUBLE
+  return ROW_HEIGHT_SINGLE
+}
+
+/** 한글 1자 = 영문 2자 폭으로 환산한 effective character count */
+function effectiveCharCount(s: string): number {
+  return Array.from(s).reduce((acc, ch) => acc + (/[가-힣]/.test(ch) ? 2 : 1), 0)
+}
+
+/**
+ * 동적 행 높이 — 품명 셀(컬럼 B) 너비 기반 줄 수 추정.
+ *
+ * c13 한글 폭 교정: Excel column.width 는 영문 기준 단위라
+ *   lineChars = floor(width) (= 영문 환산 줄당 문자수).
+ *   품명은 한글 1자=2자 환산 (effectiveCharCount) 으로 한글 폭 보정.
+ *
+ * 1차: lines = max(\n+1, ceil(effectiveLen / lineChars)).
+ *      height = lines * 18 + 6.
+ * 2차 폴백: width 미존재/0/산정 실패 → 정적 20/36/52.
+ */
+function computeRowHeight(name: string, nameColWidth: number | undefined): number {
+  const fallback = computeRowHeightStatic(name)
+  if (typeof nameColWidth !== 'number' || !isFinite(nameColWidth) || nameColWidth <= 0) {
+    return fallback
+  }
+  const lineChars = Math.floor(nameColWidth)
+  if (lineChars <= 0) return fallback
+
+  const segments = name.split('\n')
+  let totalLines = 0
+  for (const seg of segments) {
+    const eff = effectiveCharCount(seg)
+    totalLines += Math.max(1, Math.ceil(eff / lineChars))
+  }
+  const dyn = totalLines * LINE_HEIGHT_PT + ROW_PADDING_PT
+  // 정적 폴백보다 작으면 정적 값을 채택 (잘림 방지).
+  return Math.max(dyn, fallback)
+}
+
 function getTemplatePath(method: Method): string {
   const file = method === '우레탄' ? 'urethane.xlsx' : 'complex.xlsx'
   return path.join(process.cwd(), 'templates', file)
@@ -57,12 +113,14 @@ export async function generateMethodWorkbook(
   const coverWs = wb.getWorksheet(1)
   if (coverWs) {
     fillCover(coverWs, estimate, sheet, items)
+    enforceLandscape(coverWs, 'cover')
   }
 
   // Sheet2 (을지) 주입
   const detailWs = wb.getWorksheet(2)
   if (detailWs) {
     fillDetail(detailWs, estimate, sheet, items)
+    enforceLandscape(detailWs, 'detail')
   }
 
   // Config 시트 제거
@@ -73,7 +131,121 @@ export async function generateMethodWorkbook(
   return Buffer.from(arrayBuffer)
 }
 
+/**
+ * 이슈 작업 3 — PDF 가로 변환 보장.
+ *
+ * exceljs 의 readFile/writeBuffer 가 템플릿의 pageSetup.orientation 을
+ * 유실하는 경우가 있어 명시 재설정.
+ *
+ * paperSize 9 = A4. fitToPage 로 한 페이지에 가로로 맞춤.
+ *
+ * c10: 갑지는 단일 페이지 (fitToHeight=1).
+ * c14: 을지는 fitToHeight=2 (최대 2페이지) 로 캡.
+ * c15: 을지 scale 추가 마진 — 템플릿 저장 scale (exceljs 가 auto-calc 안 함)
+ *      에서 -10 추가 축소, 최저 60 floor. LibreOffice / Google Sheets 변환 시
+ *      MS Excel 의 fitToHeight 해석과 미세하게 다를 수 있어 보수적 마진.
+ */
+const DETAIL_SCALE_MARGIN = 10
+const DETAIL_SCALE_FLOOR = 60
+
+function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void {
+  const base = ws.pageSetup ?? {}
+  const next: ExcelJS.Worksheet['pageSetup'] = {
+    ...base,
+    orientation: 'landscape',
+    paperSize: 9,
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: kind === 'cover' ? 1 : 2,
+    horizontalCentered: true,
+    verticalCentered: false,
+  }
+  if (kind === 'detail') {
+    const auto = typeof base.scale === 'number' && base.scale > 0 ? base.scale : 100
+    next.scale = Math.max(DETAIL_SCALE_FLOOR, auto - DETAIL_SCALE_MARGIN)
+  }
+  ws.pageSetup = next
+}
+
 // ── Sheet1 (갑지) ──
+
+// c11 — 갑지 빈 행 splice 상수.
+// 템플릿 row14 (공법명 reference) ↔ row18 (합계) 사이에 빈 row15-17 이 있음.
+// 이 3행을 제거하면 row18→row15, row19→row16 로 당겨짐.
+const COVER_BLANK_START = 15
+const COVER_BLANK_COUNT = 3
+
+/**
+ * 갑지의 빈 row15-17 제거 + 병합/이미지 앵커 보정.
+ *
+ * exceljs spliceRows 는 cell content 만 위로 당기고
+ * merges 와 image anchor 는 자동 갱신하지 않는다.
+ * 이 헬퍼가 ① 병합 백업 → ② splice → ③ 새 좌표로 재병합 + 이미지 보정을 처리.
+ *
+ * 삭제 범위 내부에 완전히 포함된 병합은 폐기. 삭제 범위 이하 시작 병합은
+ * COVER_BLANK_COUNT 만큼 위로 이동.
+ */
+function spliceCoverBlankRows(ws: ExcelJS.Worksheet): void {
+  type MergeRec = { top: number; left: number; bottom: number; right: number }
+  const mergesRaw = (ws as unknown as { _merges: Record<string, { model?: MergeRec } & MergeRec> })._merges || {}
+  const snapshot: MergeRec[] = []
+  const ranges: string[] = []
+  for (const m of Object.values(mergesRaw)) {
+    const top = m.top ?? m.model?.top
+    const left = m.left ?? m.model?.left
+    const bottom = m.bottom ?? m.model?.bottom
+    const right = m.right ?? m.model?.right
+    if (typeof top !== 'number' || typeof left !== 'number' || typeof bottom !== 'number' || typeof right !== 'number') continue
+    snapshot.push({ top, left, bottom, right })
+    ranges.push(addrRange(top, left, bottom, right))
+  }
+
+  // 이미지 백업 — preserveImagesAcrossSplice 의 조건문이
+  // delete 케이스에서 splice 범위 직후 영역만 cover 하므로 (row 23 같은
+  // 멀리 떨어진 이미지가 누락) 인라인 보정 수행.
+  type ImgRange = { tl?: { row: number; col: number }; br?: { row: number; col: number } }
+  const imageBackup = ws.getImages().map(im => ({ range: im.range as ImgRange }))
+
+  // 모든 병합 해제 후 splice — 새 좌표로 다시 병합.
+  for (const r of ranges) ws.unMergeCells(r)
+
+  ws.spliceRows(COVER_BLANK_START, COVER_BLANK_COUNT)
+
+  // 이미지 row 보정: getImages 는 0-based. splice 가 1-based 행 15 부터 3 행 삭제.
+  // 0-based 로는 14 부터 16 까지 삭제 → row >= 17 (0-based) 인 이미지를 -3 이동.
+  const SPLICE0_AFTER_DELETED = COVER_BLANK_START + COVER_BLANK_COUNT - 1 // 1-based 17
+  for (const im of imageBackup) {
+    const tlRow = im.range?.tl?.row
+    if (typeof tlRow === 'number' && tlRow >= SPLICE0_AFTER_DELETED) {
+      if (im.range.tl) im.range.tl.row = Math.max(0, tlRow - COVER_BLANK_COUNT)
+      const brRow = im.range?.br?.row
+      if (typeof brRow === 'number' && im.range.br) im.range.br.row = Math.max(0, brRow - COVER_BLANK_COUNT)
+    }
+  }
+
+  for (const m of snapshot) {
+    // 삭제 범위 (15..17) 에 완전히 포함된 병합은 폐기.
+    if (m.top >= COVER_BLANK_START && m.bottom < COVER_BLANK_START + COVER_BLANK_COUNT) continue
+    const newTop = m.top >= COVER_BLANK_START + COVER_BLANK_COUNT ? m.top - COVER_BLANK_COUNT : m.top
+    const newBottom = m.bottom >= COVER_BLANK_START + COVER_BLANK_COUNT ? m.bottom - COVER_BLANK_COUNT : m.bottom
+    ws.mergeCells(addrRange(newTop, m.left, newBottom, m.right))
+  }
+}
+
+function addrRange(top: number, left: number, bottom: number, right: number): string {
+  return `${colLetter(left)}${top}:${colLetter(right)}${bottom}`
+}
+
+function colLetter(col: number): string {
+  let s = ''
+  let n = col
+  while (n > 0) {
+    const r = (n - 1) % 26
+    s = String.fromCharCode(65 + r) + s
+    n = Math.floor((n - 1) / 26)
+  }
+  return s
+}
 
 function fillCover(
   ws: ExcelJS.Worksheet,
@@ -81,41 +253,83 @@ function fillCover(
   sheet: EstimateSheet,
   items: EstimateItem[],
 ): void {
+  // c11: 빈 row15-17 먼저 제거. 이후 모든 좌표는 post-splice 기준.
+  // 영향: row18(합계) → row15, row19(특기사항) → row16.
+  spliceCoverBlankRows(ws)
+
+  // ── 이슈 #5: 좌측 정렬 유실 방지 ──
+  // 값 주입 전 기존 수식/alignment 리셋 후 좌측 정렬 명시.
+  // ── 이슈 #1: META 라벨 침범 방지 ──
+  // shrinkToFit 으로 긴 값이 옆 셀 침범하지 않도록 수축.
+  const metaAlign: Partial<ExcelJS.Alignment> = {
+    horizontal: 'left',
+    vertical: 'middle',
+    shrinkToFit: true,
+    wrapText: false,
+  }
+
+  const setCell = (row: number, col: number, value: ExcelJS.CellValue) => {
+    const cell = ws.getCell(row, col)
+    cell.value = null // 기존 수식/값 제거 (NUMBERSTRING 등 잔존 수식 제거)
+    cell.value = value
+    cell.alignment = { ...cell.alignment, ...metaAlign }
+  }
+
   // D6: 관리번호
-  ws.getCell(6, 4).value = estimate.mgmt_no ?? ''
+  setCell(6, 4, estimate.mgmt_no ?? '')
 
   // D7: 견적일
-  ws.getCell(7, 4).value = estimate.date ?? ''
+  setCell(7, 4, estimate.date ?? '')
 
   // D8: 고객명 귀하
-  ws.getCell(8, 4).value = estimate.customer_name
-    ? `${estimate.customer_name} 귀하`
-    : '귀하'
+  setCell(8, 4, estimate.customer_name ? `${estimate.customer_name} 귀하` : '귀하')
 
   // D9: 공사명
-  ws.getCell(9, 4).value = estimate.site_name ?? '방수공사'
+  setCell(9, 4, estimate.site_name ?? '방수공사')
 
-  // J9: 현장주소 (현재 Estimate에 address 필드 없음 → site_name 사용)
-  ws.getCell(9, 10).value = estimate.site_name ?? ''
+  // J9: 현장주소
+  setCell(9, 10, estimate.site_name ?? '')
 
   // ── 금액 (수식이 Node에서 평가 안 되므로 직접 값) ──
   const cr = calc(items)
 
-  // E11: 한글 금액 (NUMBERSTRING 수식 대체)
-  ws.getCell(11, 5).value = toKoreanAmount(cr.grandTotal)
+  // ── 이슈 #6: 한글금액 #NAME? 에러 방지 ──
+  // 템플릿 E11 의 NUMBERSTRING 수식을 완전히 제거 후 값 주입.
+  // 주변 셀 병합 범위에도 수식이 잔존할 수 있으므로 11행 E~J 전체 null 초기화.
+  for (let col = 5; col <= 10; col++) {
+    const cell = ws.getCell(11, col)
+    // 기존 수식 제거 — .value = null 만으로는 formula 가 유지되는 경우가 있어 type 명시
+    if (cell.type === ExcelJS.ValueType.Formula) {
+      cell.value = null
+    }
+  }
+  // E11: 한글 금액
+  const koreanCell = ws.getCell(11, 5)
+  koreanCell.value = null
+  koreanCell.value = toKoreanAmount(cr.grandTotal)
+  koreanCell.alignment = { ...koreanCell.alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true }
 
-  // K14: 계 (Sheet2!M21 수식 대체 — 행 번호 바뀌므로 직접 값)
-  ws.getCell(14, 11).value = cr.totalBeforeRound
+  // K14: 계
+  const totalCell = ws.getCell(14, 11)
+  totalCell.value = null
+  totalCell.value = cr.totalBeforeRound
+  totalCell.alignment = { ...totalCell.alignment, horizontal: 'right', vertical: 'middle' }
 
-  // K18: 합계 (Sheet2!M22 수식 대체)
-  ws.getCell(18, 11).value = cr.grandTotal
+  // K15: 합계 (post-splice. 원 K18.)
+  const grandCell = ws.getCell(15, 11)
+  grandCell.value = null
+  grandCell.value = cr.grandTotal
+  grandCell.alignment = { ...grandCell.alignment, horizontal: 'right', vertical: 'middle' }
 
-  // D19: 특기사항 (B19:C22는 라벨 머지, D19:R22가 내용 머지)
+  // D16: 특기사항 (post-splice. 원 D19.)
   const memo = estimate.memo?.trim() ?? ''
-  ws.getCell(19, 4).value =
+  const specialCell = ws.getCell(16, 4)
+  specialCell.value = null
+  specialCell.value =
     `  1. 하자보수기간 ${sheet.warranty_years}년 (하자이행증권 ${sheet.warranty_bond}년)\n` +
     `  2. 견적서 제출 30일 유효\n` +
     `  3. ${memo}`
+  specialCell.alignment = { ...specialCell.alignment, horizontal: 'left', vertical: 'top', wrapText: true }
 }
 
 // ── Sheet2 (을지) ──
@@ -137,21 +351,23 @@ function fillDetail(
 
   if (count <= TEMPLATE_ZONE_SIZE) {
     // ── Case A: 템플릿 행 이하 — 채움 + 남는 행 삭제 ──
-    // 1) 아이템 행 채움
+    // 이슈 #3 (빈 행 방치) + #4 (이미지 앵커 틀어짐) 대응:
+    // spliceRows 직전 이미지 앵커 snapshot → 직후 anchor row 보정.
     for (let i = 0; i < count; i++) {
       const row = ITEM_START_ROW + i
       setItemRow(ws, row, items[i])
       setItemFormulas(ws, row)
     }
 
-    // 2) 남는 행 삭제 (아래에서 위로)
     const deleteCount = TEMPLATE_ZONE_SIZE - count
     if (deleteCount > 0) {
-      // spliceRows(startRow, deleteCount) 로 한 번에 삭제
-      ws.spliceRows(ITEM_START_ROW + count, deleteCount)
+      const deleteStart = ITEM_START_ROW + count
+      const deleteEnd = deleteStart + deleteCount - 1
+      preserveImagesAcrossSplice(ws, deleteStart, deleteEnd, -deleteCount, () => {
+        ws.spliceRows(deleteStart, deleteCount)
+      })
     }
 
-    // 3) 합계 수식 재설정 (행 번호가 바뀜)
     const lastItemRow = ITEM_START_ROW + count - 1
     const newSummaryStart = ITEM_START_ROW + count
     updateSummaryFormulas(ws, newSummaryStart, ITEM_START_ROW, lastItemRow)
@@ -159,25 +375,22 @@ function fillDetail(
   } else {
     // ── Case B: 템플릿 행 초과 — 합계 행 위에 행 삽입 ──
     const extraRows = count - TEMPLATE_ZONE_SIZE
+    preserveImagesAcrossSplice(ws, SUMMARY_START_ROW, Number.POSITIVE_INFINITY, extraRows, () => {
+      ws.spliceRows(SUMMARY_START_ROW, 0, ...Array(extraRows).fill([]))
+    })
 
-    // 1) 소계 행(18) 위에 빈 행 삽입
-    ws.spliceRows(SUMMARY_START_ROW, 0, ...Array(extraRows).fill([]))
-
-    // 2) 기존 템플릿 행 (7-17) 채움
     for (let i = 0; i < TEMPLATE_ZONE_SIZE; i++) {
       const row = ITEM_START_ROW + i
       setItemRow(ws, row, items[i])
       setItemFormulas(ws, row)
     }
 
-    // 3) 삽입된 행 채움 + 수식
     for (let i = TEMPLATE_ZONE_SIZE; i < count; i++) {
       const row = ITEM_START_ROW + i
       setItemRow(ws, row, items[i])
       setItemFormulas(ws, row)
     }
 
-    // 4) 합계 수식 재설정
     const lastItemRow = ITEM_START_ROW + count - 1
     const newSummaryStart = SUMMARY_START_ROW + extraRows
     updateSummaryFormulas(ws, newSummaryStart, ITEM_START_ROW, lastItemRow)
@@ -185,17 +398,79 @@ function fillDetail(
 }
 
 /**
+ * spliceRows 전후 이미지 앵커 보정 헬퍼 (이슈 #4).
+ *
+ * exceljs 는 spliceRows 후 이미지 anchor 를 자동 재계산하지 않아
+ * 로고/브랜드 이미지가 원래 위치에서 틀어질 수 있다.
+ * splice 범위 이하 (또는 삽입 이상) 에 위치한 이미지의 row 오프셋을 명시 보정한다.
+ *
+ * @param affectedStartRow splice 시작 행 (0-based 내부, 1-based 외부 기준 그대로 전달)
+ * @param affectedEndRow   splice 끝 행 (삭제 Case A) 또는 Infinity (삽입 Case B)
+ * @param rowDelta         행 이동량 (삭제: 음수, 삽입: 양수)
+ */
+function preserveImagesAcrossSplice(
+  ws: ExcelJS.Worksheet,
+  affectedStartRow: number,
+  affectedEndRow: number,
+  rowDelta: number,
+  splice: () => void,
+): void {
+  const images = ws.getImages()
+  const snapshot = images.map(img => ({
+    imageId: img.imageId,
+    range: img.range,
+  }))
+
+  splice()
+
+  // splice 후 worksheet 내부 이미지 앵커 재계산 보정.
+  // exceljs 의 range 는 { tl: {col, row}, br: {col, row} } 구조 (0-based).
+  // 삭제 범위 이후에 위치한 이미지는 row 를 rowDelta 만큼 이동.
+  // ※ exceljs 1-based vs 0-based 혼재 — getImages 결과는 0-based.
+  //   affectedStartRow 는 1-based 로 들어오므로 비교 시 -1 보정.
+  const splice0 = affectedStartRow - 1
+  const end0 = affectedEndRow === Number.POSITIVE_INFINITY ? Infinity : affectedEndRow - 1
+
+  for (const snap of snapshot) {
+    const r = snap.range as { tl?: { row?: number; col?: number }; br?: { row?: number; col?: number } }
+    const tlRow = r?.tl?.row
+    const brRow = r?.br?.row
+    if (typeof tlRow !== 'number') continue
+
+    // splice 이후 범위에 있으면 보정
+    if (tlRow >= splice0 && (end0 === Infinity || tlRow <= end0 + Math.abs(rowDelta))) {
+      if (r.tl) r.tl.row = Math.max(0, tlRow + rowDelta)
+      if (r.br && typeof brRow === 'number') r.br.row = Math.max(0, brRow + rowDelta)
+    }
+  }
+}
+
+/**
  * 아이템 행 입력값 설정 (단가·수량 — 금액은 수식)
- * 0 값은 빈 문자열로 처리하여 셀이 비어 보이게 함
+ * 0 값은 빈 문자열로 처리하여 셀이 비어 보이게 함.
+ *
+ * 이슈 #2 대응: 품명이 2줄 이상이면 row.height 를 명시해 잘림 방지.
+ * wrapText=true 를 품명 셀에 보장해 \n 또는 긴 문자열이 정상 wrap 되도록 함.
  */
 function setItemRow(ws: ExcelJS.Worksheet, r: number, item: EstimateItem): void {
-  ws.getCell(r, 2).value = item.name             // B: 품명
+  const nameCell = ws.getCell(r, 2)
+  nameCell.value = item.name
+  nameCell.alignment = { ...nameCell.alignment, wrapText: true, vertical: 'middle' }
+
   ws.getCell(r, 3).value = item.spec || ''        // C: 규격
   ws.getCell(r, 4).value = item.unit              // D: 단위
   ws.getCell(r, 5).value = item.qty > 0 ? item.qty : ''  // E: 수량
   ws.getCell(r, 6).value = item.mat > 0 ? item.mat : ''  // F: 재료단가
   ws.getCell(r, 8).value = item.labor > 0 ? item.labor : ''  // H: 인건단가
   ws.getCell(r, 10).value = item.exp > 0 ? item.exp : ''  // J: 경비단가
+
+  // 행 높이 — 품명 셀 너비 기반 동적 산정 + 정적 폴백
+  const nameColWidth = ws.getColumn(2).width
+  const desired = computeRowHeight(item.name, nameColWidth)
+  const row = ws.getRow(r)
+  if ((row.height ?? 0) < desired) {
+    row.height = desired
+  }
 }
 
 /**
