@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Estimate, PriceMatrixRaw } from '@/lib/estimate/types'
+import type { Estimate, EstimateItem, PriceMatrixRaw } from '@/lib/estimate/types'
 import { useEstimate } from '@/hooks/useEstimate'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useEstimateVoice } from '@/hooks/useEstimateVoice'
 import { useCostChips } from '@/hooks/useCostChips'
 import { useAcdbSuggest } from '@/hooks/useAcdbSuggest'
 import { useWarrantyDefaults } from '@/hooks/useWarrantyDefaults'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useRuntimeChipPrices } from '@/hooks/useRuntimeChipPrices'
+import { chipToEstimateItem, type QuickChip } from '@/lib/estimate/quickChipConfig'
+import { calc } from '@/lib/estimate/calc'
 import { deriveYearsBond, DEFAULT_WARRANTY_OPTION_BY_METHOD } from '@/lib/estimate/warrantyOptions'
 import { getAR } from '@/lib/estimate/areaRange'
 import type { TabId } from './TabBar'
@@ -455,6 +459,9 @@ export default function EstimateEditor({
 }
 
 // --- 사이드 패널 (장비·인력 + 보수·추가) ---
+// 데이터 소스: cost_config.favorites (useFavorites). 미존재 시 QUICK_CHIP_CATEGORIES fallback.
+// 가격: useRuntimeChipPrices.applyPrices 로 cost_config.equipment_prices / extra_items 런타임 오버라이드.
+// 추가: 양 시트 (복합 + 우레탄) 동시 push + calc 재계산 + 스냅샷.
 function SidePanel({
   estimate,
   sheetIndex,
@@ -466,83 +473,50 @@ function SidePanel({
   onChange: (e: Estimate) => void
   onSaveSnapshot: (d: string) => void
 }) {
-  const addEquipment = useCallback((name: string, unit: string, mat: number, labor: number, exp: number) => {
-    onSaveSnapshot(`장비 추가: ${name}`)
-    const sheets = [...estimate.sheets]
-    for (let i = 0; i < sheets.length; i++) {
-      const items = [...sheets[i].items]
-      items.push({
-        sort_order: items.length + 1,
-        name,
-        spec: '',
-        unit,
-        qty: 1,
-        mat,
-        labor,
-        exp,
-        mat_amount: mat,
-        labor_amount: labor,
-        exp_amount: exp,
-        total: mat + labor + exp,
-        is_base: false,
-        is_equipment: true,
-        is_fixed_qty: false,
-      })
-      sheets[i] = { ...sheets[i], items }
-    }
-    onChange({ ...estimate, sheets })
-  }, [estimate, onChange, onSaveSnapshot])
+  const { favorites } = useFavorites()
+  const { applyPrices } = useRuntimeChipPrices()
 
-  const addRepair = useCallback((name: string) => {
-    onSaveSnapshot(`보수 추가: ${name}`)
+  const handleChipAdd = useCallback((chip: QuickChip) => {
+    onSaveSnapshot(`빠른 추가: ${chip.name}`)
+    const overridden = applyPrices(chip)
     const sheets = [...estimate.sheets]
     for (let i = 0; i < sheets.length; i++) {
-      const items = [...sheets[i].items]
-      items.push({
-        sort_order: items.length + 1,
-        name,
-        spec: '',
-        unit: '식',
-        qty: 1,
-        mat: 0,
-        labor: 0,
-        exp: 0,
-        mat_amount: 0,
-        labor_amount: 0,
-        exp_amount: 0,
-        total: 0,
-        is_base: false,
-        is_equipment: false,
-        is_fixed_qty: false,
-      })
-      sheets[i] = { ...sheets[i], items }
+      const sheetItems = sheets[i].items
+      const newItem = chipToEstimateItem(overridden, sheetItems.length + 1) as EstimateItem
+      const newItems = [...sheetItems, newItem]
+      const c = calc(newItems.filter(it => !it.is_hidden))
+      sheets[i] = { ...sheets[i], items: newItems, grand_total: c.grandTotal }
     }
     onChange({ ...estimate, sheets })
-  }, [estimate, onChange, onSaveSnapshot])
+  }, [estimate, onChange, onSaveSnapshot, applyPrices])
 
   const chipCls = 'w-full rounded-lg bg-v-hov px-[10px] py-2 text-center text-xs font-medium text-v-hdr cursor-pointer hover:bg-v-accent-bg hover:text-v-accent transition-colors'
 
   return (
     <>
-      <div className="rounded-lg bg-white p-[10px] mb-2 shadow-v-sm">
-        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">장비·인력</h4>
-        <div className="flex flex-col gap-2">
-          <button className={chipCls} onClick={() => addEquipment('사다리차', '일', 0, 0, 120000)}>사다리차</button>
-          <button className={chipCls} onClick={() => addEquipment('스카이차', '일', 0, 0, 350000)}>스카이차</button>
-          <button className={chipCls} onClick={() => addEquipment('포크레인', '대', 0, 0, 700000)}>포크레인</button>
-          <button className={chipCls} onClick={() => addEquipment('크레인', '대', 0, 0, 1500000)}>크레인</button>
-          <button className={chipCls} onClick={() => addEquipment('로프공', '인', 0, 450000, 600000)}>로프공</button>
-          <button className={chipCls} onClick={() => addEquipment('폐기물처리', '식', 0, 0, 200000)}>폐기물처리</button>
+      {favorites.map((category, catIdx) => (
+        <div
+          key={`${category.label}-${catIdx}`}
+          className={`rounded-lg bg-white p-[10px] shadow-v-sm ${catIdx < favorites.length - 1 ? 'mb-2' : ''}`}
+        >
+          <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">
+            {category.label}
+          </h4>
+          <div className="flex flex-col gap-2">
+            {category.chips.map(chip => (
+              <button
+                key={chip.name}
+                type="button"
+                className={chipCls}
+                onClick={() => handleChipAdd(chip)}
+                data-testid={`sidepanel-chip-${chip.name}`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="rounded-lg bg-white p-[10px] shadow-v-sm">
-        <h4 className="text-[10px] font-semibold text-v-mut tracking-wider mb-2 uppercase">보수·추가</h4>
-        <div className="flex flex-col gap-2">
-          <button className={chipCls} onClick={() => addRepair('바탕조정제 부분미장')}>바탕조정제 부분미장</button>
-          <button className={chipCls} onClick={() => addRepair('드라이비트 하부절개')}>드라이비트 하부절개</button>
-          <button className={chipCls} onClick={() => addRepair('드라이비트 부분절개')}>드라이비트 부분절개</button>
-        </div>
-      </div>
+      ))}
     </>
   )
 }

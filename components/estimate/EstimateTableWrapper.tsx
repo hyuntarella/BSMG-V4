@@ -10,8 +10,6 @@ import {
   syncWallAndTop,
 } from '@/lib/estimate/syncUrethane'
 import { calc } from '@/lib/estimate/calc'
-import { chipToEstimateItem, type QuickChip } from '@/lib/estimate/quickChipConfig'
-import { useRuntimeChipPrices } from '@/hooks/useRuntimeChipPrices'
 import ExcelLikeTable from './ExcelLikeTable'
 
 interface AcdbSuggestHook {
@@ -45,9 +43,6 @@ export default function EstimateTableWrapper({
   const sheet = estimate.sheets[sheetIndex]
   const items = sheet?.items ?? []
   const sheetType = sheet?.type ?? '복합'
-
-  // 런타임 칩 단가 오버라이드 (cost_config.equipment_prices / extra_items)
-  const { applyPrices } = useRuntimeChipPrices()
 
   // 검색
   const estimateSearch = useEstimateSearch(estimate.sheets)
@@ -218,24 +213,6 @@ export default function EstimateTableWrapper({
     onChange({ ...estimate, sheets })
   }, [estimate, onSaveSnapshot, onChange])
 
-  // --- #10 빠른공종추가 칩 클릭 (양 공법 동시 추가) ---
-  const handleQuickAdd = useCallback((chip: QuickChip) => {
-    onSaveSnapshot?.(`빠른 추가: ${chip.name}`)
-    const overridden = applyPrices(chip)
-    const sheets = [...estimate.sheets]
-
-    // 양 시트에 동시 추가
-    for (let i = 0; i < sheets.length; i++) {
-      const sheetItems = sheets[i].items
-      const newItem = chipToEstimateItem(overridden, sheetItems.length + 1)
-      const newItems = [...sheetItems, newItem as EstimateItem]
-      const calcResult = calc(newItems.filter(it => !it.is_hidden))
-      sheets[i] = { ...sheets[i], items: newItems, grand_total: calcResult.grandTotal }
-    }
-
-    onChange({ ...estimate, sheets })
-  }, [estimate, onSaveSnapshot, onChange, applyPrices])
-
   // --- Undo ---
   const handleUndo = useCallback(() => {
     onUndo?.()
@@ -273,7 +250,6 @@ export default function EstimateTableWrapper({
       onToggleHide={handleToggleHide}
       onDeleteRow={handleDeleteRow}
       onAddFreeItem={handleAddFreeItem}
-      onQuickAdd={handleQuickAdd}
       searchQuery={estimateSearch.query}
       onSearch={estimateSearch.search}
       matchingRowIndexes={matchingRowIndexes}
