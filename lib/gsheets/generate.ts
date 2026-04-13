@@ -3,29 +3,43 @@
  *
  * 흐름:
  *   1. drive.files.copy(템플릿) → 작업용 사본 생성
- *   2. (optional) spreadsheets.batchUpdate({insertDimension}) — 11 행 초과 시 행 삽입
- *   3. sheets.spreadsheets.values.batchUpdate — 갑지/을지 셀 값 일괄 주입
- *   4. docs.google.com/spreadsheets/d/{id}/export?format=pdf — landscape PDF
- *   5. drive.files.export(mimeType=xlsx) — xlsx 다운로드용
- *   6. drive.files.delete — 작업용 사본 정리 (성공/실패 무관)
+ *   2. spreadsheets.batchUpdate (구조 + 서식, 단일 호출):
+ *      - insertDimension (items > 11 시 행 삽입)
+ *      - repeatCell (B7..B(7+N-1) wrapStrategy=WRAP — PM 회귀 [1])
+ *      - updateCells (D19 특기사항 RichText 빨간 볼드 첫 줄 — PM 회귀 [3])
+ *   3. spreadsheets.values.batchUpdate (셀 값 일괄):
+ *      - 갑지 D6/D7/D8/D9/J9/E11 (E11=toKoreanAmount — PM 회귀 [2] NUMBERSTRING 미지원 회피)
+ *      - 을지 C3 + 11×12 = 133 셀
+ *   4. docs.google.com/spreadsheets/d/{id}/export?format=pdf
+ *   5. drive.files.export(mimeType=xlsx)
+ *   6. drive.files.delete (작업용 사본 정리, finally)
  *
- * 반환: { pdfBuffer, xlsxBuffer } — 호출자가 upsertToDrive 로 영구 보관.
+ * PM 회귀 (UAT 1차) 대응:
+ *   [1] 품명 셀 침범: 템플릿 B열 wrap 이 일관되지 않음 (일부 OVERFLOW_CELL).
+ *       repeatCell 로 B열 전 품목 행에 wrapStrategy=WRAP 강제.
+ *   [2] 갑지 #NAME?: NUMBERSTRING 은 Excel 한국어판 전용, Sheets 미지원.
+ *       toKoreanAmount(grandTotal) 직접 계산 후 E11 plain string 주입.
+ *   [3] 빨간 볼드 유실: values.batchUpdate 가 textFormatRuns 보존 안 함.
+ *       D19 만 spreadsheets.batchUpdate.updateCells 로 RichText 명시 주입.
  *
- * Sheets API quota: 분당 60 write/project. 견적서 1건 = batchUpdate 2회 (복합+우레탄)
- *   = 30 견적서/분 한계. 일 견적서 10-30건 (PM 2026-04-13) 이라 여유 충분.
+ * Sheets API 호출 횟수: 견적서 1건 = copy(1) + spreadsheets.batchUpdate(1) +
+ *   values.batchUpdate(1) + PDF export(1) + xlsx export(1) + delete(1) = 6 calls.
+ *   복합/우레탄 양쪽 = 12 calls. quota 60/min/project 대비 충분히 여유.
  */
 import type { Estimate, EstimateSheet, EstimateItem, Method } from '@/lib/estimate/types'
 import { getDriveClient, getSheetsClient, getTemplateId } from '@/lib/gsheets/client'
 import { getAuth } from '@/lib/gdrive/client'
+import { calc } from '@/lib/estimate/calc'
+import { toKoreanAmount } from '@/lib/utils/numberToKorean'
 
-// ── 셀 매핑 (PoC 검증된 좌표) ──
+// ── 셀 매핑 (PoC + UAT 1차 검증 후 좌표) ──
 const COVER_SHEET = 'Sheet1 (2)'   // 갑지
 const DETAIL_SHEET = 'Sheet2'      // 을지
 
-// 을지 품목 zone
-const ITEM_START_ROW = 7
+const ITEM_START_ROW = 7           // 1-based
 const ITEM_TEMPLATE_ZONE = 11      // 7..17
 const SUMMARY_FIRST_ROW = 18       // 소계
+const SPECIAL_NOTE_ROW = 19        // D19 — 특기사항 (RichText)
 
 const PDF_EXPORT_PARAMS = {
   format: 'pdf',
@@ -42,37 +56,29 @@ interface ValueRange {
   values: (string | number)[][]
 }
 
-/**
- * 갑지 (Sheet1) 셀 주입 데이터.
- *
- * E11 한글금액, K14/K18 합계는 템플릿 수식 (NUMBERSTRING/=Sheet2!*) 가
- * Google Sheets 에서 정상 평가되므로 주입하지 않는다 (xlsx 엔진의 toKoreanAmount
- * hack 폐기).
- */
-function buildCoverInjections(estimate: Estimate, sheet: EstimateSheet): ValueRange[] {
-  const memo = (estimate.memo ?? '').trim()
-  const special =
+function buildSpecialNote(sheet: EstimateSheet, memo: string): string {
+  return (
     `  1. 하자보수기간 ${sheet.warranty_years}년 (하자이행증권 ${sheet.warranty_bond}년)\n` +
     `  2. 견적서 제출 30일 유효\n` +
     `  3. ${memo}`
+  )
+}
 
+/**
+ * 갑지 (Sheet1) 셀 주입 데이터 — D19 제외 (별도 RichText 주입).
+ * E11 한글금액은 NUMBERSTRING 미지원 회피로 toKoreanAmount 결과 직접 주입.
+ */
+function buildCoverInjections(estimate: Estimate, koreanAmount: string): ValueRange[] {
   return [
     { range: `${COVER_SHEET}!D6`, values: [[estimate.mgmt_no ?? '']] },
     { range: `${COVER_SHEET}!D7`, values: [[estimate.date ?? '']] },
     { range: `${COVER_SHEET}!D8`, values: [[estimate.customer_name ? `${estimate.customer_name} 귀하` : '귀하']] },
     { range: `${COVER_SHEET}!D9`, values: [[estimate.site_name ?? '방수공사']] },
     { range: `${COVER_SHEET}!J9`, values: [[estimate.site_name ?? '']] },
-    { range: `${COVER_SHEET}!D19`, values: [[special]] },
+    { range: `${COVER_SHEET}!E11`, values: [[koreanAmount]] },
   ]
 }
 
-/**
- * 을지 (Sheet2) 셀 주입 데이터.
- *
- * 행 7..(7+count-1) 에 품목 11개 입력값 + 행 단위 수식 명시 주입.
- * count < 11 면 남은 행은 빈값으로 클리어 (템플릿 기본 데이터 제거).
- * count > 11 처리는 호출자가 사전에 insertDimension 으로 행 삽입 후 호출.
- */
 function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: EstimateItem[]): ValueRange[] {
   const c3Title = sheet.type === '복합'
     ? `${estimate.site_name ?? '방수공사'} 이중복합방수 3.8mm (제 1안)`
@@ -82,7 +88,6 @@ function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: 
     { range: `${DETAIL_SHEET}!C3`, values: [[c3Title]] },
   ]
 
-  // 품목 zone — count 만큼은 실제 값, 나머지는 빈값
   const totalRows = Math.max(items.length, ITEM_TEMPLATE_ZONE)
   for (let i = 0; i < totalRows; i++) {
     const r = ITEM_START_ROW + i
@@ -96,7 +101,6 @@ function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: 
         { range: `${DETAIL_SHEET}!F${r}`, values: [[item.mat > 0 ? item.mat : '']] },
         { range: `${DETAIL_SHEET}!H${r}`, values: [[item.labor > 0 ? item.labor : '']] },
         { range: `${DETAIL_SHEET}!J${r}`, values: [[item.exp > 0 ? item.exp : '']] },
-        // 행 수식 명시 — 템플릿이 일부 행에 G/I/K/L/M 수식이 누락된 경우 방어.
         { range: `${DETAIL_SHEET}!G${r}`, values: [[`=E${r}*F${r}`]] },
         { range: `${DETAIL_SHEET}!I${r}`, values: [[`=E${r}*H${r}`]] },
         { range: `${DETAIL_SHEET}!K${r}`, values: [[`=E${r}*J${r}`]] },
@@ -104,7 +108,6 @@ function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: 
         { range: `${DETAIL_SHEET}!M${r}`, values: [[`=G${r}+I${r}+K${r}`]] },
       )
     } else {
-      // 빈 행 — 템플릿 잔존 값/수식 클리어
       for (const col of ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']) {
         data.push({ range: `${DETAIL_SHEET}!${col}${r}`, values: [['']] })
       }
@@ -113,38 +116,91 @@ function buildDetailInjections(estimate: Estimate, sheet: EstimateSheet, items: 
   return data
 }
 
-/**
- * Detail 시트의 시트 ID (gid) 조회 — insertDimension 호출 시 필요.
- */
-async function getDetailSheetId(spreadsheetId: string): Promise<number> {
+async function getSheetIds(spreadsheetId: string): Promise<{ cover: number; detail: number }> {
   const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties(sheetId,title))' })
-  const detail = (res.data.sheets ?? []).find(s => s.properties?.title === DETAIL_SHEET)
-  if (!detail?.properties?.sheetId && detail?.properties?.sheetId !== 0) {
-    throw new Error(`시트 "${DETAIL_SHEET}" 를 찾을 수 없음`)
+  const all = res.data.sheets ?? []
+  const find = (title: string) => {
+    const s = all.find(s => s.properties?.title === title)
+    if (s?.properties?.sheetId === undefined || s.properties.sheetId === null) {
+      throw new Error(`시트 "${title}" 를 찾을 수 없음`)
+    }
+    return s.properties.sheetId
   }
-  return detail.properties.sheetId
+  return { cover: find(COVER_SHEET), detail: find(DETAIL_SHEET) }
 }
 
 /**
- * 11 행 초과 시 을지에 행 삽입 (소계 행 위에). 템플릿 SUM 범위는 자동 확장됨.
+ * 구조 + 서식 변경 요청 생성:
+ *   1) insertDimension (items > 11)
+ *   2) repeatCell — B7..B(7+totalRows-1) wrap=WRAP
+ *   3) updateCells — D19 특기사항 RichText (첫 줄 빨간 볼드)
  */
-async function insertExtraRows(spreadsheetId: string, extraRows: number): Promise<void> {
-  const sheets = getSheetsClient()
-  const detailSheetId = await getDetailSheetId(spreadsheetId)
-  // 0-based: 17 = 행 18(소계) 직전. inheritFromBefore=true 로 행 17 의 서식/수식 복제.
-  const startIndex = SUMMARY_FIRST_ROW - 1
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [{
-        insertDimension: {
-          range: { sheetId: detailSheetId, dimension: 'ROWS', startIndex, endIndex: startIndex + extraRows },
-          inheritFromBefore: true,
-        },
-      }],
+function buildStructuralRequests(
+  sheetIds: { cover: number; detail: number },
+  totalRows: number,
+  extraRows: number,
+  specialNote: string,
+): object[] {
+  const requests: object[] = []
+
+  if (extraRows > 0) {
+    const startIndex = SUMMARY_FIRST_ROW - 1
+    requests.push({
+      insertDimension: {
+        range: { sheetId: sheetIds.detail, dimension: 'ROWS', startIndex, endIndex: startIndex + extraRows },
+        inheritFromBefore: true,
+      },
+    })
+  }
+
+  // B 열 (col index 1) 전 품목 행 wrap 강제
+  requests.push({
+    repeatCell: {
+      range: {
+        sheetId: sheetIds.detail,
+        startRowIndex: ITEM_START_ROW - 1,
+        endRowIndex: ITEM_START_ROW - 1 + totalRows,
+        startColumnIndex: 1,
+        endColumnIndex: 2,
+      },
+      cell: { userEnteredFormat: { wrapStrategy: 'WRAP' } },
+      fields: 'userEnteredFormat.wrapStrategy',
     },
   })
+
+  // D19 RichText — 첫 \n 까지 빨간 볼드, 이후 plain black
+  const firstNewline = specialNote.indexOf('\n')
+  const firstLineEnd = firstNewline >= 0 ? firstNewline : specialNote.length
+  requests.push({
+    updateCells: {
+      range: {
+        sheetId: sheetIds.cover,
+        startRowIndex: SPECIAL_NOTE_ROW - 1,
+        endRowIndex: SPECIAL_NOTE_ROW,
+        startColumnIndex: 3,
+        endColumnIndex: 4,
+      },
+      rows: [{
+        values: [{
+          userEnteredValue: { stringValue: specialNote },
+          textFormatRuns: [
+            {
+              startIndex: 0,
+              format: { bold: true, fontSize: 12, foregroundColorStyle: { rgbColor: { red: 1, green: 0, blue: 0 } } },
+            },
+            {
+              startIndex: firstLineEnd,
+              format: { bold: false, fontSize: 12, foregroundColorStyle: { rgbColor: { red: 0, green: 0, blue: 0 } } },
+            },
+          ],
+        }],
+      }],
+      fields: 'userEnteredValue,textFormatRuns',
+    },
+  })
+
+  return requests
 }
 
 async function getAccessToken(): Promise<string> {
@@ -154,13 +210,6 @@ async function getAccessToken(): Promise<string> {
   return token
 }
 
-/**
- * 작업용 사본의 PDF 와 xlsx Buffer 생성.
- *
- * @param estimate 견적서 전체
- * @param method   '복합' | '우레탄'
- * @returns { pdfBuffer, xlsxBuffer } — 호출자가 upsertToDrive 로 보관
- */
 export async function generateGSheetEstimate(
   estimate: Estimate,
   method: Method,
@@ -168,11 +217,14 @@ export async function generateGSheetEstimate(
   const sheet = estimate.sheets.find(s => s.type === method)
   if (!sheet) throw new Error(`시트 타입 '${method}' 를 찾을 수 없음`)
 
-  // is_hidden 만 제외. is_locked 는 단가 잠금이지 출력 제외 아님.
   const items = sheet.items.filter(it => !it.is_hidden)
+  const grandTotal = calc(items).grandTotal
+  const koreanAmount = toKoreanAmount(grandTotal)
+  const memo = (estimate.memo ?? '').trim()
+  const specialNote = buildSpecialNote(sheet, memo)
 
   const drive = getDriveClient()
-  const sheets = getSheetsClient()
+  const sheetsApi = getSheetsClient()
   const templateId = getTemplateId(method)
   const folderId = (process.env.GOOGLE_DRIVE_FOLDER_ID ?? '').trim()
 
@@ -188,19 +240,26 @@ export async function generateGSheetEstimate(
   if (!sheetId) throw new Error('템플릿 사본 생성 실패: 파일 ID 없음')
 
   try {
-    // 2. 11 행 초과 시 행 삽입
-    if (items.length > ITEM_TEMPLATE_ZONE) {
-      await insertExtraRows(sheetId, items.length - ITEM_TEMPLATE_ZONE)
-    }
+    // 2. 시트 ID 조회 (insertDimension/repeatCell/updateCells 모두 sheetId 필요)
+    const sheetIds = await getSheetIds(sheetId)
 
-    // 3. 셀 값 일괄 주입 (1 batchUpdate request)
-    const data = [...buildCoverInjections(estimate, sheet), ...buildDetailInjections(estimate, sheet, items)]
-    await sheets.spreadsheets.values.batchUpdate({
+    // 3. 구조 + 서식 일괄 (단일 spreadsheets.batchUpdate)
+    const totalRows = Math.max(items.length, ITEM_TEMPLATE_ZONE)
+    const extraRows = Math.max(0, items.length - ITEM_TEMPLATE_ZONE)
+    const structuralRequests = buildStructuralRequests(sheetIds, totalRows, extraRows, specialNote)
+    await sheetsApi.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: { requests: structuralRequests },
+    })
+
+    // 4. 값 일괄 (D19 제외 — RichText 보호)
+    const data = [...buildCoverInjections(estimate, koreanAmount), ...buildDetailInjections(estimate, sheet, items)]
+    await sheetsApi.spreadsheets.values.batchUpdate({
       spreadsheetId: sheetId,
       requestBody: { valueInputOption: 'USER_ENTERED', data },
     })
 
-    // 4. PDF export — docs.google.com/spreadsheets/d/{id}/export
+    // 5. PDF export
     const accessToken = await getAccessToken()
     const params = new URLSearchParams(PDF_EXPORT_PARAMS)
     const pdfUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?${params.toString()}`
@@ -211,7 +270,7 @@ export async function generateGSheetEstimate(
     }
     const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer())
 
-    // 5. xlsx export — drive.files.export
+    // 6. xlsx export
     const xlsxRes = await drive.files.export(
       { fileId: sheetId, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
       { responseType: 'arraybuffer' },
@@ -220,7 +279,6 @@ export async function generateGSheetEstimate(
 
     return { pdfBuffer, xlsxBuffer }
   } finally {
-    // 6. 작업용 사본 삭제 (성공/실패 무관)
     try {
       await drive.files.delete({ fileId: sheetId, supportsAllDrives: true })
     } catch (err) {

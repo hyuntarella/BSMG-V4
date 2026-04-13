@@ -3,11 +3,12 @@
  *
  * 검증 포인트:
  *   1. drive.files.copy 가 templateId 로 호출되는가
- *   2. spreadsheets.values.batchUpdate 가 USER_ENTERED 로 호출되는가
- *   3. 기대 셀 매핑 (D6, D9, J9, D19, C3, B7..) 이 batchUpdate 데이터에 포함되는가
- *   4. 11 행 초과 시 spreadsheets.batchUpdate (insertDimension) 가 선행되는가
+ *   2. spreadsheets.batchUpdate 가 호출되어 repeatCell(B wrap) + updateCells(D19 RichText) 포함
+ *   3. spreadsheets.values.batchUpdate 가 USER_ENTERED 로 호출 + E11 한글금액 + D19 미포함
+ *   4. 11 행 초과 시 spreadsheets.batchUpdate 의 requests 에 insertDimension 추가
  *   5. 작업용 사본이 finally 에서 삭제되는가
  *   6. PDF/xlsx Buffer 가 반환되는가
+ *   7. PDF export 실패 시에도 사본 정리
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Estimate, EstimateItem } from '@/lib/estimate/types'
@@ -38,7 +39,6 @@ vi.mock('@/lib/gdrive/client', () => ({
   getAuth: () => ({ getAccessToken: mockGetAccessToken }),
 }))
 
-// PDF/xlsx export 응답 stub
 const fakePdf = Buffer.from('%PDF-1.4 fake landscape')
 const fakeXlsx = Buffer.from('PK fake xlsx')
 
@@ -55,7 +55,12 @@ beforeEach(() => {
   mockValuesBatchUpdate.mockReset().mockResolvedValue({ data: {} })
   mockSheetsBatchUpdate.mockReset().mockResolvedValue({ data: {} })
   mockSheetsGet.mockReset().mockResolvedValue({
-    data: { sheets: [{ properties: { sheetId: 42, title: 'Sheet2' } }] },
+    data: {
+      sheets: [
+        { properties: { sheetId: 11, title: 'Sheet1 (2)' } },
+        { properties: { sheetId: 22, title: 'Sheet2' } },
+      ],
+    },
   })
 })
 
@@ -63,7 +68,7 @@ function mkItem(overrides: Partial<EstimateItem> = {}): EstimateItem {
   return {
     sort_order: 1, name: '프라이머', spec: '', unit: 'm²',
     qty: 100, mat: 1000, labor: 500, exp: 200,
-    mat_amount: 0, labor_amount: 0, exp_amount: 0, total: 0,
+    mat_amount: 100000, labor_amount: 50000, exp_amount: 20000, total: 170000,
     is_base: true, is_equipment: false, is_fixed_qty: false,
     ...overrides,
   }
@@ -93,37 +98,51 @@ function mkEstimate(itemCount: number, method: '복합' | '우레탄' = '복합'
 }
 
 describe('generateGSheetEstimate', () => {
-  it('템플릿 사본 생성 → batchUpdate → PDF/xlsx 반환', async () => {
+  it('템플릿 사본 → 구조 batchUpdate → values batchUpdate → PDF/xlsx 반환', async () => {
     const { generateGSheetEstimate } = await import('@/lib/gsheets/generate')
     const result = await generateGSheetEstimate(mkEstimate(8), '복합')
 
-    // 1. copy 호출 검증
+    // 1. copy
     expect(mockCopy).toHaveBeenCalledTimes(1)
     expect(mockCopy.mock.calls[0][0].fileId).toBe('tpl-복합')
 
-    // 2. batchUpdate (values) USER_ENTERED 검증
+    // 2. spreadsheets.batchUpdate (구조 + 서식)
+    expect(mockSheetsBatchUpdate).toHaveBeenCalledTimes(1)
+    const structRequests: object[] = mockSheetsBatchUpdate.mock.calls[0][0].requestBody.requests
+    const hasRepeatCell = structRequests.some((r: { repeatCell?: { range?: { startColumnIndex?: number } } }) =>
+      r.repeatCell?.range?.startColumnIndex === 1
+    )
+    expect(hasRepeatCell).toBe(true) // B 열 wrap 강제 ([1])
+
+    const updateCellsReq = structRequests.find((r: { updateCells?: object }) => 'updateCells' in r) as {
+      updateCells: { rows: { values: { textFormatRuns: { format: { bold?: boolean; foregroundColorStyle?: { rgbColor?: { red?: number } } } }[] }[] }[] }
+    }
+    expect(updateCellsReq).toBeDefined()
+    const runs = updateCellsReq.updateCells.rows[0].values[0].textFormatRuns
+    expect(runs[0].format.bold).toBe(true)
+    expect(runs[0].format.foregroundColorStyle?.rgbColor?.red).toBe(1) // 빨간 ([3])
+
+    // 3. values.batchUpdate
     expect(mockValuesBatchUpdate).toHaveBeenCalledTimes(1)
-    const req = mockValuesBatchUpdate.mock.calls[0][0]
-    expect(req.spreadsheetId).toBe('work-sheet-id')
-    expect(req.requestBody.valueInputOption).toBe('USER_ENTERED')
+    const valuesReq = mockValuesBatchUpdate.mock.calls[0][0]
+    expect(valuesReq.requestBody.valueInputOption).toBe('USER_ENTERED')
+    const ranges: string[] = valuesReq.requestBody.data.map((d: { range: string }) => d.range)
+    expect(ranges).toContain('Sheet1 (2)!E11')   // 한글금액 ([2])
+    expect(ranges).toContain('Sheet1 (2)!D6')
+    expect(ranges).toContain('Sheet1 (2)!D9')
+    expect(ranges).toContain('Sheet2!C3')
+    expect(ranges).toContain('Sheet2!B7')
+    expect(ranges).not.toContain('Sheet1 (2)!D19') // RichText 별도 주입 ([3])
 
-    // 3. 핵심 셀 매핑 포함 검증
-    const ranges: string[] = req.requestBody.data.map((d: { range: string }) => d.range)
-    expect(ranges).toContain('Sheet1 (2)!D6')   // 관리번호
-    expect(ranges).toContain('Sheet1 (2)!D7')   // 견적일
-    expect(ranges).toContain('Sheet1 (2)!D8')   // 고객명
-    expect(ranges).toContain('Sheet1 (2)!D9')   // 공사명
-    expect(ranges).toContain('Sheet1 (2)!J9')   // 현장주소
-    expect(ranges).toContain('Sheet1 (2)!D19')  // 특기사항
-    expect(ranges).toContain('Sheet2!C3')       // 을지 공사명
-    expect(ranges).toContain('Sheet2!B7')       // 첫 품목
-    // E11 한글금액은 템플릿 수식에 위임 (주입 X)
-    expect(ranges).not.toContain('Sheet1 (2)!E11')
+    // E11 값이 toKoreanAmount 결과 (일금 ... 원 정 ...)
+    const e11 = valuesReq.requestBody.data.find((d: { range: string }) => d.range === 'Sheet1 (2)!E11')
+    expect(e11.values[0][0]).toMatch(/^일금/)
 
-    // 4. 8 < 11 이므로 insertDimension 미호출
-    expect(mockSheetsBatchUpdate).not.toHaveBeenCalled()
+    // 4. 8 < 11 이므로 insertDimension 미포함
+    const hasInsert = structRequests.some((r: { insertDimension?: object }) => 'insertDimension' in r)
+    expect(hasInsert).toBe(false)
 
-    // 5. 작업용 사본 finally 삭제
+    // 5. cleanup
     expect(mockDelete).toHaveBeenCalledWith({ fileId: 'work-sheet-id', supportsAllDrives: true })
 
     // 6. Buffer 반환
@@ -131,17 +150,19 @@ describe('generateGSheetEstimate', () => {
     expect(result.xlsxBuffer).toBeInstanceOf(Buffer)
   })
 
-  it('11 행 초과 시 insertDimension 선행', async () => {
+  it('11 행 초과 시 insertDimension 이 structuralRequests 에 포함', async () => {
     const { generateGSheetEstimate } = await import('@/lib/gsheets/generate')
     await generateGSheetEstimate(mkEstimate(15, '우레탄'), '우레탄')
 
-    expect(mockSheetsBatchUpdate).toHaveBeenCalledTimes(1)
-    const req = mockSheetsBatchUpdate.mock.calls[0][0]
-    const insertReq = req.requestBody.requests[0].insertDimension
-    expect(insertReq.range.dimension).toBe('ROWS')
-    expect(insertReq.range.endIndex - insertReq.range.startIndex).toBe(15 - 11)
-    expect(insertReq.range.sheetId).toBe(42)
-    expect(insertReq.inheritFromBefore).toBe(true)
+    const requests = mockSheetsBatchUpdate.mock.calls[0][0].requestBody.requests
+    const insertReq = requests.find((r: { insertDimension?: object }) => 'insertDimension' in r) as {
+      insertDimension: { range: { dimension: string; startIndex: number; endIndex: number; sheetId: number }; inheritFromBefore: boolean }
+    }
+    expect(insertReq).toBeDefined()
+    expect(insertReq.insertDimension.range.dimension).toBe('ROWS')
+    expect(insertReq.insertDimension.range.endIndex - insertReq.insertDimension.range.startIndex).toBe(15 - 11)
+    expect(insertReq.insertDimension.range.sheetId).toBe(22) // detail
+    expect(insertReq.insertDimension.inheritFromBefore).toBe(true)
   })
 
   it('템플릿 ID 가 method 별로 다르게 선택됨', async () => {
@@ -150,7 +171,7 @@ describe('generateGSheetEstimate', () => {
     expect(mockCopy.mock.calls[0][0].fileId).toBe('tpl-우레탄')
   })
 
-  it('export 실패 시에도 작업용 사본 정리', async () => {
+  it('PDF export 실패 시에도 작업용 사본 정리', async () => {
     global.fetch = vi.fn(async () => ({
       ok: false,
       status: 500,
