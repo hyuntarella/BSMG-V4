@@ -21,6 +21,39 @@ export function getAuth() {
   })
 }
 
+/**
+ * 파일을 '링크가 있는 모든 사용자 — 뷰어' 로 공유.
+ *
+ * 왜 필요한가:
+ *   서비스 계정이 생성한 파일의 소유자는 서비스 계정 자신이라,
+ *   권한 부여 없이 webViewLink 로 접근하면 Google 로그인 프롬프트가 뜬다.
+ *   이 헬퍼가 생성/업데이트 직후 anyone reader 권한을 부여해 링크 공유를 보장.
+ *
+ * 보안 절충안:
+ *   type='anyone' 은 링크가 있으면 누구나 접근 가능. 견적서는 내부용 민감 자료라
+ *   이상적이지 않지만, 링크는 서비스 계정/사원만 접근하는 Drive 폴더의 webViewLink
+ *   이므로 유출 경로는 제한적. 완전 보안은 PDF buffer stream 전환 (별건 hotfix) 로.
+ *
+ * 멱등성: Drive 는 파일당 단 하나의 'anyone' 권한만 유지. 중복 호출 시 기존 권한을
+ *   반환하거나 갱신할 뿐 중복 생성되지 않는다. 실패는 경고 로그만 남기고 통과 —
+ *   제한된 Shared Drive 처럼 조직 정책으로 anyone 공유가 막힌 환경에서도 파일
+ *   생성 자체는 성공하도록.
+ */
+async function ensureAnyoneReader(
+  drive: ReturnType<typeof google.drive>,
+  fileId: string,
+): Promise<void> {
+  try {
+    await drive.permissions.create({
+      fileId,
+      requestBody: { role: 'reader', type: 'anyone' },
+      supportsAllDrives: true,
+    })
+  } catch (err) {
+    console.warn('[gdrive] anyone reader 권한 부여 실패:', err)
+  }
+}
+
 /** 폴더 내 파일 이름으로 검색 → 첫 번째 매칭 파일 ID 반환 */
 async function findFileByName(
   drive: ReturnType<typeof google.drive>,
@@ -62,8 +95,10 @@ export async function upsertToDrive(
       fields: 'id, name, webViewLink',
       supportsAllDrives: true,
     })
+    const id = res.data.id ?? existingId
+    await ensureAnyoneReader(drive, id)
     return {
-      id: res.data.id ?? existingId,
+      id,
       name: res.data.name ?? fileName,
       url: res.data.webViewLink ?? '',
     }
@@ -76,8 +111,10 @@ export async function upsertToDrive(
     fields: 'id, name, webViewLink',
     supportsAllDrives: true,
   })
+  const id = res.data.id ?? ''
+  if (id) await ensureAnyoneReader(drive, id)
   return {
-    id: res.data.id ?? '',
+    id,
     name: res.data.name ?? fileName,
     url: res.data.webViewLink ?? '',
   }
@@ -111,8 +148,10 @@ export async function uploadToDrive(
     supportsAllDrives: true,
   })
 
+  const id = res.data.id ?? ''
+  if (id) await ensureAnyoneReader(drive, id)
   return {
-    id: res.data.id ?? '',
+    id,
     name: res.data.name ?? existingName,
     url: res.data.webViewLink ?? '',
   }
