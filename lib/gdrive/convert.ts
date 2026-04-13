@@ -5,6 +5,7 @@
  */
 
 import { google } from 'googleapis'
+import { Readable } from 'stream'
 import { getAuth } from '@/lib/gdrive/client'
 
 /**
@@ -19,7 +20,6 @@ export async function convertXlsxToPdf(
 ): Promise<Buffer> {
   const auth = getAuth()
   const drive = google.drive({ version: 'v3', auth })
-  const { Readable } = await import('stream')
 
   // 1. XLSX를 Drive에 업로드 (Google Sheets로 자동 변환)
   const uploadRes = await drive.files.create({
