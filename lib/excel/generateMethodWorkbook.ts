@@ -26,19 +26,50 @@ const ITEM_START_ROW = 7
 const TEMPLATE_ZONE_SIZE = 11 // 복합·우레탄 공통: rows 7-17
 const SUMMARY_START_ROW = 18  // 소계 행 (템플릿 기본)
 
-// 행 높이: 품명에 \n 포함 또는 15자 이상이면 2줄 행 높이 적용
+// 행 높이 — 폴백 (정적 공식)
 const ROW_HEIGHT_SINGLE = 20
 const ROW_HEIGHT_DOUBLE = 36
 const ROW_HEIGHT_TRIPLE = 52
 const NAME_LENGTH_2LINE = 15
 const NAME_LENGTH_3LINE = 30
 
-/** 품명 길이/줄바꿈 기반 행 높이 계산 */
-function computeRowHeight(name: string): number {
+// 동적 산정 — 한 줄당 행 높이 + 패딩
+const LINE_HEIGHT_PT = 18
+const ROW_PADDING_PT = 6
+// 컬럼 width(엑셀 단위) → 한 줄에 들어가는 한글 문자수 계수
+// 한글은 2바이트 폭이라 width * 1.8 이 보수적인 lineChars 추정값
+const WIDTH_TO_CHARS = 1.8
+
+/** 정적 폴백 — 품명 길이/줄바꿈 기반 */
+function computeRowHeightStatic(name: string): number {
   const newlineCount = (name.match(/\n/g) || []).length
   if (newlineCount >= 2 || name.length >= NAME_LENGTH_3LINE) return ROW_HEIGHT_TRIPLE
   if (newlineCount >= 1 || name.length >= NAME_LENGTH_2LINE) return ROW_HEIGHT_DOUBLE
   return ROW_HEIGHT_SINGLE
+}
+
+/**
+ * 동적 행 높이 — 품명 셀(컬럼 B) 너비 기반 줄 수 추정.
+ * 1차: lineChars = floor(width * 1.8). 줄 수 = max(\n+1, ceil(longestSegment/lineChars)).
+ *      height = lines * 18 + 6.
+ * 2차 폴백: width 가 없거나 0 이거나 산정 실패 → 정적 20/36/52.
+ */
+function computeRowHeight(name: string, nameColWidth: number | undefined): number {
+  const fallback = computeRowHeightStatic(name)
+  if (typeof nameColWidth !== 'number' || !isFinite(nameColWidth) || nameColWidth <= 0) {
+    return fallback
+  }
+  const lineChars = Math.floor(nameColWidth * WIDTH_TO_CHARS)
+  if (lineChars <= 0) return fallback
+
+  const segments = name.split('\n')
+  let totalLines = 0
+  for (const seg of segments) {
+    totalLines += Math.max(1, Math.ceil(seg.length / lineChars))
+  }
+  const dyn = totalLines * LINE_HEIGHT_PT + ROW_PADDING_PT
+  // 정적 폴백보다 작으면 정적 값을 채택 (잘림 방지).
+  return Math.max(dyn, fallback)
 }
 
 function getTemplatePath(method: Method): string {
@@ -412,8 +443,9 @@ function setItemRow(ws: ExcelJS.Worksheet, r: number, item: EstimateItem): void 
   ws.getCell(r, 8).value = item.labor > 0 ? item.labor : ''  // H: 인건단가
   ws.getCell(r, 10).value = item.exp > 0 ? item.exp : ''  // J: 경비단가
 
-  // 행 높이 — 품명 기준 동적 산정
-  const desired = computeRowHeight(item.name)
+  // 행 높이 — 품명 셀 너비 기반 동적 산정 + 정적 폴백
+  const nameColWidth = ws.getColumn(2).width
+  const desired = computeRowHeight(item.name, nameColWidth)
   const row = ws.getRow(r)
   if ((row.height ?? 0) < desired) {
     row.height = desired
