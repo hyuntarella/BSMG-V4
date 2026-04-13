@@ -29,6 +29,7 @@ export async function generatePdfBuffer(html: string): Promise<Buffer> {
   await page.setContent(html, { waitUntil: 'networkidle0' })
   const pdf = await page.pdf({
     format: 'A4',
+    landscape: true, // 작업 3 (페이즈 4.5): 견적서는 가로 방향 고정
     printBackground: true,
     margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
   })
