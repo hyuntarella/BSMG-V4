@@ -36,9 +36,6 @@ const NAME_LENGTH_3LINE = 30
 // 동적 산정 — 한 줄당 행 높이 + 패딩
 const LINE_HEIGHT_PT = 18
 const ROW_PADDING_PT = 6
-// 컬럼 width(엑셀 단위) → 한 줄에 들어가는 한글 문자수 계수
-// 한글은 2바이트 폭이라 width * 1.8 이 보수적인 lineChars 추정값
-const WIDTH_TO_CHARS = 1.8
 
 /** 정적 폴백 — 품명 길이/줄바꿈 기반 */
 function computeRowHeightStatic(name: string): number {
@@ -48,24 +45,35 @@ function computeRowHeightStatic(name: string): number {
   return ROW_HEIGHT_SINGLE
 }
 
+/** 한글 1자 = 영문 2자 폭으로 환산한 effective character count */
+function effectiveCharCount(s: string): number {
+  return Array.from(s).reduce((acc, ch) => acc + (/[가-힣]/.test(ch) ? 2 : 1), 0)
+}
+
 /**
  * 동적 행 높이 — 품명 셀(컬럼 B) 너비 기반 줄 수 추정.
- * 1차: lineChars = floor(width * 1.8). 줄 수 = max(\n+1, ceil(longestSegment/lineChars)).
+ *
+ * c13 한글 폭 교정: Excel column.width 는 영문 기준 단위라
+ *   lineChars = floor(width) (= 영문 환산 줄당 문자수).
+ *   품명은 한글 1자=2자 환산 (effectiveCharCount) 으로 한글 폭 보정.
+ *
+ * 1차: lines = max(\n+1, ceil(effectiveLen / lineChars)).
  *      height = lines * 18 + 6.
- * 2차 폴백: width 가 없거나 0 이거나 산정 실패 → 정적 20/36/52.
+ * 2차 폴백: width 미존재/0/산정 실패 → 정적 20/36/52.
  */
 function computeRowHeight(name: string, nameColWidth: number | undefined): number {
   const fallback = computeRowHeightStatic(name)
   if (typeof nameColWidth !== 'number' || !isFinite(nameColWidth) || nameColWidth <= 0) {
     return fallback
   }
-  const lineChars = Math.floor(nameColWidth * WIDTH_TO_CHARS)
+  const lineChars = Math.floor(nameColWidth)
   if (lineChars <= 0) return fallback
 
   const segments = name.split('\n')
   let totalLines = 0
   for (const seg of segments) {
-    totalLines += Math.max(1, Math.ceil(seg.length / lineChars))
+    const eff = effectiveCharCount(seg)
+    totalLines += Math.max(1, Math.ceil(eff / lineChars))
   }
   const dyn = totalLines * LINE_HEIGHT_PT + ROW_PADDING_PT
   // 정적 폴백보다 작으면 정적 값을 채택 (잘림 방지).
