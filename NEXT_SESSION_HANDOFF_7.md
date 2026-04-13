@@ -1,103 +1,70 @@
-# Phase 4.5 Handoff — 레이아웃 + 엑셀 서식 + PDF 가로 (**미완료**)
+# Phase 4.5 Handoff — 레이아웃 + 엑셀 서식 + PDF 가로 (**COMPLETE + MERGED**)
 
-> Phase 4.5 10개 커밋 원격 푸시됨. Vercel 프리뷰 빌드 실패 + 엑셀 UAT 4건 미해결.
-> 다음 세션 = **빌드 복구 + 엑셀 재수정 + 재 UAT + 머지**.
+> Phase 4.5 전체 작업 + UAT + 머지 + 프로덕션 배포 완료 (2026-04-13).
+> 이 문서는 다음 세션을 위한 인계 + TEST_MODE 추적 조사 미결 항목.
 
-## 직전 상태
+## 머지 완료 상태
 
-- **main 브랜치**: `d9172e4` (v7 상태, 변경 없음)
-- **작업 브랜치**: `feature/11-layout-excel-pdf` (**원격 푸시됨, 미머지**)
-- **최종 커밋**: `515d47e` (docs)
-- **프로젝트 상태 문서**: `bsmg_estimate_final_v8.md`
-- **Vercel 프리뷰 빌드**: ❌ FAILURE (bsmg-v5), 원인 추정 = 환경변수 누락
+- **main 브랜치 squash commit**: `903a9b5` (`Phase 4.5: 레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로 (#1)`)
+- **Production deployment**: `dpl_7QMdzDKLPJrtccHL1WbyeiMZHFG7` (READY, 2026-04-13 20:27)
+- **Production URL**: https://bsmg-v5.vercel.app
+- **작업 브랜치**: `feature/11-layout-excel-pdf` — 로컬+origin 삭제 완료
+- **PR**: https://github.com/hyuntarella/BSMG-V4/pull/1 (merged)
+- **프로젝트 상태 문서**: `bsmg_estimate_final_v8.md` — COMPLETE 마킹
 
-## Phase 4.5 커밋 목록 (10건)
+## Phase 4.5 작업 요약 (squash 전 24 커밋 → main 1 커밋)
 
-| 해시 | 내용 |
+| 상 | 범위 |
 |------|------|
-| `5df6a34` | c1: 좌 20% 갑지 사이드바 + 우 80% 2탭 — 폼 견적서 |
-| `c5e644e` | c2: 동일 적용 — 음성 견적서 |
-| `f033f81` | c3: QuickAddChips 제거 + SidePanel DB+런타임 가격 연동 |
-| `77c82f1` | c4: SidePanel 공통 컴포넌트 추출 |
-| `61d66bb` | c5: CompareView.tsx 삭제 (DEAD CODE) |
-| `c367761` | c6: 엑셀 서식 6건 복구 — generateMethodWorkbook |
-| `65c80b2` | c7: 엔진 통합 — generateWorkbook 제거, 단일 경로 통일 (B안) |
-| `3d70d93` | c8: 런타임 검증 샘플 xlsx 3종 + 생성 스크립트 |
-| `a53e893` | c9: PDF 가로 방향 강제 — 작업 3 |
-| `515d47e` | docs: v8 프로젝트 상태 + HANDOFF_7 작성 |
+| c1~c5 | 레이아웃 재구성: 좌 20% 갑지 사이드바 + 우 80% 2탭 + SidePanel 공통화 + dead code 삭제 |
+| c6~c9 | 엑셀 엔진 통합 + 서식 6건 복구 + PDF 가로 |
+| c10~c15 | PM UAT 4건 + 2건 재수정: 갑지 공사금액/빈 행/페이지 분할/행 높이/한글 폭/scale |
+| UAT | 프로덕션 Google Drive 경로 통과 (2페이지, 짤림 없음) |
 
-## 자동 검증 (로컬)
+## 자동 검증 (로컬) — 머지 직전 상태
 
-- TypeScript 에러 0, Lint 신규 에러 0, Tests 477/477, Build 성공
-- xlsx 샘플 3종 landscape 검증 완료 (`scripts/verify-landscape.ts`)
+- TypeScript 에러 0, Lint 신규 에러 0, Build 성공
+- 회귀 가드: `tests/excel/generateMethodWorkbook.test.ts` (K14/K15/E11 grandTotal 반영, B15='합 계', splice rowCount 24)
 
-## Vercel 원격 검증 결과
+## 프로덕션 UAT 결과 (통과)
 
-- 푸시 성공: `515d47e` → `origin/feature/11-layout-excel-pdf`
-- **bsmg-v5 프리뷰 빌드 FAILURE**
-- 대시보드: https://vercel.com/hyuntarellas-projects/bsmg-v5/2bAYm5MSCxzJznfRXNP9vCGzLs1w
-- 추정 원인: Vercel Preview 환경변수 누락 (Supabase 3종)
-
-## PM UAT 결과 (엑셀 samples/*.xlsx)
-
-4건 미해결 — 다음 세션 재작업 대상:
-
-1. **행 높이 자동조정** — `computeRowHeight` 가 충분치 않음
-2. **갑지 빈 행 3개 제거** — 갑지(Sheet1)엔 아이템 행 없어야 함. 별도 빈 행 원인 조사
-3. **갑지 공사금액 0 원인 조사** — K14/K18 주입 로직 재점검. c6 의 null 초기화가 값 주입도 날려버렸을 가능성
-4. **갑지 페이지 분할** — c9 landscape 적용 후 갑지 1페이지 초과 분할. fitToHeight / print area 설정 필요
+`scripts/production-uat.ts` (머지 전 삭제됨) 로 프로덕션 save-all 경로 실측:
+- 갑지 공사금액 정상 (K14=24,888,700, K15=24,800,000, E11 한글금액)
+- 갑지 빈 행 없음, 1페이지 수렴 (fitToHeight=1)
+- 을지 2페이지 내 수렴 (fitToHeight=2, scale=61), 11행 전부 표시
+- 2줄/3줄 품명 전부 짤림 없음
+- cleanup: Drive 3 파일 + Supabase row 전부 삭제, orphan 0
 
 ---
 
-## 다음 세션 첫 작업 (순서대로)
+## 🚨 미결 조사: Production TEST_MODE 우회 취약 (Apr 9 → Apr 13)
 
-### STEP 1: Vercel Preview 환경변수 추가
+Phase 4.5 UAT 준비 중 **Production 환경에 `TEST_MODE=true` 가 설정되어 있음** 발견. Apr 9 부터 설정된 것으로 PM 이 확인. Apr 13 즉시 삭제 + 재배포 완료.
 
-- Vercel 대시보드 > bsmg-v5 프로젝트 > Settings > Environment Variables
-- **Preview 환경**에 3종 추가:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-- 값은 로컬 `.env.local` 에서 복사 (또는 Production 환경에 있으면 그걸 복사)
-- Google Drive / OpenAI / Anthropic 관련 키도 누락 여부 확인 필요
+### 현재 상태 (복구 완료)
 
-### STEP 2: 빌드 재시도
+- Production env `TEST_MODE` 삭제 + main 빈 커밋 (`edb5758`) → 재배포 (`dpl_Cuiuo1bHuNXVVdahrjNcqSBwUL2w`)
+- 검증 완료:
+  - `POST https://bsmg-v5.vercel.app/api/estimates/*/save-all` (쿠키 없이) → **307 /login**
+  - main branch alias → **401** (Vercel auth)
+- **Preview 환경의 `TEST_MODE=true` 는 유지** (UAT 재사용). 차기 페이즈 때 별도 UAT 토큰/IP allowlist 도입 검토.
 
-- Vercel 대시보드에서 failed deployment 우클릭 > Redeploy (환경변수 적용)
-- 또는 브랜치에 빈 커밋 푸시: `git commit --allow-empty -m "chore: trigger rebuild"`
-- 빌드 성공 시 프리뷰 URL 확보
+### 미결 조사 항목 (다음 세션 후보)
 
-### STEP 3: 엑셀 UAT 4건 재작업
+1. **언제/왜 Apr 9 에 TEST_MODE=true 가 Production 에 설정되었는지 추적** — git log / Vercel audit log 확인
+2. **노출 기간 동안 실제 무단 접근 이력 있는지** — Supabase 접근 로그 / Drive audit log 점검
+3. **재발 방지 — 프로덕션 env 가 인증 우회 flag 를 가지지 않도록 런타임 guard 추가 검토** (`middleware.ts` 에서 `NODE_ENV==='production' && TEST_MODE==='true'` 감지 시 throw)
+4. **대체 UAT 경로** — `VERCEL_AUTOMATION_BYPASS_SECRET` + `x-vercel-protection-bypass` 헤더 방식으로 Preview 접근 (TEST_MODE 의존성 제거)
 
-`lib/excel/generateMethodWorkbook.ts` 수정:
+---
 
-1. **행 높이 자동조정**: 현재 `computeRowHeight` 는 품명 길이 기준 정적. 실제 해결책은 wrapText + row.height 를 wrapText 기준 재계산. exceljs 한계일 수 있으므로 LibreOffice 변환 결과 확인 후 추가 대응
-2. **갑지 빈 행 3개**: 템플릿 원본 (templates/complex.xlsx, templates/urethane.xlsx) Sheet1 구조를 엑셀로 열어 실제 빈 행 위치 파악 → 주입 전 spliceRows 로 제거
-3. **갑지 공사금액 0**: `fillCover` 의 K14/K18 주입 재점검. `totalCell.value = null` 뒤 값 주입 순서 재확인. exceljs 의 null 세팅 후 값 세팅이 한 번에 꺼지는 버그 가능성 → `cell.value = cr.totalBeforeRound` 로 직접 세팅 후 확인
-4. **갑지 페이지 분할**: `enforceLandscape` 에 `fitToHeight: 1` 추가 or print area 명시. 현재 `fitToHeight: 0` (무제한) 이어서 갑지가 분할됨
+## 프로덕션 UAT 확인 (PM)
 
-### STEP 4: 재작업 후 샘플 재생성 + 재 UAT
-
-```bash
-npx tsx scripts/gen-excel-samples.ts
-npx tsx scripts/verify-landscape.ts
-git add samples/ && git commit -m "test: 재생성 샘플"
-git push
-```
-
-PM 이 다시 samples/*.xlsx 열어 4건 재확인.
-
-### STEP 5: 머지 전 정리
-
-UAT 4건 모두 통과 시:
-
-1. **samples/ 폴더 삭제**: `git rm -r samples/ scripts/gen-excel-samples.ts scripts/verify-landscape.ts`
-2. `feature/11-layout-excel-pdf` → `main` 머지 (PR 생성: https://github.com/hyuntarella/BSMG-V4/pull/new/feature/11-layout-excel-pdf)
-3. main 배포 후 Ctrl+F5 강제 새로고침으로 프로덕션 UAT
+머지 직후 Ctrl+F5 강제 새로고침 후 음성/폼 견적서 작성 → save-all → 생성된 PDF 가 UAT 샘플과 동일 품질인지 확인 권장.
 
 ## 남은 기술부채 (v8 §6)
 
-v7 §13 기존:
+v7 §13 기존 (미해결 유지):
 1. TextInputBar.tsx 파일 잔존 (사용처 0)
 2. useEstimateVoice.handleText* 죽은 반환
 3. getAdjustedCost alias
@@ -107,12 +74,11 @@ v7 §13 기존:
 7. vadLogic.test.ts:97 TS 에러
 8. estimate/SettingsPanel.tsx 구 에디터
 
-Phase 4.5 신규:
-9. **PM UAT 미완료** (6건 이슈 해결 여부) → UAT 후 samples/ 삭제
-10. **Vercel 프리뷰 PDF UAT** — 실제 Google Drive 변환 결과 확인 필요
-11. **generate 라우트 sheets[0] 제약** (c7 B안 부산물) — 다중 을지 필요 시 별건
-12. **e2e 테스트 2건 /generate POST** — save-all 로 마이그레이션 고려
-13. **samples/ 폴더 삭제** (UAT 완료 후)
+Phase 4.5 완료 후 잔존:
+9. **generate 라우트 sheets[0] 제약** (c7 B안 부산물) — 다중 을지 필요 시 별건
+10. **e2e 테스트 2건 /generate POST** — save-all 로 마이그레이션 고려
+11. **Production TEST_MODE 취약 Apr 9 추적** (상단 🚨 섹션) — Vercel audit + Supabase 접근 로그 점검 필요
+12. **middleware 런타임 guard** — NODE_ENV=production 시 TEST_MODE 감지 throw 추가 검토
 
 ## 차기 페이즈 후보 (v8 §7)
 
@@ -150,4 +116,4 @@ Phase 4.5 신규:
 
 ---
 
-**END OF HANDOFF — Phase 4.5 COMPLETE (머지 대기)**
+**END OF HANDOFF — Phase 4.5 COMPLETE + MERGED (main `903a9b5`, prod `dpl_7QMdzDKLPJrtccHL1WbyeiMZHFG7`)**

@@ -1,9 +1,13 @@
 # BSMG-V4 Project Truth v8
 
-> **v7 → v8**: Phase 4.5 (레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로) — **진행 중 (미완료, 머지 전)**.
-> 기준 시점: 2026-04-13 (브랜치 `feature/11-layout-excel-pdf`, 마지막 커밋 `515d47e`).
+> **v7 → v8**: Phase 4.5 (레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로) — **✅ COMPLETE + MERGED**.
+> 머지 완료: 2026-04-13.
+> main squash commit: `903a9b5` (`Phase 4.5: 레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로 (#1)`)
+> Production deployment: `dpl_7QMdzDKLPJrtccHL1WbyeiMZHFG7` — https://bsmg-v5.vercel.app
 >
-> **상태**: 10개 커밋 원격 푸시됨. Vercel 프리뷰 빌드 **실패** (환경변수 누락). 엑셀 UAT 4건 미해결. 머지 대기.
+> **UAT 통과**: 프로덕션 Google Drive 경로 자동 UAT (2페이지, 짤림 없음, cleanup 무결성) + PM 시각 확인.
+>
+> **부수 발견**: Production 환경에 `TEST_MODE=true` 가 Apr 9 부터 설정되어 있던 것을 Apr 13 발견 → 즉시 삭제 + 재배포 (`edb5758`, `dpl_Cuiuo1bHuNXVVdahrjNcqSBwUL2w`). 추적 조사 미결 (NEXT_SESSION_HANDOFF_7 §미결 조사 참조).
 
 ---
 
