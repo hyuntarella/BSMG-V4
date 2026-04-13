@@ -33,6 +33,7 @@ export async function convertXlsxToPdf(
       body: Readable.from([xlsxBuffer]),
     },
     fields: 'id',
+    supportsAllDrives: true,
   })
 
   const sheetFileId = uploadRes.data.id
@@ -52,7 +53,7 @@ export async function convertXlsxToPdf(
   } finally {
     // 3. 중간 Google Sheets 삭제 (성공/실패 무관)
     try {
-      await drive.files.delete({ fileId: sheetFileId })
+      await drive.files.delete({ fileId: sheetFileId, supportsAllDrives: true })
     } catch (err) {
       console.warn('[convert] 중간 Google Sheets 삭제 실패:', err)
     }

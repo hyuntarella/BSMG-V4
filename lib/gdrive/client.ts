@@ -31,6 +31,8 @@ async function findFileByName(
     q: `'${folderId}' in parents and trashed = false and name = '${fileName.replace(/'/g, "\\'")}'`,
     fields: 'files(id)',
     pageSize: 1,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   })
   return res.data.files?.[0]?.id ?? null
 }
@@ -58,6 +60,7 @@ export async function upsertToDrive(
       fileId: existingId,
       media,
       fields: 'id, name, webViewLink',
+      supportsAllDrives: true,
     })
     return {
       id: res.data.id ?? existingId,
@@ -71,6 +74,7 @@ export async function upsertToDrive(
     requestBody: { name: fileName, parents: [folderId] },
     media,
     fields: 'id, name, webViewLink',
+    supportsAllDrives: true,
   })
   return {
     id: res.data.id ?? '',
@@ -104,6 +108,7 @@ export async function uploadToDrive(
     },
     media,
     fields: 'id, name, webViewLink',
+    supportsAllDrives: true,
   })
 
   return {
@@ -128,6 +133,8 @@ async function getVersionedName(
     q: `'${folderId}' in parents and trashed = false and name contains '${nameOnly}'`,
     fields: 'files(name)',
     pageSize: 100,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   })
 
   const existing = res.data.files?.map(f => f.name ?? '') ?? []

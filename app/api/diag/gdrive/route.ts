@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       )
 
       probeStep = 'delete'
-      await drive.files.delete({ fileId: uploaded.id })
+      await drive.files.delete({ fileId: uploaded.id, supportsAllDrives: true })
 
       return NextResponse.json({
         ...base,
