@@ -72,14 +72,14 @@ export async function generateMethodWorkbook(
   const coverWs = wb.getWorksheet(1)
   if (coverWs) {
     fillCover(coverWs, estimate, sheet, items)
-    enforceLandscape(coverWs)
+    enforceLandscape(coverWs, 'cover')
   }
 
   // Sheet2 (을지) 주입
   const detailWs = wb.getWorksheet(2)
   if (detailWs) {
     fillDetail(detailWs, estimate, sheet, items)
-    enforceLandscape(detailWs)
+    enforceLandscape(detailWs, 'detail')
   }
 
   // Config 시트 제거
@@ -96,19 +96,20 @@ export async function generateMethodWorkbook(
  * exceljs 의 readFile/writeBuffer 가 템플릿의 pageSetup.orientation 을
  * 유실하는 경우가 있어 명시 재설정.
  *
- * Google Drive API 의 xlsx → Google Sheets → PDF 경로에서
- * pageSetup.orientation='landscape' 를 존중하므로 xlsx 레벨에서 강제.
- *
  * paperSize 9 = A4. fitToPage 로 한 페이지에 가로로 맞춤.
+ *
+ * c10: 갑지는 단일 페이지 (fitToHeight=1). 을지는 행 수 가변이라
+ *      세로 무제한 (fitToHeight=0). 통일하면 갑지가 빈 행 영향으로
+ *      2페이지 분할되는 PM UAT 이슈 [2] 발생.
  */
-function enforceLandscape(ws: ExcelJS.Worksheet): void {
+function enforceLandscape(ws: ExcelJS.Worksheet, kind: 'cover' | 'detail'): void {
   ws.pageSetup = {
     ...(ws.pageSetup ?? {}),
     orientation: 'landscape',
     paperSize: 9,
     fitToPage: true,
     fitToWidth: 1,
-    fitToHeight: 0,
+    fitToHeight: kind === 'cover' ? 1 : 0,
     horizontalCentered: true,
     verticalCentered: false,
   }
