@@ -13,7 +13,7 @@ import type { VoiceLogEntry } from '@/lib/voice/voiceLogTypes'
 import type { CorrectionEntry, AvailableItem } from '@/lib/voice/prompts'
 import { parseCommand, detectRealtime, matchItemName, inferField } from '@/lib/voice/realtimeParser'
 import type { ParseContext } from '@/lib/voice/realtimeParser'
-import type { RealtimeHighlight } from '@/components/estimate/WorkSheet'
+import type { RealtimeHighlight } from '@/lib/estimate/types'
 import type { InputMode } from '@/lib/voice/inputMode'
 import { INPUT_MODE_FLAGS } from '@/lib/voice/inputMode'
 import { detectAnomaly } from '@/lib/voice/anomalyDetector'
@@ -45,10 +45,9 @@ const SKIP_PATTERNS = /(?:넘겨|넘겨줘|넘기자|넘기|넘겨라|시작)\s*
 let globalTurnCounter = 0
 
 /**
- * EstimateEditor 음성 통합 훅 — 3모드 + 3단 파이프라인.
+ * EstimateEditor 음성 통합 훅 — 2모드 + 3단 파이프라인.
  *
  * 모드:
- *   - office: 사무실 (타이핑)
  *   - field: 현장 (음성+눈, 효과음)
  *   - driving: 운전 (음성만, TTS 전면)
  *

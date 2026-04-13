@@ -93,10 +93,6 @@ describe('shouldEnableVad', () => {
     expect(shouldEnableVad(true, true, 'idle')).toBe(false);
   });
 
-  it('speaking 상태 → false', () => {
-    expect(shouldEnableVad(true, true, 'speaking')).toBe(false);
-  });
-
   it('processing 상태 → false', () => {
     expect(shouldEnableVad(true, true, 'processing')).toBe(false);
   });

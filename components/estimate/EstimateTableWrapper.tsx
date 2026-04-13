@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import type { Estimate, EstimateItem } from '@/lib/estimate/types'
+import type { Estimate, EstimateItem, RealtimeHighlight } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 import { useEstimateSearch } from '@/hooks/useEstimateSearch'
 import {
@@ -28,6 +28,8 @@ interface EstimateTableWrapperProps {
   companyId?: string
   onUndo?: () => void
   onSaveSnapshot?: (description: string) => void
+  getCellHighlightLevel?: (cellKey: string) => number
+  realtimeHighlight?: RealtimeHighlight
 }
 
 export default function EstimateTableWrapper({
@@ -37,6 +39,8 @@ export default function EstimateTableWrapper({
   acdbSuggest,
   onUndo,
   onSaveSnapshot,
+  getCellHighlightLevel,
+  realtimeHighlight,
 }: EstimateTableWrapperProps) {
   const sheet = estimate.sheets[sheetIndex]
   const items = sheet?.items ?? []
@@ -262,6 +266,9 @@ export default function EstimateTableWrapper({
       onChange={handleItemsChange}
       onUndo={handleUndo}
       onRedo={undefined}
+      getCellHighlightLevel={getCellHighlightLevel}
+      realtimeHighlight={realtimeHighlight}
+      sheetIndex={sheetIndex}
       onToggleLock={handleToggleLock}
       onToggleHide={handleToggleHide}
       onDeleteRow={handleDeleteRow}

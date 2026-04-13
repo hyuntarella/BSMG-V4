@@ -17,7 +17,6 @@
 - `/app/api/stt/route.ts` — Whisper STT 엔드포인트
 - `/app/api/llm/route.ts` — Claude LLM 엔드포인트
 - `/app/api/tts/route.ts` — OpenAI TTS 엔드포인트
-- `/app/api/realtime/session/route.ts` — 실시간 세션
 - `/lib/voice/commands.ts` — VoiceCommand 인터페이스, 명령 실행
 - `/lib/voice/prompts.ts` — EXTRACT/MODIFY 시스템 프롬프트, few-shot
 - `/lib/voice/confidenceRouter.ts` — 3단계 신뢰도 라우팅

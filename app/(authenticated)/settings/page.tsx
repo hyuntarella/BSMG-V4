@@ -7,6 +7,7 @@ import SettingsSummary from '@/components/settings/SettingsSummary'
 import PriceMatrixEditor, { type SmallPresetsState } from '@/components/settings/PriceMatrixEditor'
 import FavoriteItemsPage from '@/components/settings/FavoriteItemsPage'
 import OtherSettingsPage from '@/components/settings/OtherSettingsPage'
+import VoiceRulesPage from '@/components/settings/VoiceRulesPage'
 import { usePriceMatrixStore } from '@/components/settings/usePriceMatrixStore'
 import { useOtherSettingsStore } from '@/components/settings/useOtherSettingsStore'
 import { SMALL_PRESETS } from '@/lib/estimate/constants'
@@ -195,6 +196,7 @@ export default function SettingsPage() {
               onChange={otherStore.setState}
             />
           )}
+          {menu === '음성규칙' && <VoiceRulesPage />}
         </div>
       </div>
     </div>

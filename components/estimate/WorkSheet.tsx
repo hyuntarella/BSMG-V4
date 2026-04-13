@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { EstimateSheet, EstimateItem, CalcResult } from '@/lib/estimate/types'
+import type { EstimateSheet, EstimateItem, CalcResult, RealtimeHighlight } from '@/lib/estimate/types'
 import { calc } from '@/lib/estimate/calc'
 import { fm } from '@/lib/utils/format'
 import { getMarginDisplay, pricePerM2ToPyeong } from '@/lib/estimate/costBreakdown'
@@ -10,15 +10,8 @@ import InlineCell from './InlineCell'
 import MarginGauge from './MarginGauge'
 import AddItemModal from './AddItemModal'
 
-/** 실시간 음성 감지 하이라이트 (Web Speech API interim) */
-export interface RealtimeHighlight {
-  /** 감지된 공종명 (행 노란 하이라이트) */
-  itemName?: string
-  /** 감지된 필드 (셀 포커스 테두리) */
-  field?: string
-  /** 미리보기 값 (연한 색 텍스트) */
-  previewValue?: number
-}
+// Re-export for backward compatibility
+export type { RealtimeHighlight } from '@/lib/estimate/types'
 
 interface WorkSheetProps {
   sheet: EstimateSheet

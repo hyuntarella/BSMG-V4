@@ -44,6 +44,8 @@ interface ExcelCellProps {
   cellClassName?: string
   /** 외부에서 주입하는 추가 td style (bg 등 Tailwind 우선순위 충돌 방지용) */
   cellStyle?: React.CSSProperties
+  /** 음성 실시간 미리보기 값 — idle 상태에서 preview 텍스트 표시 */
+  realtimePreview?: number
 }
 
 export default function ExcelCell({
@@ -73,6 +75,7 @@ export default function ExcelCell({
   onAcdbNavigate,
   cellClassName,
   cellStyle,
+  realtimePreview,
 }: ExcelCellProps) {
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -344,6 +347,9 @@ export default function ExcelCell({
       data-muted={isMuted ? 'true' : undefined}
     >
       <span className={isMuted ? 'text-v-mut' : ''}>{displayValue}</span>
+      {realtimePreview !== undefined && (
+        <span className="ml-1 text-[10px] tabular-nums text-v-accent/50">{fm(realtimePreview)}</span>
+      )}
       {isLocked && (
         <svg
           width={12}

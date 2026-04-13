@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
-import type { EstimateItem, Method } from '@/lib/estimate/types'
+import type { EstimateItem, Method, RealtimeHighlight } from '@/lib/estimate/types'
 import type { AcdbSearchResult } from '@/lib/acdb/types'
 import { fm } from '@/lib/utils/format'
 import { useExcelSelection } from '@/hooks/useExcelSelection'
@@ -28,6 +28,11 @@ interface ExcelLikeTableProps {
   onAddFreeItem?: () => void
   /** #10 빠른공종추가 칩 — 칩 클릭 시 해당 공종 즉시 행 추가 */
   onQuickAdd?: (chip: QuickChip) => void
+  // 음성 하이라이트
+  getCellHighlightLevel?: (cellKey: string) => number
+  realtimeHighlight?: RealtimeHighlight
+  /** 시트 인덱스 — 하이라이트 cellKey 생성용 */
+  sheetIndex?: number
   // 검색
   searchQuery?: string
   onSearch?: (query: string) => void
@@ -65,6 +70,9 @@ export default function ExcelLikeTable({
   onUndo,
   onRedo,
   maxRows = 15,
+  getCellHighlightLevel,
+  realtimeHighlight,
+  sheetIndex: hlSheetIndex,
   onToggleLock,
   onToggleHide,
   onDeleteRow,
@@ -303,10 +311,27 @@ export default function ExcelLikeTable({
             const isHidden = item.is_hidden
             const isMatch = matchSet.has(rowIdx)
             const isLump = item.unit === '식'
+            // 음성 하이라이트
+            const isRealtimeRow = realtimeHighlight?.itemName === item.name
+            const getHl = (field: string) => {
+              if (!getCellHighlightLevel || hlSheetIndex == null) return 0
+              return getCellHighlightLevel(`voice:${hlSheetIndex}:${item.name}:${field}`)
+            }
+            const hlClass = (field: string) => {
+              const level = getHl(field)
+              if (level === 1) return 'bg-accent-200/60'
+              if (level === 2) return 'bg-accent-100/50'
+              if (level === 3) return 'bg-accent-50/40'
+              return ''
+            }
+            const isRealtimeCell = (field: string) =>
+              isRealtimeRow && realtimeHighlight?.field === field
+            const realtimePreview = (field: string) =>
+              isRealtimeCell(field) ? realtimeHighlight?.previewValue : undefined
             return (
               <tr
                 key={rowIdx}
-                className={`${isHidden ? 'opacity-30' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''} ${item.is_locked ? 'bg-v-lock-bg' : ''}`}
+                className={`${isHidden ? 'opacity-30' : ''} ${isMatch ? 'ring-2 ring-yellow-400 ring-inset' : ''} ${item.is_locked ? 'bg-v-lock-bg' : ''} ${isRealtimeRow ? 'bg-yellow-100/60' : ''}`}
                 style={{ height: `${tier.rowHeight}px` }}
                 data-testid={`table-row-${rowIdx}`}
               >
@@ -424,8 +449,9 @@ export default function ExcelLikeTable({
                       isLocked={item.is_locked && col.type === 'number'}
                       isReadonly={isLumpReadonly}
                       isMuted={isWasteDefaultExp}
-                      cellClassName={isBaseNameCell ? 'font-semibold' : undefined}
+                      cellClassName={`${isBaseNameCell ? 'font-semibold' : ''} ${hlClass(col.key)} ${isRealtimeCell(col.key) ? 'ring-2 ring-dashed ring-v-accent/50' : ''}`.trim() || undefined}
                       cellStyle={isBaseNameCell ? { background: 'var(--v-base-bg)', boxShadow: 'inset 4px 0 0 var(--v-base-border)', paddingLeft: '12px' } : undefined}
+                      realtimePreview={col.type === 'number' ? realtimePreview(col.key) : undefined}
                       width={col.width}
                       align={col.align}
                       tierFontClass={tier.fontClass}
