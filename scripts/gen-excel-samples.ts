@@ -20,7 +20,7 @@ import type { Estimate, EstimateItem, EstimateSheet } from '../lib/estimate/type
 const OUT_DIR = path.join(process.cwd(), 'samples')
 
 function mkItem(overrides: Partial<EstimateItem>): EstimateItem {
-  return {
+  const base: EstimateItem = {
     sort_order: 1,
     name: '기본 공종',
     spec: '3.8mm',
@@ -38,6 +38,12 @@ function mkItem(overrides: Partial<EstimateItem>): EstimateItem {
     is_fixed_qty: false,
     ...overrides,
   }
+  // 금액 자동 계산: calc()는 it.total 합산이라 비워두면 K14/K18=0 발생.
+  base.mat_amount = base.qty * base.mat
+  base.labor_amount = base.qty * base.labor
+  base.exp_amount = base.qty * base.exp
+  base.total = base.mat_amount + base.labor_amount + base.exp_amount
+  return base
 }
 
 function buildBasicItems(): EstimateItem[] {
