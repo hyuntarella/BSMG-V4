@@ -4,7 +4,6 @@ import { useCallback } from 'react'
 import type { InputMode } from '@/lib/voice/inputMode'
 import { INPUT_MODE_LABELS } from '@/lib/voice/inputMode'
 import VoiceBar from './VoiceBar'
-import TextInputBar from './TextInputBar'
 
 interface VoiceBarContainerProps {
   /** 현재 입력 모드 */
@@ -12,7 +11,7 @@ interface VoiceBarContainerProps {
   /** 모드 변경 콜백 */
   onModeChange: (mode: InputMode) => void
 
-  // ── VoiceBar props (현장/운전 모드용) ──
+  // ── VoiceBar props ──
   status: 'idle' | 'recording' | 'processing'
   seconds: number
   lastText: string
@@ -22,17 +21,11 @@ interface VoiceBarContainerProps {
   bufferHint?: string
   onToggle: () => void
 
-  // ── TextInputBar props (사무실 모드용) ──
-  onTextInputChange: (text: string) => void
-  onTextSubmit: (text: string) => void
-  onTextCancel: () => void
-  onMultilineSubmit: (lines: string[]) => void
-  commandHistory: string[]
   /** 음성 가이드 패널 열기 */
   onVoiceGuideOpen?: () => void
 }
 
-const MODE_ORDER: InputMode[] = ['office', 'field', 'driving']
+const MODE_ORDER: InputMode[] = ['field', 'driving']
 
 export default function VoiceBarContainer({
   mode,
@@ -45,11 +38,6 @@ export default function VoiceBarContainer({
   processingCount,
   bufferHint,
   onToggle,
-  onTextInputChange,
-  onTextSubmit,
-  onTextCancel,
-  onMultilineSubmit,
-  commandHistory,
   onVoiceGuideOpen,
 }: VoiceBarContainerProps) {
   const cycleMode = useCallback(() => {
@@ -83,27 +71,16 @@ export default function VoiceBarContainer({
         </button>
       </div>
 
-      {/* 모드별 바 렌더 */}
-      {mode === 'office' ? (
-        <TextInputBar
-          onInputChange={onTextInputChange}
-          onSubmit={onTextSubmit}
-          onCancel={onTextCancel}
-          onMultilineSubmit={onMultilineSubmit}
-          commandHistory={commandHistory}
-        />
-      ) : (
-        <VoiceBar
-          status={status}
-          seconds={seconds}
-          lastText={lastText}
-          interimText={interimText}
-          audioLevel={audioLevel}
-          processingCount={processingCount}
-          bufferHint={bufferHint}
-          onToggle={onToggle}
-        />
-      )}
+      <VoiceBar
+        status={status}
+        seconds={seconds}
+        lastText={lastText}
+        interimText={interimText}
+        audioLevel={audioLevel}
+        processingCount={processingCount}
+        bufferHint={bufferHint}
+        onToggle={onToggle}
+      />
 
       {/* 운전 모드 표시 */}
       {mode === 'driving' && (
@@ -122,12 +99,6 @@ export default function VoiceBarContainer({
 
 function ModeIcon({ mode }: { mode: InputMode }) {
   switch (mode) {
-    case 'office':
-      return (
-        <svg className="h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 12h18M3 19h18" />
-        </svg>
-      )
     case 'field':
       return (
         <svg className="h-3.5 w-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

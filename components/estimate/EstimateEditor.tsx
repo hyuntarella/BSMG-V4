@@ -190,7 +190,7 @@ export default function EstimateEditor({
   }, [estimate.id])
 
   // --- 음성 훅 ---
-  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight, bufferHint, mode, setMode, handleTextInput, handleTextSubmit, handleTextCancel, handleMultilineSubmit, commandHistory } = useEstimateVoice({
+  const { voice, voiceLogs, updateLogFeedback, submitCorrection, getCellHighlightLevel, realtimeHighlight, bufferHint, mode, setMode } = useEstimateVoice({
     estimate,
     activeSheetIndex: activeSheetIdx,
     setActiveTab: adaptSetActiveTab,
@@ -312,11 +312,11 @@ export default function EstimateEditor({
                 className="w-[72px] rounded-md border border-v-b bg-v-hov px-[7px] py-[5px] text-right text-xs tabular-nums h-[30px] focus:outline-none focus:bg-white focus:border-v-accent focus:ring-[3px] focus:ring-[rgba(0,122,255,.15)]"
               />
             </div>
-            <span className="inline-block rounded-2xl bg-v-accent-bg px-2 py-[2px] text-[10px] font-bold text-v-accent h-5 leading-4">
+            <span className="inline-flex items-center shrink-0 whitespace-nowrap rounded-2xl bg-v-accent-bg px-2 h-5 text-[10px] font-bold text-v-accent leading-none">
               {areaLabel}
             </span>
             {isSmall && (
-              <span className="inline-block rounded-2xl bg-[#fff4e6] px-2 py-[2px] text-[10px] font-bold text-[#d48806] h-5 leading-4">
+              <span className="inline-flex items-center shrink-0 whitespace-nowrap rounded-2xl bg-[#fff4e6] px-2 h-5 text-[10px] font-bold text-[#d48806] leading-none">
                 20평이하
               </span>
             )}
@@ -447,11 +447,6 @@ export default function EstimateEditor({
         processingCount={voice.processingCount}
         bufferHint={bufferHint}
         onToggle={voice.toggleRecording}
-        onTextInputChange={handleTextInput}
-        onTextSubmit={handleTextSubmit}
-        onTextCancel={handleTextCancel}
-        onMultilineSubmit={handleMultilineSubmit}
-        commandHistory={commandHistory}
         onVoiceGuideOpen={() => setVoiceGuideOpen(true)}
       />
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
