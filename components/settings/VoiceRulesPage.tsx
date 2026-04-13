@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { INPUT_MODE_LABELS, INPUT_MODE_FLAGS, type InputMode } from '@/lib/voice/inputMode'
 
 const TRIGGER_WORDS = ['넣어', '바꿔', '해줘', '올려', '내려', '빼', '추가', '수정', '맞춰', '변경', '삭제', '제거']
@@ -18,38 +18,24 @@ const MODE_DESCRIPTIONS: Record<InputMode, string> = {
   driving: '마이크 + TTS 활성. 핸즈프리 운전 시나리오.',
 }
 
-// ── 히어로 5카드 (빈도순: 공종 → 단가 → 면적 → 교정 → 종료) ──
 type CategoryKey = 'items' | 'price' | 'area' | 'correct' | 'stop'
-
-interface HeroCard {
-  key: CategoryKey
-  icon: string
-  title: string
-  oneLine: string
-}
-
-const HERO_CARDS: HeroCard[] = [
-  { key: 'items', icon: '🔧', title: '공종 수정', oneLine: '"사다리차 12만원" → 경비 반영' },
-  { key: 'price', icon: '💰', title: '단가 지정', oneLine: '"복합 3만5천" → 평단가 35,000' },
-  { key: 'area', icon: '📐', title: '면적 입력', oneLine: '"100헤베" → 면적 100 m²' },
-  { key: 'correct', icon: '✏️', title: '교정', oneLine: '"아니 600원" → 직전 값 정정' },
-  { key: 'stop', icon: '⏹', title: '녹음 종료', oneLine: '"됐어 / 끝 / 그만"' },
-]
 
 interface ExampleRow { say: string; result: string }
 interface ExampleGroup {
   key: CategoryKey
-  title: string
+  label: string
   icon: string
+  description: string
   rows: ExampleRow[]
 }
 
-// 아코디언 (빈도순 동일)
-const EXAMPLE_GROUPS: ExampleGroup[] = [
+// 빈도순 탭: 공종 → 단가 → 면적 → 교정 → 종료
+const GROUPS: ExampleGroup[] = [
   {
     key: 'items',
-    title: '공종 수정',
+    label: '공종 수정',
     icon: '🔧',
+    description: '공종별 금액·수량을 추가하거나 바꿉니다. 가장 자주 쓰이는 명령입니다.',
     rows: [
       { say: '"사다리차 12만원"', result: '사다리차 경비 = 120,000' },
       { say: '"폐기물처리 식1 경비25만 추가"', result: '폐기물 1식 · 경비 250,000 추가' },
@@ -59,8 +45,9 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
   },
   {
     key: 'price',
-    title: '단가 지정',
+    label: '단가 지정',
     icon: '💰',
+    description: '복합/우레탄의 평단가나 마진율을 설정합니다.',
     rows: [
       { say: '"복합 3만5천"', result: '복합 평단가 = 35,000원' },
       { say: '"우레탄 마진 50"', result: '우레탄 마진율 = 50%' },
@@ -68,8 +55,9 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
   },
   {
     key: 'area',
-    title: '면적 입력',
+    label: '면적 입력',
     icon: '📐',
+    description: '현장 면적과 벽체 면적을 m² 또는 평으로 입력합니다.',
     rows: [
       { say: '"100헤베"', result: '면적 = 100 m²' },
       { say: '"50평"', result: '면적 = 165 m² (평→m² 환산)' },
@@ -78,8 +66,9 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
   },
   {
     key: 'correct',
-    title: '교정 ("아니" 패턴)',
+    label: '교정',
     icon: '✏️',
+    description: '직전 입력이 잘못됐을 때 "아니" 패턴으로 바로 정정합니다.',
     rows: [
       { say: '"아니 600원"', result: '직전 금액 → 600원으로 재적용' },
       { say: '"아니 재료비"', result: '직전 분류 → 재료비로 재분류' },
@@ -88,35 +77,30 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
   },
   {
     key: 'stop',
-    title: '녹음 종료',
+    label: '녹음 종료',
     icon: '⏹',
+    description: '말로 녹음 세션을 종료합니다.',
     rows: [
       { say: '"됐어" / "끝" / "그만"', result: '녹음 세션 종료' },
     ],
   },
 ]
 
-const DEFAULT_OPEN: CategoryKey = 'items'
+const DEFAULT_TAB: CategoryKey = 'items'
 
 export default function VoiceRulesPage() {
-  const [openKey, setOpenKey] = useState<CategoryKey>(DEFAULT_OPEN)
+  const [tab, setTab] = useState<CategoryKey>(DEFAULT_TAB)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-
-  const handleHeroClick = useCallback((key: CategoryKey) => {
-    setOpenKey(key)
-    // 렌더 사이클 이후 스크롤
-    requestAnimationFrame(() => {
-      document.getElementById(`voice-rule-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
-  }, [])
 
   // 딥링크 해시 지원 (#voice-rule-items 등)
   useEffect(() => {
     const hash = window.location.hash.replace('#voice-rule-', '')
-    if (hash && EXAMPLE_GROUPS.some(g => g.key === hash)) {
-      setOpenKey(hash as CategoryKey)
+    if (hash && GROUPS.some(g => g.key === hash)) {
+      setTab(hash as CategoryKey)
     }
   }, [])
+
+  const active = GROUPS.find(g => g.key === tab) ?? GROUPS[0]
 
   return (
     <div className="space-y-4">
@@ -124,98 +108,70 @@ export default function VoiceRulesPage() {
         <strong className="font-semibold">읽기 전용</strong> · 음성 규칙은 코드에서 관리됩니다. 변경하려면 개발팀에 요청해 주세요.
       </div>
 
-      {/* ── 히어로: 음성으로 할 수 있는 5가지 ── */}
-      <section className="rounded-xl bg-white p-4 shadow-card ring-1 ring-ink-faint/20">
-        <header className="mb-3">
+      {/* ── 음성으로 할 수 있는 5가지 — 가로 탭 ── */}
+      <section className="rounded-xl bg-white shadow-card ring-1 ring-ink-faint/20">
+        <header className="border-b border-ink-faint/20 px-4 pt-4 pb-2">
           <h3 className="text-sm font-bold text-ink">음성으로 할 수 있는 5가지</h3>
-          <p className="mt-0.5 text-[11px] text-ink-muted">카드를 누르면 아래에서 자세한 예시를 볼 수 있습니다.</p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">탭을 눌러 각 카테고리의 말하기 예시를 확인하세요.</p>
         </header>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          {HERO_CARDS.map(card => {
-            const active = openKey === card.key
+
+        {/* 가로 탭 5개 */}
+        <div role="tablist" className="flex gap-1 overflow-x-auto px-4 pt-3">
+          {GROUPS.map(g => {
+            const isActive = g.key === tab
             return (
               <button
-                key={card.key}
-                onClick={() => handleHeroClick(card.key)}
-                className={`flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-all ${
-                  active
-                    ? 'border-v-accent bg-v-accent/5 shadow-card'
-                    : 'border-ink-faint/30 bg-surface hover:border-v-accent/50 hover:bg-v-accent/5'
+                key={g.key}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setTab(g.key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? 'border-v-accent bg-v-accent/5 text-v-accent'
+                    : 'border-transparent text-ink-muted hover:bg-surface-muted hover:text-ink'
                 }`}
               >
-                <span className="text-lg" aria-hidden>{card.icon}</span>
-                <span className="text-xs font-bold text-ink">{card.title}</span>
-                <span className="text-[11px] leading-snug text-ink-muted">{card.oneLine}</span>
+                <span aria-hidden>{g.icon}</span>
+                <span>{g.label}</span>
               </button>
             )
           })}
         </div>
-      </section>
 
-      {/* ── 아코디언: 이렇게 말해보세요 ── */}
-      <section className="rounded-xl bg-white p-4 shadow-card ring-1 ring-ink-faint/20">
-        <header className="mb-3 border-b border-ink-faint/20 pb-2">
-          <h3 className="text-sm font-bold text-ink">이렇게 말해보세요</h3>
-          <p className="mt-0.5 text-[11px] text-ink-muted">말하기 → 결과 대응표. 실제 화면에서도 동일하게 동작합니다.</p>
-        </header>
-        <div className="space-y-2">
-          {EXAMPLE_GROUPS.map(group => {
-            const open = openKey === group.key
-            return (
-              <div
-                key={group.key}
-                id={`voice-rule-${group.key}`}
-                className="overflow-hidden rounded-lg ring-1 ring-ink-faint/20"
-              >
-                <button
-                  onClick={() => setOpenKey(open ? DEFAULT_OPEN : group.key)}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left transition-colors ${
-                    open ? 'bg-v-accent/5' : 'bg-surface-muted hover:bg-v-accent/5'
-                  }`}
-                  aria-expanded={open}
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-                    <span aria-hidden>{group.icon}</span>
-                    {group.title}
-                  </span>
-                  <svg
-                    className={`h-4 w-4 text-ink-muted transition-transform ${open ? 'rotate-180' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+        {/* 선택된 탭 내용 */}
+        <div className="border-t border-ink-faint/20 p-4" role="tabpanel" id={`voice-rule-${active.key}`}>
+          <div className="mb-3 flex items-start gap-2">
+            <span className="text-lg" aria-hidden>{active.icon}</span>
+            <div>
+              <h4 className="text-sm font-bold text-ink">{active.label}</h4>
+              <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">{active.description}</p>
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-lg ring-1 ring-ink-faint/20">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-surface-muted text-left">
+                  <th className="w-[45%] px-3 py-1.5 font-semibold text-ink-muted">말하기</th>
+                  <th className="px-3 py-1.5 font-semibold text-ink-muted">결과</th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.rows.map((row, i) => (
+                  <tr
+                    key={row.say}
+                    className={i < active.rows.length - 1 ? 'border-b border-ink-faint/20' : ''}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {open && (
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-white text-left border-b border-ink-faint/20">
-                        <th className="w-[45%] px-3 py-1.5 font-semibold text-ink-muted">말하기</th>
-                        <th className="px-3 py-1.5 font-semibold text-ink-muted">결과</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                      {group.rows.map((row, i) => (
-                        <tr
-                          key={row.say}
-                          className={i < group.rows.length - 1 ? 'border-b border-ink-faint/20' : ''}
-                        >
-                          <td className="px-3 py-1.5">
-                            <code className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink">
-                              {row.say}
-                            </code>
-                          </td>
-                          <td className="px-3 py-1.5 text-ink">{row.result}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )
-          })}
+                    <td className="px-3 py-1.5">
+                      <code className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink">
+                        {row.say}
+                      </code>
+                    </td>
+                    <td className="px-3 py-1.5 text-ink">{row.result}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -243,7 +199,6 @@ export default function VoiceRulesPage() {
 
         {advancedOpen && (
           <div className="space-y-4 border-t border-ink-faint/20 p-4">
-            {/* 트리거/종료 단어 */}
             <div>
               <h4 className="mb-2 text-xs font-bold text-ink">실행 트리거 단어 · 종료 단어</h4>
               <p className="mb-2 text-[11px] text-ink-muted">말 끝에 이 단어가 붙으면 명령이 실행됩니다.</p>
@@ -272,7 +227,6 @@ export default function VoiceRulesPage() {
               </div>
             </div>
 
-            {/* 알아듣는 정도 */}
             <div>
               <h4 className="mb-2 text-xs font-bold text-ink">알아듣는 정도별 동작</h4>
               <p className="mb-2 text-[11px] text-ink-muted">시스템이 명령을 얼마나 확실히 알아들었는지에 따라 다르게 동작합니다.</p>
@@ -305,7 +259,6 @@ export default function VoiceRulesPage() {
               </div>
             </div>
 
-            {/* 입력 모드 */}
             <div>
               <h4 className="mb-2 text-xs font-bold text-ink">입력 모드 (2종)</h4>
               <p className="mb-2 text-[11px] text-ink-muted">화면 좌하단 버튼으로 전환. 상황별 마이크/TTS 동작이 다릅니다.</p>
