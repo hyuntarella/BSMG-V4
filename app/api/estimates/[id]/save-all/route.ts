@@ -193,10 +193,13 @@ export async function POST(
   const dateStr = estimate.date || 'unknown'
   const basePrefix = `${customer}_${site}_${dateStr}_${mgmtNo}`
 
+  let step = 'init'
   try {
     // ── 1. JSON → Drive ──
+    step = 'generate-json'
     const jsonStr = generateJson(estimate)
     const jsonFileName = `${basePrefix}.json`
+    step = 'upload-json'
     const jsonResult = await upsertToDrive(
       folderId,
       jsonFileName,
@@ -214,6 +217,7 @@ export async function POST(
     let urethaneXlsxUrl = ''
     let urethanePdfUrl = ''
 
+    step = 'generate-xlsx-pdf'
     const methodResults = await Promise.all(
       methods.map(async (method) => {
         const methodKey = method === '복합' ? 'complex' : 'urethane'
@@ -254,10 +258,12 @@ export async function POST(
 
     // ── 4. 신규 공종 자동 등록 (cost_config.new_items) ──
     if (estimate.company_id) {
+      step = 'register-new-items'
       await registerNewItems(estimate.company_id, estimate)
     }
 
     // ── 5. DB 업데이트 (메타데이터 + Drive URLs) ──
+    step = 'update-estimate-db'
     await supabase
       .from('estimates')
       .update({
@@ -290,7 +296,9 @@ export async function POST(
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : '파일 생성 실패'
-    console.error('save-all error:', err)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const stack = err instanceof Error ? err.stack : undefined
+    console.error(`[save-all] step=${step} estimateId=${estimateId} msg=${msg}`)
+    if (stack) console.error(stack)
+    return NextResponse.json({ error: msg, step }, { status: 500 })
   }
 }

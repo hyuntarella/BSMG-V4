@@ -4,6 +4,7 @@
  */
 
 import { google } from 'googleapis'
+import { Readable } from 'stream'
 
 export function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -45,7 +46,6 @@ export async function upsertToDrive(
 ): Promise<{ id: string; name: string; url: string }> {
   const auth = getAuth()
   const drive = google.drive({ version: 'v3', auth })
-  const { Readable } = await import('stream')
 
   const body = Readable.from([typeof content === 'string' ? Buffer.from(content) : content])
   const media = { mimeType, body }
@@ -92,7 +92,6 @@ export async function uploadToDrive(
   // 같은 이름 파일 확인
   const existingName = await getVersionedName(drive, folderId, fileName)
 
-  const { Readable } = await import('stream')
   const media = {
     mimeType,
     body: Readable.from([typeof content === 'string' ? Buffer.from(content) : content]),
