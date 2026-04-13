@@ -1,7 +1,9 @@
 # BSMG-V4 Project Truth v8
 
-> **v7 → v8**: Phase 4.5 (레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로) 완료 반영.
-> 기준 시점: 2026-04-13 (Phase 4.5 완료, 브랜치 `feature/11-layout-excel-pdf`).
+> **v7 → v8**: Phase 4.5 (레이아웃 재구성 + 엑셀 서식 복구 + PDF 가로) — **진행 중 (미완료, 머지 전)**.
+> 기준 시점: 2026-04-13 (브랜치 `feature/11-layout-excel-pdf`, 마지막 커밋 `515d47e`).
+>
+> **상태**: 10개 커밋 원격 푸시됨. Vercel 프리뷰 빌드 **실패** (환경변수 누락). 엑셀 UAT 4건 미해결. 머지 대기.
 
 ---
 
@@ -161,19 +163,49 @@ UAT 완료 후 samples/ 삭제 예정 (일회성 검증 자료).
 | `65c80b2` | c7: 엔진 통합 — generateWorkbook 제거, 단일 경로 통일 (B안) |
 | `3d70d93` | c8: 런타임 검증 샘플 xlsx 3종 + 생성 스크립트 |
 | `a53e893` | c9: PDF 가로 방향 강제 — 작업 3 |
+| `515d47e` | docs: v8 프로젝트 상태 + HANDOFF_7 작성 |
+
+(총 10개 커밋, 원격 `origin/feature/11-layout-excel-pdf` 에 푸시됨.)
 
 ---
 
 ## §4. 검증 결과
 
+### 자동 검증 (로컬 기준)
+
 | 항목 | 결과 |
 |---|---|
 | TypeScript | 에러 0 |
-| Lint | 신규 에러 0 (pre-existing 14건: useCallback deps, img 태그, test 타입 — v7 §13 기록분) |
+| Lint | 신규 에러 0 (pre-existing 14건) |
 | Tests | 477/477 통과 |
 | Build | `/estimate/new` 29.2 kB, 성공 |
 | xlsx 샘플 | 3종 생성, landscape 적용 확인 (verify-landscape.ts) |
-| 런타임 PDF | **미검증** — Vercel 프리뷰 배포로 작업 4.5 완료 후 통합 UAT 예정 |
+
+### 원격 검증 (Vercel 프리뷰)
+
+| 항목 | 결과 |
+|---|---|
+| 푸시 | `515d47e` → `origin/feature/11-layout-excel-pdf` (성공) |
+| **bsmg-v5 프리뷰 빌드** | ❌ **FAILURE** |
+| bsmg-v4 프리뷰 빌드 | success (구 프로젝트, 대상 아님) |
+| 프리뷰 URL | **미생성** (빌드 실패로) |
+| 실패 대시보드 | https://vercel.com/hyuntarellas-projects/bsmg-v5/2bAYm5MSCxzJznfRXNP9vCGzLs1w |
+| 추정 원인 | **Vercel Preview 환경변수 누락 (Supabase 3종)** |
+
+### 엑셀 UAT (PM 확인, samples/*.xlsx 대상)
+
+| # | c6 대상 이슈 | 해결? |
+|---|---|---|
+| 1 | META 라벨 침범 | — (UAT 미전달) |
+| 2 | 2줄 내용 행 높이 | ❌ **미해결** (자동 조정 안 됨) |
+| 3 | 빈 행 방치 | ❌ **미해결** (갑지 빈 행 3개 잔존) |
+| 4 | 로고 이미지 틀어짐 | — |
+| 5 | 좌측 정렬 유실 | — |
+| 6 | 한글금액 #NAME? | — |
+| 신규 | **갑지 공사금액 0 표시** | ❌ 신규 발견, 원인 조사 필요 |
+| 신규 | **갑지 페이지 분할** | ❌ 신규 발견, landscape 적용 후 분할 문제 |
+
+**결론**: c6 으로 일부 해결되었으나 4건 미해결. c9 의 landscape 적용으로 새 이슈 유발 가능성 (갑지 페이지 분할).
 
 ---
 
@@ -200,9 +232,13 @@ UAT 완료 후 samples/ 삭제 예정 (일회성 검증 자료).
 7. vadLogic.test.ts:97 TS 에러 — pre-existing
 8. estimate/SettingsPanel.tsx 구 에디터 사용 — 새 카드 에디터로 재배선
 
-Phase 4.5 신규:
-9. **PM UAT 미완료**: samples/ xlsx 6건 이슈 해결 여부 PM 확인 필요 → 완료 후 samples/ 삭제
-10. **Vercel 프리뷰 PDF UAT**: 작업 3 의 PDF 가로 변환은 로컬 xlsx 속성만 검증. 실제 Google Drive 변환 결과는 Vercel 배포 후 확인 필요
+Phase 4.5 신규 — **미해결 (다음 세션 재작업 대상)**:
+9. **Vercel Preview 환경변수 누락**: bsmg-v5 프리뷰 빌드 FAILURE. Supabase 3종 (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) 을 Vercel 프로젝트 > Settings > Environment Variables > Preview 환경에 추가 필요
+10. **엑셀 UAT 4건 미해결** (c6/c9 적용 후 PM 확인):
+    - 행 높이 자동조정 — `computeRowHeight` 가 충분치 않음. wrapText + 실제 렌더 높이 재산정 필요
+    - 갑지 빈 행 3개 제거 — 갑지(Sheet1)엔 아이템 행 없음. 별도 빈 행이 있다는 뜻 — 템플릿 조사 필요
+    - 갑지 공사금액 0 원인 조사 — K14/K18 주입 로직 재점검 (c6 의 null 초기화가 값 주입도 날려버렸을 가능성)
+    - 갑지 페이지 분할 — c9 landscape 적용 후 갑지 1페이지 초과해 분할되는 이슈. fitToHeight 또는 print area 설정 필요
 11. **generate 라우트 sheets[0] 제약**: c7 B안의 부산물. 복합+우레탄 동시일 때 첫 시트만 처리. 별건 페이즈 후보
 12. **e2e 테스트 2건**: `/generate` POST 호출. save-all 경로와 중복 테스트 가능성. 정리 필요 (v7 §13 와 함께)
 13. **samples/ 폴더**: UAT 완료 후 삭제

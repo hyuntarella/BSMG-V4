@@ -1,15 +1,17 @@
-# Phase 4.5 완료 Handoff — 레이아웃 + 엑셀 서식 + PDF 가로
+# Phase 4.5 Handoff — 레이아웃 + 엑셀 서식 + PDF 가로 (**미완료**)
 
-> Phase 4.5 종료. 브랜치 `feature/11-layout-excel-pdf` 커밋 9건. 머지 전 PM UAT 대기.
+> Phase 4.5 10개 커밋 원격 푸시됨. Vercel 프리뷰 빌드 실패 + 엑셀 UAT 4건 미해결.
+> 다음 세션 = **빌드 복구 + 엑셀 재수정 + 재 UAT + 머지**.
 
 ## 직전 상태
 
-- **기준 브랜치**: `main` (v7 상태, HEAD `d9172e4`)
-- **Phase 4.5 브랜치**: `feature/11-layout-excel-pdf` (**미머지**)
-- **최종 커밋**: `a53e893`
+- **main 브랜치**: `d9172e4` (v7 상태, 변경 없음)
+- **작업 브랜치**: `feature/11-layout-excel-pdf` (**원격 푸시됨, 미머지**)
+- **최종 커밋**: `515d47e` (docs)
 - **프로젝트 상태 문서**: `bsmg_estimate_final_v8.md`
+- **Vercel 프리뷰 빌드**: ❌ FAILURE (bsmg-v5), 원인 추정 = 환경변수 누락
 
-## Phase 4.5 커밋 목록 (9건)
+## Phase 4.5 커밋 목록 (10건)
 
 | 해시 | 내용 |
 |------|------|
@@ -22,58 +24,75 @@
 | `65c80b2` | c7: 엔진 통합 — generateWorkbook 제거, 단일 경로 통일 (B안) |
 | `3d70d93` | c8: 런타임 검증 샘플 xlsx 3종 + 생성 스크립트 |
 | `a53e893` | c9: PDF 가로 방향 강제 — 작업 3 |
+| `515d47e` | docs: v8 프로젝트 상태 + HANDOFF_7 작성 |
 
-## 검증 결과 (자동)
+## 자동 검증 (로컬)
 
-- TypeScript: 에러 0
-- Lint: 신규 에러 0 (pre-existing 경고 14건만)
-- Tests: 477/477 통과
-- Build: `/estimate/new` 29.2 kB, 성공
-- xlsx 샘플 3종: landscape 적용 검증 완료 (`scripts/verify-landscape.ts`)
+- TypeScript 에러 0, Lint 신규 에러 0, Tests 477/477, Build 성공
+- xlsx 샘플 3종 landscape 검증 완료 (`scripts/verify-landscape.ts`)
 
-## 다음 세션 진입 시 체크리스트
+## Vercel 원격 검증 결과
 
-1. **브랜치 확인**: `git status` — 현재 `feature/11-layout-excel-pdf` 인지
-2. **UAT 결과 확인**: PM 이 `samples/*.xlsx` 3종 엑셀로 열어봤는지
-3. **미해결 피드백 수집**: 6건 이슈 중 어느 것이 여전히 재현되는지 정확히 파악
+- 푸시 성공: `515d47e` → `origin/feature/11-layout-excel-pdf`
+- **bsmg-v5 프리뷰 빌드 FAILURE**
+- 대시보드: https://vercel.com/hyuntarellas-projects/bsmg-v5/2bAYm5MSCxzJznfRXNP9vCGzLs1w
+- 추정 원인: Vercel Preview 환경변수 누락 (Supabase 3종)
 
-## PM UAT 절차 (다음 세션 우선순위)
+## PM UAT 결과 (엑셀 samples/*.xlsx)
 
-### UAT-1: xlsx 서식 6건 (c6 효과 확인)
+4건 미해결 — 다음 세션 재작업 대상:
 
-`samples/` 폴더의 3개 xlsx 를 엑셀에서 열어 확인:
+1. **행 높이 자동조정** — `computeRowHeight` 가 충분치 않음
+2. **갑지 빈 행 3개 제거** — 갑지(Sheet1)엔 아이템 행 없어야 함. 별도 빈 행 원인 조사
+3. **갑지 공사금액 0 원인 조사** — K14/K18 주입 로직 재점검. c6 의 null 초기화가 값 주입도 날려버렸을 가능성
+4. **갑지 페이지 분할** — c9 landscape 적용 후 갑지 1페이지 초과 분할. fitToHeight / print area 설정 필요
 
-| # | 이슈 | 확인 방법 |
-|---|---|---|
-| 1 | META 라벨 침범 | 갑지 Sheet1 의 "관리번호"/"견적일"/"FAX" 라벨 영역에 값이 침범하는지 |
-| 2 | 2줄 행 높이 | 을지 Sheet2 의 "줄눈·크랙 실란트 보강포", "중도 1mm(2회)" 행이 잘리지 않는지 |
-| 3 | 빈 행 방치 | sample-3-fewrows (3행) 의 을지에 빈 행이 남아있는지 |
-| 4 | 로고 이미지 | 방수명가 로고/브랜드 이미지 위치/크기 틀어졌는지 |
-| 5 | 좌측 정렬 | 관리번호/견적일 등 값이 좌측 정렬인지 |
-| 6 | 한글금액 | E11 셀에 `#NAME?` 대신 "일금 XXX원 정(₩X,XXX,XXX)" 표시되는지 |
+---
 
-### UAT-2: PDF 가로 (c9 효과 확인)
+## 다음 세션 첫 작업 (순서대로)
 
-로컬 xlsx 만으로는 Google Drive 변환 결과를 알 수 없음. 다음 중 택1:
+### STEP 1: Vercel Preview 환경변수 추가
 
-- **A. Vercel 프리뷰 배포**: `feature/11-layout-excel-pdf` 푸시 → Vercel 자동 프리뷰 URL → `/estimate/new` 에서 실제 저장 → Google Drive 에 생성된 PDF 가 가로 방향인지
-- **B. 수동 GAS/Drive 스크립트**: xlsx 업로드 → Google Sheets 변환 → PDF export
+- Vercel 대시보드 > bsmg-v5 프로젝트 > Settings > Environment Variables
+- **Preview 환경**에 3종 추가:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- 값은 로컬 `.env.local` 에서 복사 (또는 Production 환경에 있으면 그걸 복사)
+- Google Drive / OpenAI / Anthropic 관련 키도 누락 여부 확인 필요
 
-### UAT-3: 레이아웃 2건 (작업 1 효과 확인)
+### STEP 2: 빌드 재시도
 
-Vercel 프리뷰 배포 후 브라우저에서:
+- Vercel 대시보드에서 failed deployment 우클릭 > Redeploy (환경변수 적용)
+- 또는 브랜치에 빈 커밋 푸시: `git commit --allow-empty -m "chore: trigger rebuild"`
+- 빌드 성공 시 프리뷰 URL 확보
 
-- `/estimate/new` (음성 견적서) + `/estimate/edit` (폼 견적서) 둘 다 확인
-- 좌측 296px CompareSidebar 가 상시 노출되며 내부 스크롤 되는지
-- 우측 2탭 (복합/우레탄) 만 표시되고 갑지·검수 탭 사라졌는지
-- /settings FavoritesEditor 에서 칩 추가 → 견적서 재진입 시 SidePanel 에 반영되는지
+### STEP 3: 엑셀 UAT 4건 재작업
 
-## 머지 전 반드시 처리
+`lib/excel/generateMethodWorkbook.ts` 수정:
 
-UAT 전부 통과 후:
+1. **행 높이 자동조정**: 현재 `computeRowHeight` 는 품명 길이 기준 정적. 실제 해결책은 wrapText + row.height 를 wrapText 기준 재계산. exceljs 한계일 수 있으므로 LibreOffice 변환 결과 확인 후 추가 대응
+2. **갑지 빈 행 3개**: 템플릿 원본 (templates/complex.xlsx, templates/urethane.xlsx) Sheet1 구조를 엑셀로 열어 실제 빈 행 위치 파악 → 주입 전 spliceRows 로 제거
+3. **갑지 공사금액 0**: `fillCover` 의 K14/K18 주입 재점검. `totalCell.value = null` 뒤 값 주입 순서 재확인. exceljs 의 null 세팅 후 값 세팅이 한 번에 꺼지는 버그 가능성 → `cell.value = cr.totalBeforeRound` 로 직접 세팅 후 확인
+4. **갑지 페이지 분할**: `enforceLandscape` 에 `fitToHeight: 1` 추가 or print area 명시. 현재 `fitToHeight: 0` (무제한) 이어서 갑지가 분할됨
 
-1. **samples/ 폴더 삭제**: `git rm -r samples/` (일회성 검증 자료)
-2. `feature/11-layout-excel-pdf` → `main` 머지
+### STEP 4: 재작업 후 샘플 재생성 + 재 UAT
+
+```bash
+npx tsx scripts/gen-excel-samples.ts
+npx tsx scripts/verify-landscape.ts
+git add samples/ && git commit -m "test: 재생성 샘플"
+git push
+```
+
+PM 이 다시 samples/*.xlsx 열어 4건 재확인.
+
+### STEP 5: 머지 전 정리
+
+UAT 4건 모두 통과 시:
+
+1. **samples/ 폴더 삭제**: `git rm -r samples/ scripts/gen-excel-samples.ts scripts/verify-landscape.ts`
+2. `feature/11-layout-excel-pdf` → `main` 머지 (PR 생성: https://github.com/hyuntarella/BSMG-V4/pull/new/feature/11-layout-excel-pdf)
 3. main 배포 후 Ctrl+F5 강제 새로고침으로 프로덕션 UAT
 
 ## 남은 기술부채 (v8 §6)
