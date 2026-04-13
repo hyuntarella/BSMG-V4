@@ -282,4 +282,37 @@ v7 §14 기반 + Phase 4.5 효과 반영:
 
 ---
 
+## §11. Phase 5 완료 (Google Sheets 엔진 전환)
+
+**2026-04-13 완료**. Phase 4.5 머지 후 발견된 프로덕션 회귀 3건 일괄 해소.
+
+### 머지 상태
+- **main squash commit**: `c2b45f7` — Phase 5: Google Sheets 네이티브 템플릿 엔진 (#3)
+- **Production deployment**: `dpl_4porXuChkHErcZPGP1WfvqGcULS3` READY
+- **선행 hotfix**: `d55bce1` — Hotfix/pdf landscape permission (#2)
+
+### 해결된 회귀 (Phase 4.5 후)
+| # | 증상 | 해결 경로 |
+|---|---|---|
+| [1] | PDF 세로 (A4 landscape 실패) | hotfix c1 — `docs.google.com/spreadsheets/export` URL 전환 |
+| [2] | 엑셀 서식 유실 (행 높이 튀김, 빨간 볼드 유실, #NAME? 등) | Phase 5 — 엔진 자체 교체 |
+| [3] | PDF 볼 때 구글 로그인 요구 | hotfix c2 — `ensureAnyoneReader` (anyone reader 자동 부여) |
+
+### Phase 5 엔진 전환 요약
+- `save-all/route.ts`: ExcelJS `generateMethodExcel + convertXlsxToPdf` → Google Sheets `generateGSheetEstimate`
+- 흐름: `drive.files.copy(템플릿)` → `spreadsheets.batchUpdate(구조+서식)` → `spreadsheets.values.batchUpdate(값)` → PDF + xlsx export → 사본 삭제
+- 응답 contract 동일, DB 컬럼 무변화
+
+### UAT 4회 반복 + 내부 회귀 4건 즉시 fix
+- 시각 회귀 3건 (품명 wrap / #NAME? / RichText 유실) → `bef7f05`
+- 회계 룰 회귀 1건 (한글금액 vs 합계 100K 차이) → `d71526c`
+- 최종 UAT 자동 검증: E11 = K18 = M22 = 24,800,000 일치
+
+### 잔여
+- **Phase 5.1 (엑셀 행 높이 hotfix)**: PM 보고 "PDF 는 잘 나오는데 엑셀 행 높이 조금 문제". `/export` 라우트가 여전히 구 xlsx 엔진 사용. 차기 세션 2순위.
+- **5.2 xlsx 엔진 통합** (`/export` → Sheets 엔진 통합)
+- **5.3 PDF buffer stream** (anyone reader 보안 절충 해결)
+
+---
+
 **END v8**
