@@ -83,11 +83,7 @@ const SAMPLE: DetailSheet = {
       labor: { amount: 900_000 },
       expense: { amount: 300_000 },
       total: { amount: 1_800_000 },
-    },
-    {
-      kind: 'callout',
-      text: '※ 판넬도막방수는 하자보수기간 3년 적용됩니다',
-      color: 'accent',
+      note: '3년',
     },
   ],
 }
