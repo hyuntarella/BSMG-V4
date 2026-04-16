@@ -13,8 +13,8 @@ function fmt(n: number | undefined): string {
 
 /* ── 공통 스타일 ── */
 const TOTAL_COLS = 13
-const cellBase = 'text-[13px] font-normal text-black text-center border-r border-[#c4c4c4]'
-const cellRight = 'text-[13px] font-normal text-black text-right border-r border-[#c4c4c4]'
+const cellBase = 'text-[12px] font-normal text-black text-center border-r border-[#c4c4c4]'
+const cellRight = 'text-[12px] font-normal text-black text-right border-r border-[#c4c4c4]'
 const footerBg = 'bg-[#ebebeb]'
 const rowBorder = 'border-b border-[#c4c4c4]'
 
@@ -48,8 +48,8 @@ function ItemRow({ item }: { item: DetailItem }) {
 function CalloutRowView({ row }: { row: CalloutRow }) {
   const isAccent = row.color === 'accent'
   const textCls = isAccent
-    ? 'text-[13px] font-bold text-[#a11d1f]'
-    : 'text-[13px] font-normal text-black'
+    ? 'text-[12px] font-bold text-[#a11d1f]'
+    : 'text-[12px] font-normal text-black'
   return (
     <tr className={`h-[34.72px] ${rowBorder}`}>
       <td colSpan={TOTAL_COLS} className={`${textCls} text-left pl-[10px]`}>
@@ -67,7 +67,7 @@ interface FooterProps {
 function SubtotalRow({ calc }: FooterProps) {
   return (
     <tr className={`h-[34.72px] ${rowBorder} ${footerBg}`}>
-      <td className={`${cellBase} w-[140px] font-semibold`}>소 계</td>
+      <td className={`${cellBase} w-[140px] font-semibold`}>소&nbsp;&nbsp;&nbsp;계</td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
       <EmptyTd className={`${cellBase} w-[50px]`} />
       <EmptyTd className={`${cellRight} w-[60px]`} />
@@ -86,8 +86,8 @@ function SubtotalRow({ calc }: FooterProps) {
 
 function OverheadRow({ calc }: FooterProps) {
   return (
-    <tr className={`h-[34.72px] ${rowBorder} ${footerBg}`}>
-      <td className={`${cellBase} w-[140px] font-semibold text-[12px] leading-tight`}>
+    <tr className={`h-[34.72px] ${rowBorder}`}>
+      <td className={`${cellBase} w-[140px] font-semibold leading-tight`}>
         공 과 잡 비,<br />안 전 관 리 비
       </td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
@@ -108,7 +108,7 @@ function OverheadRow({ calc }: FooterProps) {
 
 function ProfitRow({ calc }: FooterProps) {
   return (
-    <tr className={`h-[34.72px] ${rowBorder} ${footerBg}`}>
+    <tr className={`h-[34.72px] ${rowBorder}`}>
       <td className={`${cellBase} w-[140px] font-semibold`}>기 업 이 윤</td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
       <td className={`${cellBase} w-[50px]`}>%</td>
@@ -149,7 +149,7 @@ function BeforeRoundRow({ calc }: FooterProps) {
 function GrandTotalRow({ calc }: FooterProps) {
   return (
     <tr className={`h-[34.72px] ${rowBorder} ${footerBg}`}>
-      <td className="text-[14px] font-bold text-black text-center border-r border-[#c4c4c4] w-[140px]">
+      <td className="text-[12px] font-bold text-black text-center border-r border-[#c4c4c4] w-[140px]">
         합 계
       </td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
@@ -161,11 +161,11 @@ function GrandTotalRow({ calc }: FooterProps) {
       <EmptyTd className={`${cellRight} w-[85px]`} />
       <EmptyTd className={`${cellRight} w-[60px]`} />
       <EmptyTd className={`${cellRight} w-[85px]`} />
-      <EmptyTd className="text-[14px] font-bold text-black text-right border-r border-[#c4c4c4] w-[80px]" />
-      <td className="text-[14px] font-bold text-black text-right border-r border-[#c4c4c4] w-[118px] pr-[4px]">
+      <EmptyTd className="text-[12px] font-black text-black text-right border-r border-[#c4c4c4] w-[80px]" />
+      <td className="text-[12px] font-black text-black text-right border-r border-[#c4c4c4] w-[118px] pr-[4px]">
         {fmt(calc.grandTotal)}
       </td>
-      <td className="text-[13px] font-normal text-black text-center w-[60px]">
+      <td className="text-[12px] font-normal text-black text-center w-[60px]">
         (단수정리)
       </td>
     </tr>

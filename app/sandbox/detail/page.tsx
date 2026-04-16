@@ -10,7 +10,7 @@ const SAMPLE: DetailSheet = {
   pageNumber: '2/3',
   rows: [
     {
-      kind: 'item', name: '바탕정리', unit: 'm²', quantity: 270,
+      kind: 'item', name: '바탕정리', unit: 'm2', quantity: 270,
       material: { unitPrice: 800, amount: 216_000 },
       labor: { unitPrice: 1_200, amount: 324_000 },
       total: { unitPrice: 2_000, amount: 540_000 },
@@ -30,33 +30,33 @@ const SAMPLE: DetailSheet = {
       total: { amount: 1_300_000 },
     },
     {
-      kind: 'item', name: '하도 프라이머', unit: 'm²', quantity: 270,
+      kind: 'item', name: '하도 프라이머', unit: 'm2', quantity: 270,
       material: { unitPrice: 1_100, amount: 297_000 },
       labor: { unitPrice: 1_600, amount: 432_000 },
       total: { unitPrice: 2_700, amount: 729_000 },
     },
     {
-      kind: 'item', name: '복합 시트', spec: '2.3mm', unit: 'm²', quantity: 270,
+      kind: 'item', name: '복합 시트', spec: '2.3mm', unit: 'm2', quantity: 270,
       material: { unitPrice: 11_000, amount: 2_970_000 },
       labor: { unitPrice: 7_000, amount: 1_890_000 },
       expense: { unitPrice: 500, amount: 135_000 },
       total: { unitPrice: 18_500, amount: 4_995_000 },
     },
     {
-      kind: 'item', name: '포인트 실란트\n보강포 부착', unit: 'm²', quantity: 270,
+      kind: 'item', name: '포인트 실란트\n보강포 부착', unit: 'm2', quantity: 270,
       material: { unitPrice: 1_800, amount: 486_000 },
       labor: { unitPrice: 2_000, amount: 540_000 },
       total: { unitPrice: 3_800, amount: 1_026_000 },
     },
     {
-      kind: 'item', name: '노출 우레탄', spec: '중도 1.5mm(2회)', unit: 'm²', quantity: 270,
+      kind: 'item', name: '노출 우레탄', spec: '중도 1.5mm(2회)', unit: 'm2', quantity: 270,
       material: { unitPrice: 9_000, amount: 2_430_000 },
       labor: { unitPrice: 4_500, amount: 1_215_000 },
       expense: { unitPrice: 500, amount: 135_000 },
       total: { unitPrice: 14_000, amount: 3_780_000 },
     },
     {
-      kind: 'item', name: '우레탄 상도', spec: '탑코팅', unit: 'm²', quantity: 270,
+      kind: 'item', name: '우레탄 상도', spec: '탑코팅', unit: 'm2', quantity: 270,
       material: { unitPrice: 2_200, amount: 594_000 },
       labor: { unitPrice: 1_800, amount: 486_000 },
       total: { unitPrice: 4_000, amount: 1_080_000 },
@@ -90,10 +90,7 @@ const SAMPLE: DetailSheet = {
 
 export default function DetailSandboxPage() {
   return (
-    <div className="min-h-screen bg-gray-200 py-10">
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <h1 className="text-lg font-bold">을지 PDF 프리뷰</h1>
-      </div>
+    <div className="min-h-screen bg-white py-10">
       <div className="flex justify-center">
         <Detail sheet={SAMPLE} />
       </div>
