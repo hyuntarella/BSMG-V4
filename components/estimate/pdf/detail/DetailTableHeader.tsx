@@ -7,7 +7,7 @@
  */
 
 const thBase =
-  'bg-[#121212] text-white text-[12px] font-semibold text-center'
+  'bg-[#ebebeb] text-black text-[12px] font-semibold text-center'
 const borderR = 'border-r border-[#4d4d4d]'
 
 export default function DetailTableHeader() {

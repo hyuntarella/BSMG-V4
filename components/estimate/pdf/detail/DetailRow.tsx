@@ -92,7 +92,7 @@ function OverheadRow({ calc }: FooterProps) {
       </td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
       <td className={`${cellBase} w-[50px]`}>%</td>
-      <td className={`${cellRight} w-[60px] pr-[4px]`}>3</td>
+      <td className={`${cellBase} w-[60px]`}>3</td>
       <EmptyTd className={`${cellRight} w-[60px]`} />
       <EmptyTd className={`${cellRight} w-[85px]`} />
       <EmptyTd className={`${cellRight} w-[60px]`} />
@@ -112,7 +112,7 @@ function ProfitRow({ calc }: FooterProps) {
       <td className={`${cellBase} w-[140px] font-semibold`}>기 업 이 윤</td>
       <EmptyTd className={`${cellBase} w-[100px]`} />
       <td className={`${cellBase} w-[50px]`}>%</td>
-      <td className={`${cellRight} w-[60px] pr-[4px]`}>6</td>
+      <td className={`${cellBase} w-[60px]`}>6</td>
       <EmptyTd className={`${cellRight} w-[60px]`} />
       <EmptyTd className={`${cellRight} w-[85px]`} />
       <EmptyTd className={`${cellRight} w-[60px]`} />
