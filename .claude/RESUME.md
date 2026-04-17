@@ -1,62 +1,41 @@
 # RESUME — 방수명가 견적서 v5
 
-**최종 갱신:** 2026-04-17 (저녁)
+**최종 갱신:** 2026-04-17 (저녁 2차 세션)
 
 ## 방금 끝낸 것
 
-**Phase 6.3.3 fix7 + 6.1-6.2 백필** ✅ 2026-04-17
+**Phase 6.3.4 — 실데이터 매핑 유틸** ✅
 
-3개 커밋으로 분리:
+- lib/estimate/pdf/detailMapper.ts: toDetailSheet(estimate, sheetIndex): DetailSheet
+- tests/estimate/detailMapper.test.ts: 8 cases 전체 통과
+- 검증: build exit 0, lint error 0
 
-1. Phase 6.1-6.2 backfill (4/16 작업 미커밋 정상화)
-   - 갑지 7개 컴포넌트, PDF 파운데이션, 갑지 토큰, 협력사 로고 SVG
+**워킹 디렉토리 정리** ✅ (파트 A)
 
-2. Phase 6.3.3 fix7 (오늘 세션)
-   - 을지 토큰 v2.1 재작성
-   - 헤더 #EBEBEB → #121212, 글자 반전
-   - 데이터 전 셀 중앙 정렬, 합계 컬럼 198 → 170px
-   - 공사명 13px, accent #C83030 전역, w-[1043px] 명시
-   - 행 높이 h-[30px] Figma 실측, 샘플 13행
-   - 로고 padding pt/px → pr
-
-3. chore: RESUME 갱신
-
-검증: npm run build exit 0, /sandbox/detail 시각 대조 완료
-
-## 이전 완료
-- Phase 6.3.3 fix6 (2026-04-17 오전)
-- Phase 6.3.0~fix5 (2026-04-16)
-- Phase 6.2 — 갑지 (2026-04-16, 오늘 비로소 커밋 정상화)
-- Phase 6.1 — PDF 파운데이션 (2026-04-16 이전, 오늘 비로소 커밋 정상화)
+4개 커밋 push 완료:
+- 2c40319 옛 문서 아카이브 정리 (7파일 1368줄 삭제)
+- 5bbfdc1 프로젝트 규율 문서 레포 편입 (PROJECT_MAP, PDF_PIPELINE_EXPORT, verification-protocol)
+- 1e392e4 Stop 훅 기반 verification 블록 검증 활성화
+- 80c0c13 CLAUDE.md §7 참조 표 갱신
 
 ## 다음에 할 것
 
-**Phase 6.3.4 — 실데이터 매핑 유틸**
-
-sandbox 하드코딩 샘플 → 실제 견적 state → DetailSheet props 변환 함수.
-- 선결: lib/estimate/ state shape 확인
-- 입력: 견적 도메인 모델
-- 출력: DetailSheet
-- 재사용: calcDetailSheet
+**Phase 6.3.5 또는 UAT — 실데이터 렌더 검증**
+- 실 Estimate(Supabase) 1건으로 /sandbox/detail 렌더
+- self_doubt 3건 확정:
+  1. 공사명 포맷 중복 여부 (예: "옥상 옥상방수")
+  2. pageNumber 공식 (갑지 장수 가정)
+  3. lump_amount 시 unitPrice 표시 자연스러움
+- CalloutRow 생성 규칙 논의 (별도)
 
 ## 열린 질문
 
-1. 다음 세션 초반 정리 대상 (이번 세션 범위 아님):
-   - M CLAUDE.md, M .claude/settings.json — 변경 이유 확인
-   - D NEXT_SESSION_HANDOFF*.md 4개, D bsmg_estimate_final_v5~v7.md — 아카이브 정리 의도 확정 후 커밋
-   - ?? PROJECT_MAP.md, docs/PDF_PIPELINE_EXPORT.md, docs/verification-protocol.md — Project knowledge 이미 있음. 레포 동기화 판단
-   - ?? .claude/hooks/verification-gate.js — 유지/폐기
-   - ?? scripts/capture-sandbox-detail.mjs — 유지/삭제
-
-2. main 머지 시점 — phase-6-3-detail 커밋 squash 할지 각 커밋 유지할지
-
-3. 직인 이미지 PM 업로드 대기
-
-4. Phase 6.3.4 범위 PM 협의 필요
+1. main 머지 시점 — phase-6-3-detail 커밋 squash 여부
+2. 직인 이미지 PM 업로드 대기
+3. overheadRate/profitRate DB 컬럼 연동 (Phase 6.4)
 
 ## 참고
 - .claude/tokens/detail-sheet-tokens.md — 을지 토큰 v2.1
-- .claude/tokens/cover-sheet-tokens.md — 갑지 토큰
-- docs/견적서_개발_핸드오프.md — 레이아웃 스펙
+- lib/estimate/pdf/detailMapper.ts — 매핑 유틸 (Phase 6.3.4)
 - lib/estimate/pdf/detailCalc.ts — 계산 유틸
-- lib/estimate/pdf/types.ts — 타입
+- lib/estimate/pdf/types.ts — PDF 타입
