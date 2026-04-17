@@ -1,47 +1,62 @@
 # RESUME — 방수명가 견적서 v5
 
+**최종 갱신:** 2026-04-17 (저녁)
+
 ## 방금 끝낸 것
 
-**Phase 6.3.0~6.3.3 fix5 — 을지 타입 + 계산 + 컴포넌트** ✅ 2026-04-16
+**Phase 6.3.3 fix7 + 6.1-6.2 백필** ✅ 2026-04-17
 
-- 브랜치: `phase-6-3-detail`, 최종 커밋: `21ee880`
-- 완료 sub-phase:
-  - 6.3.0: 탐색 (기존 타입/계산/토큰 위치 파악)
-  - 6.3.1: Figma 토큰 추출 (.claude/tokens/detail-sheet-tokens.md) + 타입 정의 (DetailItem/CalloutRow/WorkColumn/DetailSheet)
-  - 6.3.2: calcDetailSheet 계산 유틸 + 3 테스트 (12.png 재현/Callout 무시/컬럼 누락 혼재)
-  - 6.3.3: 을지 컴포넌트 4개 (DetailHeader/DetailTableHeader/DetailRow/Detail) + sandbox 렌더
-  - fix1~fix5: 샘플 데이터 12.png 실측 정렬, DetailHeader 갑지 패턴 재작성, Callout→비고 전환, Figma 원본 1:1 정렬 (12px, m2, 배경 교차, Bold/Black)
-- sandbox/detail 렌더: Figma 구조·스타일 일치 확인
-- 남은 이슈: 품명 "기존 바닥 돌뜸 부위\n부분 제거"의 줄바꿈 렌더 미확인
+3개 커밋으로 분리:
 
-**이전 완료:**
-- Phase 6.2 — 갑지 컴포넌트 (Figma 1:1, 96행 대조 불일치 0)
-- Phase 6.1 — PDF 파운데이션 (커밋 `67a75b8`)
+1. Phase 6.1-6.2 backfill (4/16 작업 미커밋 정상화)
+   - 갑지 7개 컴포넌트, PDF 파운데이션, 갑지 토큰, 협력사 로고 SVG
+
+2. Phase 6.3.3 fix7 (오늘 세션)
+   - 을지 토큰 v2.1 재작성
+   - 헤더 #EBEBEB → #121212, 글자 반전
+   - 데이터 전 셀 중앙 정렬, 합계 컬럼 198 → 170px
+   - 공사명 13px, accent #C83030 전역, w-[1043px] 명시
+   - 행 높이 h-[30px] Figma 실측, 샘플 13행
+   - 로고 padding pt/px → pr
+
+3. chore: RESUME 갱신
+
+검증: npm run build exit 0, /sandbox/detail 시각 대조 완료
+
+## 이전 완료
+- Phase 6.3.3 fix6 (2026-04-17 오전)
+- Phase 6.3.0~fix5 (2026-04-16)
+- Phase 6.2 — 갑지 (2026-04-16, 오늘 비로소 커밋 정상화)
+- Phase 6.1 — PDF 파운데이션 (2026-04-16 이전, 오늘 비로소 커밋 정상화)
 
 ## 다음에 할 것
 
-**Figma 을지 수정 반영 → 6.3.3 최종 확정**
+**Phase 6.3.4 — 실데이터 매핑 유틸**
 
-PM이 Figma 을지 노드(3:173) 수정 중. 수정 완료 후:
-1. detail-sheet-tokens.md 재추출 (Figma MCP)
-2. 변경된 토큰 → 컴포넌트 반영 (DetailTableHeader/DetailRow/DetailHeader)
-3. 대조표 재작성 → 불일치 0 확인
-4. 6.3.3 최종 커밋
-
-이후 Phase 6.3.4 범위 재정의 (PM과 협의 필요).
+sandbox 하드코딩 샘플 → 실제 견적 state → DetailSheet props 변환 함수.
+- 선결: lib/estimate/ state shape 확인
+- 입력: 견적 도메인 모델
+- 출력: DetailSheet
+- 재사용: calcDetailSheet
 
 ## 열린 질문
 
-- Phase 6.3 남은 sub-phase 재정의 필요 (원안 6.3.4 "초과모드" 폐기됨)
-- Figma 을지 수정 반영 범위 (데이터 변경만? 레이아웃 변경도?)
-- 실제 에셋: 로고/직인 PM 업로드 대기 (브랜드 완료)
-- 견적 생성 시 managerName/Phone 자동 채움 로직 (users 테이블 기반, 6.3 이후)
+1. 다음 세션 초반 정리 대상 (이번 세션 범위 아님):
+   - M CLAUDE.md, M .claude/settings.json — 변경 이유 확인
+   - D NEXT_SESSION_HANDOFF*.md 4개, D bsmg_estimate_final_v5~v7.md — 아카이브 정리 의도 확정 후 커밋
+   - ?? PROJECT_MAP.md, docs/PDF_PIPELINE_EXPORT.md, docs/verification-protocol.md — Project knowledge 이미 있음. 레포 동기화 판단
+   - ?? .claude/hooks/verification-gate.js — 유지/폐기
+   - ?? scripts/capture-sandbox-detail.mjs — 유지/삭제
+
+2. main 머지 시점 — phase-6-3-detail 커밋 squash 할지 각 커밋 유지할지
+
+3. 직인 이미지 PM 업로드 대기
+
+4. Phase 6.3.4 범위 PM 협의 필요
 
 ## 참고
-
-- `.claude/tokens/detail-sheet-tokens.md` — 을지 Figma 토큰 (fix5 반영)
-- `.claude/tokens/cover-sheet-tokens.md` — 갑지 Figma 토큰 (델타 3차)
-- `docs/PDF_PIPELINE_EXPORT.md` — proposal-system 패턴 이식 레퍼런스
-- `docs/견적서_개발_핸드오프.md` — 레이아웃 스펙 (17행 고정 → 폐기, 가변 행 확정)
-- Tailwind arbitrary value 패턴, 파일당 200줄 제약
-- 모든 디자인 변경은 Figma 먼저 수정 → CC 재추출 → 대조표 검증 흐름
+- .claude/tokens/detail-sheet-tokens.md — 을지 토큰 v2.1
+- .claude/tokens/cover-sheet-tokens.md — 갑지 토큰
+- docs/견적서_개발_핸드오프.md — 레이아웃 스펙
+- lib/estimate/pdf/detailCalc.ts — 계산 유틸
+- lib/estimate/pdf/types.ts — 타입
