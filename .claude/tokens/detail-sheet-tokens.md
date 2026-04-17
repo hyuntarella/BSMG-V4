@@ -1,163 +1,154 @@
-# Detail Sheet (을지) — Figma Design Tokens
+# 을지 (Detail Sheet) 디자인 토큰
 
-> Extracted from: Figma file `lO5PLMtZnPTOPEabRORhSL`, node `3:173`
-> 최종 갱신: 2026-04-16 — 초기 추출
+**Figma 소스**: `https://www.figma.com/design/lO5PLMtZnPTOPEabRORhSL/방수명가_견적서?node-id=3-173`
+**추출 시점**: 2026-04-17
+**Phase**: 6.3 (PM 대폭 수정본 반영 — 수정 전 토큰 전면 폐기)
+**규율**: 핸드오프 상단 원칙 "피그마 디자인을 그대로 구현할 것. 임의 변경 금지."
 
-## 변경 이력
-- 2026-04-16: 초기 추출 (Figma MCP node 3:173)
-- 2026-04-16: CalloutRow 스타일 — PM 지시 기반 추가 (Figma 미반영, 추가 반영 시 재조정 필요)
+**PM 확정사항 (2026-04-17)**:
+1. Figma 값은 모두 의도적 — 임의 해석 금지
+2. `#C83030` = 전역 accent (로고 뱃지 + CalloutRow 모두 승격)
+3. 공사명 13px 확정
+4. 데이터 행 여백 = 원본 수치 (py-[7px], 공과잡비 py-[3px])
+5. 테이블 width = `w-[1043px]` 명시 고정
 
-## Page
+---
 
-| Property | Value |
-|----------|-------|
-| Width | 1123px |
-| Height | 794px |
-| Background | #FFFFFF |
-| Padding | 40px |
-| Gap (sections) | 17px |
-| Font Family | Pretendard Variable |
+## 0. 구조 원칙
 
-## Typography
+- **가변 행**: 17행 고정 체계 폐기. 데이터 행은 품목 개수만큼만 생성.
+- **페이지**: 1123 × 794 (가로).
+- **Frame 루트** (node 3:173):
+  - 배경 `#FFFFFF`
+  - Auto layout `flex-col`, `gap: 12px`, `padding: 40px`, `items: start`
+  - 3개 블록 수직 스택: 로고 → 공사명 행 → 테이블
 
-| Style | Size | Weight | Line Height | Usage |
-|-------|------|--------|-------------|-------|
-| header-label | 13px | 600 (SemiBold) | normal | 테이블 헤더 (상단+하단) |
-| data | 13px | 400 (Regular) | normal | 데이터 행 텍스트 |
-| footer-label | 13px | 600 (SemiBold) | normal | 소계/공과잡비/이윤/계 라벨 |
-| footer-total | 14px | 700 (Bold) | normal | 합계 행 라벨 + 금액 |
-| construction-label | 13px | 600 (SemiBold) | normal | 공사명 라벨 (dark bg) |
-| construction-value | 13px | 400 (Regular) | normal | 공사명 값 |
+---
 
-## Colors
+## 1. 컬러 토큰
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| text-primary | #000000 | 기본 텍스트 |
-| text-white | #FFFFFF | dark bg 위 텍스트 (헤더, 공사명 라벨) |
-| surface-dark | #121212 | 테이블 헤더 bg, 공사명 라벨 bg |
-| surface-light | #EBEBEB | 소계/합계 행 bg |
-| line-light | #C4C4C4 | 데이터 행 border-bottom, 테이블 외곽 |
-| line-dark | #4D4D4D | 헤더 내부 세로 구분선 (border-right) |
-| accent | #A11D1F | CalloutRow accent 텍스트 색 |
+| 이름 | 값 | 용도 |
+|---|---|---|
+| `surface-dark` | `#121212` | 공사명 라벨 배경 + 테이블 헤더 배경 |
+| `surface-light` | `#EBEBEB` | 소계 / 계 / 합계 행 배경 |
+| `line-light` | `#C4C4C4` | 테이블 외곽선 / 데이터 행 구분선 |
+| `line-dark` | `#4D4D4D` | 헤더 내부 구분선 (헤더 전용) |
+| `text-primary` | `#000000` | 본문 텍스트 |
+| `text-on-dark` | `#FFFFFF` | 어두운 배경 위 텍스트 |
+| `border-frame` | `#000000` | 공사명 행 상단 2px, 공사명 라벨 박스 외곽선 |
+| `accent` | `#C83030` | **전역 accent** — 로고 뱃지 + CalloutRow 텍스트 |
 
-## Layout — Header Row (로고)
+---
 
-| Property | Value |
-|----------|-------|
-| Display | flex, items-center, overflow-clip |
-| Padding | pr-10px |
-| Logo | 방수명가 SVG (~115×26px) |
+## 2. 타이포그래피
 
-## Layout — Amount Block (공사명)
+| 이름 | 폰트 | 크기 | Weight | Line-height | 용도 |
+|---|---|---|---|---|---|
+| `construction-label` | Pretendard Variable | 13px | SemiBold (600) | 1.414 | 공사명 라벨 "공 사 명" |
+| `construction-value` | Pretendard Variable | 13px | Regular (400) | 1.414 | 공사명 값 텍스트 |
+| `table-header` | Pretendard Variable | 12px | Regular (400) | 108.62% | 헤더 전체 |
+| `table-body` | Pretendard Variable | 12px | Regular (400) | 108.62% | 데이터 / 소계 / 공과잡비 / 이윤 / 계 |
+| `grand-total-label` | Pretendard Variable | 12px | Bold (700) | 108.62% | 합계 행 "합 계" |
+| `grand-total-value` | Pretendard Variable | 12px | Black (900) | 108.62% | 합계 행 금액 |
+| `logo-badge-han` | zcoolqingkehuangyouti | 6.4px | Regular | normal | 로고 뱃지 한자 |
 
-| Property | Value |
-|----------|-------|
-| Border top | 2px solid #000 |
-| Label cell | bg #121212, w-100px, h-37px, center, SemiBold 13px white |
-| Label text | "공 사 명" |
-| Value cell | flex-1, h-37px, pl-10px, items-center, Regular 13px black |
-| Border bottom | 1px solid #C4C4C4 |
+---
 
-## Layout — Table Header (2단 병합)
+## 3. 블록별 스펙
 
-### 상단 행 (rowSpan 그룹 라벨, h=32px)
+### 3.1 로고 헤더 (node 3:174)
+- flex-row, items: center, padding-right: 10px
+- 로고 이미지: 83.52 × 20.74px
+- 좌측 세로 뱃지: bg-accent(#C83030), 4.98 × 11.53px
+- 뱃지 내부 "防 水" 한자 2자 세로 배치, 흰색, 6.4px
 
-| Column Group | Width | Text | Align |
-|-------------|-------|------|-------|
-| 품명 | 140px | "품 명" | center (rowSpan=2, 세로 중앙) |
-| 규격 | 100px | "규 격" | center (rowSpan=2) |
-| 단위 | 50px | "단 위" | center (rowSpan=2) |
-| 수량 | 60px | "수 량" | center (rowSpan=2) |
-| 재료비 | 145px | "재 료 비" | center (colSpan=2: 단가+금액) |
-| 인건비 | 145px | "인 건 비" | center (colSpan=2: 단가+금액) |
-| 경비 | 145px | "경 비" | center (colSpan=2: 단가+금액) |
-| 합계 | 198px | "합 계" | center (colSpan=2: 단가+금액) |
-| 비고 | 60px | "비 고" | center (rowSpan=2) |
+### 3.2 공사명 행 (node 3:256)
+- 외곽: border-top: 2px solid #000000
+- flex-row, items: center
+- 라벨 박스: w-100 h-32, bg-#121212, border 1px solid #000000, padding 8px 15px, construction-label, 흰색 중앙
+- 값 박스: flex-1, h-33, border-bottom 1px solid #C4C4C4, padding 7px 0 5px 10px, construction-value, 검정 start
 
-> Figma 원문: "인 건 비". 코드 필드명은 `labor` 유지.
+### 3.3 테이블 (node 3:262)
+- 외곽: border-l border-r border-b border-[#C4C4C4]
+- **명시 width: w-[1043px]**
+- flex-col, items: start
 
-### 하단 행 (서브헤더, h=32px)
+#### 3.3.1 컬럼 너비
 
-| Parent | Sub-col 1 | Sub-col 2 |
-|--------|-----------|-----------|
-| 재료비 (145px) | 단가 60px | 금액 85px |
-| 인건비 (145px) | 단가 60px | 금액 85px |
-| 경비 (145px) | 단가 60px | 금액 85px |
-| 합계 (198px) | 단가 80px | 금액 118px |
+| 컬럼 | 너비(px) |
+|---|---|
+| 품명 | 158 |
+| 규격 | 110 |
+| 단위 | 50 |
+| 수량 | 60 |
+| 재료비 | 145 (60+85) |
+| 인건비 | 145 (60+85) |
+| 경비 | 145 (60+85) |
+| 합계 | 170 (75+95) |
+| 비고 | 60 |
+| **총합** | **1043** |
 
-### 헤더 스타일
-- bg: #121212
-- 텍스트: white, SemiBold 13px, center
-- 내부 세로 구분: border-right 1px #4D4D4D
-- 전체 높이: 64px (32+32)
-- 상단 border-top: 2px solid #000
+#### 3.3.2 헤더 행 (node 3:263)
+- 전체 높이: 57px (상단 29 + 하단 28)
+- 배경: #121212
+- 셀 내부 구분선: border-r 1px solid #4D4D4D
+- 글자: #FFFFFF, 12px Regular 중앙
+- 단순 컬럼 (품명/규격/단위/수량/비고): 1행 flex center
+- 2단 병합 컬럼 (재료비/인건비/경비/합계):
+  - flex-col
+  - 상단 label-row: h-29, border-b 1px solid #4D4D4D
+  - 하단 sub-header-row: h-28, flex-row — 단가 셀 border-r, 금액 셀 no border-r
 
-## Layout — Data Row (품목 행)
+#### 3.3.3 데이터 행
+- border-b 1px solid #C4C4C4
+- width: 1043px
+- 각 셀: border-r 1px solid #C4C4C4, **padding: 7px 0 (py-[7px])**
+- 마지막 비고 셀: no border-r
+- 내용: 12px Regular 검정, leading 108.62%
+- **정렬 (PM 확정): 전 셀 text-center** (수량·단가·금액 포함 모두 중앙)
 
-| Property | Value |
-|----------|-------|
-| Height | ~34.72px |
-| Border bottom | 1px solid #C4C4C4 |
-| Text | Regular 13px, #000, center (숫자는 right) |
-| Column borders | border-right 1px #C4C4C4 |
+#### 3.3.4 소계 행 (node 15:86)
+- 배경: #EBEBEB
+- padding: py-[7px]
+- 품명 셀: "소 계"
+- 재료비·인건비·경비·합계 **금액** 셀에만 값 표시
 
-### Column Widths (데이터 행)
+#### 3.3.5 공과잡비·안전관리비 행 (node 15:114)
+- 배경: 흰색
+- **padding: py-[3px]** (원본 수치, 유일한 얇은 행)
+- 품명 셀: 2줄 "공 과 잡 비," / "안 전 관 리 비"
+- 단위 셀: `%`, 수량 셀: `3`
+- 합계 금액 셀에만 값 표시
 
-| Column | Width | Align |
-|--------|-------|-------|
-| 품명 | 140px | center |
-| 규격 | 100px | center |
-| 단위 | 50px | center |
-| 수량 | 60px | right |
-| 재료비-단가 | 60px | right |
-| 재료비-금액 | 85px | right |
-| 인건비-단가 | 60px | right |
-| 인건비-금액 | 85px | right |
-| 경비-단가 | 60px | right |
-| 경비-금액 | 85px | right |
-| 합계-단가 | 80px | right |
-| 합계-금액 | 118px | right |
-| 비고 | 60px | center |
+#### 3.3.6 기업이윤 행 (node 15:142)
+- 배경: 흰색
+- padding: py-[7px]
+- 품명 셀: "기 업 이 윤"
+- 단위 셀: `%`, 수량 셀: `6`
+- 합계 금액 셀에만 값 표시
 
-## Layout — Footer Rows (소계~합계)
+#### 3.3.7 계 행 (node 15:170)
+- 배경: #EBEBEB
+- padding: py-[7px]
+- 품명 셀: "계"
+- 합계 금액 셀에만 값 표시
 
-### 소계 행
-- 품명 셀: "소 계", SemiBold 13px, center (w=140px, text-indent -7.5px → w=155px)
-- bg: #EBEBEB
-- 재료비 금액 / 인건비 금액 / 경비 금액 / 합계 금액 컬럼에 값 표시
-- 나머지 셀 비움
+#### 3.3.8 합계 행 (node 15:198)
+- 배경: #EBEBEB
+- padding: py-[7px]
+- 품명 셀: "합 계" — Bold
+- 합계 금액 셀: Black weight
+- 비고 셀: "(단수정리)" — Regular
 
-### 공과잡비 행
-- 품명 셀: "공 과 잡 비, 안 전 관 리 비", SemiBold 13px (2줄, h=32px+)
-- 단위: "%", 수량: "3"
-- 합계 금액 컬럼에만 값 표시
-- 다른 금액 컬럼 비움
+---
 
-### 기업이윤 행
-- 품명 셀: "기 업 이 윤", SemiBold 13px
-- 단위: "%", 수량: "6"
-- 합계 금액 컬럼에만 값 표시
+## 4. 변경 이력
 
-### 계 행
-- 품명 셀: "계", SemiBold 13px
-- 합계 금액 컬럼에만 값 표시
+| 날짜 | 버전 | 변경 |
+|---|---|---|
+| 2026-04-17 | v2.0 | Phase 6.3 초안 — Figma 2026-04 재추출 전면 재작성 |
+| 2026-04-17 | v2.1 | PM 확정 5건 반영: 전 셀 중앙정렬 / accent 전역 승격 / 13px / py-[7·3px] 원본 수치 / w-[1043px] 명시 |
 
-### 합계 행
-- 품명 셀: "합 계", Bold 14px
-- bg: #EBEBEB
-- 합계 금액: Bold 14px
-- 비고: "(단수정리)", Regular 13px
+---
 
-## Layout — Callout Row (PM 지시 기반, Figma 추가 반영 시 재조정 필요)
-
-| Property | Value |
-|----------|-------|
-| Height | ~34.72px (데이터 행과 동일, 잠정) |
-| Background | #FFFFFF (없음) |
-| Text align | left |
-| Colspan | 전체 가로 병합 (13 컬럼) |
-| accent text | #A11D1F, Bold 가능 |
-| default text | #000000, Regular 13px |
-| Border bottom | 1px solid #C4C4C4 |
-| 예시 | "※ 판넬도막방수는 하자보수기간 3년 적용됩니다" |
+**END**

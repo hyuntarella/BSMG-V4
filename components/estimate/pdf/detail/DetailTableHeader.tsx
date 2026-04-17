@@ -7,27 +7,27 @@
  */
 
 const thBase =
-  'bg-[#ebebeb] text-black text-[12px] font-semibold text-center'
+  'bg-[#121212] text-white text-[12px] font-normal text-center leading-[108.62%]'
 const borderR = 'border-r border-[#4d4d4d]'
 
 export default function DetailTableHeader() {
   return (
     <thead>
-      {/* 상단 행 — h=32px */}
-      <tr className="h-[32px]">
-        <th rowSpan={2} className={`${thBase} ${borderR} w-[140px]`}>품 명</th>
-        <th rowSpan={2} className={`${thBase} ${borderR} w-[100px]`}>규 격</th>
+      {/* 상단 행 — h=29px */}
+      <tr className="h-[29px]">
+        <th rowSpan={2} className={`${thBase} ${borderR} w-[158px]`}>품 명</th>
+        <th rowSpan={2} className={`${thBase} ${borderR} w-[110px]`}>규 격</th>
         <th rowSpan={2} className={`${thBase} ${borderR} w-[50px]`}>단 위</th>
         <th rowSpan={2} className={`${thBase} ${borderR} w-[60px]`}>수 량</th>
-        <th colSpan={2} className={`${thBase} ${borderR} w-[145px]`}>재 료 비</th>
-        <th colSpan={2} className={`${thBase} ${borderR} w-[145px]`}>인 건 비</th>
-        <th colSpan={2} className={`${thBase} ${borderR} w-[145px]`}>경 비</th>
-        <th colSpan={2} className={`${thBase} ${borderR} w-[198px]`}>합 계</th>
+        <th colSpan={2} className={`${thBase} ${borderR} border-b border-[#4d4d4d] w-[145px]`}>재 료 비</th>
+        <th colSpan={2} className={`${thBase} ${borderR} border-b border-[#4d4d4d] w-[145px]`}>인 건 비</th>
+        <th colSpan={2} className={`${thBase} ${borderR} border-b border-[#4d4d4d] w-[145px]`}>경 비</th>
+        <th colSpan={2} className={`${thBase} ${borderR} border-b border-[#4d4d4d] w-[170px]`}>합 계</th>
         <th rowSpan={2} className={`${thBase} w-[60px]`}>비 고</th>
       </tr>
 
-      {/* 하단 행 — h=32px */}
-      <tr className="h-[32px]">
+      {/* 하단 행 — h=28px */}
+      <tr className="h-[28px]">
         {/* 재료비 */}
         <th className={`${thBase} ${borderR} w-[60px]`}>단가</th>
         <th className={`${thBase} ${borderR} w-[85px]`}>금액</th>
@@ -38,8 +38,8 @@ export default function DetailTableHeader() {
         <th className={`${thBase} ${borderR} w-[60px]`}>단가</th>
         <th className={`${thBase} ${borderR} w-[85px]`}>금액</th>
         {/* 합계 */}
-        <th className={`${thBase} ${borderR} w-[80px]`}>단가</th>
-        <th className={`${thBase} ${borderR} w-[118px]`}>금액</th>
+        <th className={`${thBase} ${borderR} w-[75px]`}>단가</th>
+        <th className={`${thBase} ${borderR} w-[95px]`}>금액</th>
       </tr>
     </thead>
   )

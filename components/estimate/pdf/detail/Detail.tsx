@@ -27,10 +27,10 @@ export default function Detail({ sheet }: DetailProps) {
   const calc = calcDetailSheet(sheet)
 
   return (
-    <div className="ep-page flex flex-col gap-[17px] items-start p-[40px]">
+    <div className="ep-page flex flex-col gap-[12px] items-start p-[40px]">
       <DetailHeader constructionName={sheet.constructionName} />
 
-      <table className="w-full border-collapse">
+      <table className="w-[1043px] border-collapse border-l border-r border-b border-[#c4c4c4]">
         <DetailTableHeader />
 
         <tbody>
