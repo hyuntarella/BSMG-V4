@@ -100,3 +100,5 @@
 | 문서 | 내용 |
 |------|------|
 | docs/PROJECT_SPEC.md | 프로젝트 배경, 음성 설계, DB 스키마, UI, API, 구현 순서 |
+| docs/PDF_PIPELINE_EXPORT.md | 제안서 레포 PDF 파이프라인 (Phase 6 이식 레퍼런스) |
+| docs/견적서_개발_핸드오프.md | 견적서 출력 레이아웃 스펙 (Phase 6 spec) |
